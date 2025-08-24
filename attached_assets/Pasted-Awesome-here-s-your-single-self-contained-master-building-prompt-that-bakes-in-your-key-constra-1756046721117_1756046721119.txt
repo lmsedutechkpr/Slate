@@ -1,0 +1,437 @@
+Awesome—here’s your **single, self-contained master building prompt** that bakes in your key constraint: **only students can self-register**; **Admin is pre-seeded in DB**; **Instructors are created by Admin (no public signup)**; and **users are routed to role pages only if credentials (username/password or whitelisted Google email) match**. It also includes end-to-end steps (auth → onboarding → features) and a sprint plan.
+
+---
+
+# 🔧 Master Prompt — Build a SaaS Edutech LMS (LeetCode/HackerRank-style UI)
+
+**You are a senior full-stack team. Build a production-ready SaaS Edutech LMS that unifies learning + commerce. Deliver a clean, modular, card-based UX inspired by LeetCode/HackerRank.**
+
+## 0) Non-Negotiable Constraints (Auth Model)
+
+* **Public self-registration is allowed ONLY for Students.**
+* **Admin account is pre-seeded in MongoDB** (no admin registration form).
+* **Instructors are provisioned by Admin** (username/password and optional Google email). **No direct instructor signup.**
+* **Login routing rule:**
+
+  * If credentials (username+password OR Google OAuth email) match an existing user record, navigate to their **role dashboard** (Admin, Instructor, Student).
+  * If a Google email is used but not whitelisted/linked in DB → **deny** with message: “Ask Admin to provision access.”
+* **JWT for sessions**. Short-lived access token + refresh token rotation.
+* **Password hashing with bcrypt.**
+* **On first Student login:** show **one-time Onboarding**; do not show again after `onboarded=true` (but profile editable later).
+
+---
+
+## 1) Goals & Scope
+
+* **Learning:** video lectures (YouTube integration), live classes (internal scheduler + external Meet/Zoom links), quizzes, assignments, progress tracking, certificates.
+* **Commerce:** catalog of mobile accessories (headphones, stylus, chargers…), cart/checkout, offline order queue (sync when online).
+* **Recommendations:** courses & accessories based on onboarding, behavior, and progress.
+* **Gamification:** XP, badges, streaks, leaderboards.
+* **Multilingual:** English + Tamil via i18next.
+* **Offline-first:** PWA, Service Worker, IndexedDB/Cache API, Background Sync for orders & progress events.
+* **RBAC:** Admin (all privileges), Instructor (their courses only), Student.
+
+---
+
+## 2) Tech Stack
+
+* **Frontend:** React (Vite), React Router, Axios, Tailwind + Bootstrap (utility + components), Recharts, Framer Motion, i18next, React Query (or TanStack Query) for server state.
+* **Backend:** Node.js (Express), MongoDB (Mongoose), JWT, bcrypt, Multer + Cloudinary (media), WebSockets (Socket.IO) for notifications/live updates, BullMQ/Redis (optional) for jobs.
+* **Integrations:** YouTube embed/API, Google OAuth (restricted to whitelisted emails for non-student roles), Payment gateway (Stripe/Razorpay) for online orders; **COD / reserve-and-pay-later** for offline queue.
+* **DevOps:** Env-based config, Docker, CI checks (lint/test/build), Cloud deploy (Render/Fly/EC2/Heroku), CDN for assets, Cloudinary for media.
+
+---
+
+## 3) UX & Navigation (LeetCode/HackerRank vibe)
+
+* **Top-nav tabs:** Dashboard, Courses, Assignments, Progress, Profile, Store (accessories), Cart.
+* **Card-based home:** Current Learning, Roadmap, ToDo & Assignments, Certificates, Expected Completion Time, Streak/XP summary.
+* **Visuals:** progress bars, Recharts graphs, badges, streak counters, leaderboards.
+* **Responsive:** Mobile-first; grid layouts; soft shadows; rounded-2xl; smooth transitions with Framer Motion.
+
+---
+
+## 4) Roles & Capabilities
+
+### Admin (pre-seeded; full control)
+
+* CRUD: Students, Instructors, Courses, Categories, Products, Coupons.
+* **Assign Instructor → Course** (only Admin can assign).
+* Global analytics: enrollments, completions, revenue, DAU/WAU, live-class attendance, order stats.
+* Approve/ban users, reset passwords, manage translations, feature flags.
+
+### Instructor (provisioned by Admin)
+
+* Manage **their** courses only.
+* Upload videos (Multer → Cloudinary), add sections/lectures.
+* Schedule live sessions (date/time, internal room or external link).
+* Create quizzes/assignments with due dates; grade submissions; give feedback.
+* Mark attendance per session (present/absent/late).
+* Announcements and direct messages to enrolled students.
+
+### Student (self-register only)
+
+* First-login **Onboarding**: Year of Study, Degree, Interest Type (Core/IT), Domains (multi-select tags), Career Goal (optional), Learning Pace (slow/medium/intensive).
+* Dashboard: Current Learning, personalized Roadmap, ToDo & Assignments, Certificates, Expected Completion Time, Streak/XP.
+* Courses: discover, enroll, continue learning.
+* Assignments: view/upload/submit; see grades & feedback.
+* Progress: charts (% complete, weekly hours, streaks), XP, badges, leaderboard.
+* Profile: edit onboarding fields, certificates, achievements.
+* Live classes: join links / embedded player; attendance captured.
+* Store: browse accessories; cart/checkout; **offline order queue** (sync later).
+
+---
+
+## 5) Data Model (Mongoose—outline)
+
+```
+User { _id, username, email, passwordHash, role: 'admin'|'instructor'|'student',
+       googleEmail?, isGoogleLinked, status: 'active'|'banned', createdAt }
+
+StudentProfile { userId, yearOfStudy, degree, interestType, domains[], careerGoal?, learningPace, onboarded }
+
+InstructorProfile { userId, bio?, expertise[], socials?, payoutInfo? }
+
+Course { _id, title, slug, description, category, tags[], level, language,
+         coverUrl, createdBy (instructorId), assignedInstructor (userId),
+         sections: [ { title, lectures: [LectureRef] } ], isPublished, price? }
+
+Lecture { _id, courseId, title, videoUrl (Cloudinary/YouTube), durationSec, resources[], order }
+
+LiveSession { _id, courseId, title, startAt, endAt, joinLink, hostType:'gmeet'|'youtube'|'internal',
+              notes?, recordingUrl? }
+
+Enrollment { _id, courseId, studentId, startedAt, progressPct, lastLectureId, xp, streakCount }
+
+Assignment { _id, courseId, title, description, dueAt, maxScore, resources[] }
+
+Submission { _id, assignmentId, studentId, files[], text?, submittedAt, score?, feedback?, status }
+
+Attendance { _id, liveSessionId, studentId, status:'present'|'absent'|'late', markedAt, markedBy }
+
+Quiz { _id, courseId, title, questions:[ { q, options[], correctIndex, points } ], timeLimitMin }
+
+ProgressEvent { _id, enrollmentId, type:'watch'|'quiz'|'assignment', payload, createdAt, offlineQueued? }
+
+Certificate { _id, courseId, studentId, issueDate, hash (blockchain-style verify), url }
+
+Badge { _id, code, name, description, xp, iconUrl }
+
+XPLog { _id, studentId, source:'lecture'|'quiz'|'assignment'|'streak', amount, at }
+
+Product { _id, title, slug, category, tags[], price, stock, images[], specs, rating? }
+
+Cart { _id, studentId, items:[ { productId, qty } ], updatedAt }
+
+Order { _id, studentId, items[], total, currency, status:'queued_offline'|'pending'|'paid'|'failed'|'cancelled',
+        paymentMode:'online'|'cod'|'reserve', address, createdAt, syncedAt? }
+
+Notification { _id, userId, type, title, body, read, createdAt }
+
+Recommendation { _id, userId, kind:'course'|'product', items:[ { refId, score } ], generatedAt }
+```
+
+---
+
+## 6) Key Backend Endpoints (selected)
+
+* **Auth**
+
+  * `POST /auth/student/register` → create student user + empty StudentProfile(onboarded=false).
+  * `POST /auth/login` → username/email + password; issue JWT pair, return role & redirect path.
+  * `POST /auth/google` → OAuth token; allow only if `googleEmail` matches an existing (admin/instructor/student) or is linked to a student; else 403.
+  * `POST /auth/token/refresh`, `POST /auth/logout`.
+* **Admin**
+
+  * `POST /admin/instructors` (create instructor; set temp password; optional googleEmail).
+  * `POST /admin/courses/:id/assign-instructor` (only Admin).
+  * CRUD: users (role-gated), courses, products, coupons.
+  * `GET /admin/analytics/overview`.
+* **Instructor**
+
+  * `GET /instructor/courses` (mine).
+  * `POST /courses/:id/lectures` (Multer→Cloudinary), `POST /courses/:id/live`.
+  * `POST /courses/:id/assignments`, `PUT /submissions/:id/grade`.
+  * `POST /live/:id/attendance`.
+* **Student**
+
+  * `GET /me`, `PUT /me/profile` (onboarding fields; flip `onboarded=true` once submitted).
+  * `GET /courses/suggested`, `POST /courses/:id/enroll`, `GET /enrollments/:id`.
+  * `POST /assignments/:id/submit`, `GET /progress/charts`.
+  * **Offline sync:** `POST /sync/progress`, `POST /sync/orders`.
+* **Store**
+
+  * `GET /products`, `POST /cart`, `POST /checkout` (online), `POST /order/offline` (queue).
+
+---
+
+## 7) Frontend Routing (React Router)
+
+```
+/login, /register (student only), /google/callback
+/app (protected shell with role-based nav)
+  /dashboard
+  /courses
+    /courses/:courseId (outline, lectures, notes, Q&A)
+    /courses/:courseId/live/:sessionId
+  /assignments
+  /progress
+  /profile
+  /store
+  /cart
+/admin (Admin-only)
+  /admin/users, /admin/instructors, /admin/courses, /admin/products, /admin/analytics
+/instructor (Instructor-only)
+  /instructor/courses, /instructor/courses/:id/edit, /instructor/live, /instructor/gradings
+```
+
+**Route Guards:**
+
+* If `role==='student' && !onboarded` → force `/onboarding` before any `/app/*`.
+* Attempted access to other roles → 403 page.
+
+---
+
+## 8) Onboarding (one-time)
+
+Fields: Year of Study (dropdown), Degree (dropdown/text), Interest Type (Core/IT), Domains (multi-select tags: Web Dev, Data Science, AI, Cybersecurity…), Career Goal (optional), Learning Pace (slow/medium/intensive).
+
+* On submit: `PUT /me/profile` → set `onboarded=true`.
+* **Roadmap generation rule:** match Interest Type + Domains + Pace → pick Course tracks and schedule (hours/week).
+
+---
+
+## 9) Recommendations (MVP logic)
+
+* **Courses:** weight by (domains overlap, level fit, completion gaps, recent activity). `score = w1*domain + w2*level + w3*novelty + w4*progressNeed`.
+* **Accessories:** map course types to accessories (e.g., “Video/ML courses → headphones”; “UI/UX → stylus”). Boost by cart/visit history.
+* Cache recs per user; regenerate daily or on onboarding update.
+
+---
+
+## 10) Gamification
+
+* XP for lecture completions, quiz scores, assignment submissions, streaks.
+* Badges at XP thresholds and milestones (first course, 7-day streak, 100% course).
+* Streak increments with daily activity; decay rules configurable.
+* Leaderboard (global and course-local).
+
+---
+
+## 11) Live Classes & Attendance
+
+* Instructor schedules LiveSession; students get notifications + calendar .ics.
+* Attendance capture: auto “present” on join event + instructor override; export CSV.
+* Recording URL saved post-session.
+
+---
+
+## 12) Offline & PWA
+
+* Register Service Worker: cache shell, i18n bundles, course metadata.
+* IndexedDB for: lecture manifests, progress events, cart & offline orders.
+* Background Sync: `sync-progress`, `sync-orders` (retry with backoff).
+* **Downloads:** store lecture URLs (Cloudinary/YouTube) for offline playback (respect DRM/terms; cache only allowed assets).
+
+---
+
+## 13) Multilingual (English + Tamil)
+
+* i18next with language detector; translation JSON namespaces (`common`, `dashboard`, `courses`, `store`).
+* RTL-safe styles (future).
+* Admin UI for translation keys (optional).
+
+---
+
+## 14) Security & Compliance
+
+* JWT with refresh rotation & replay detection; httpOnly cookies for refresh.
+* Rate limiting on auth routes; Helmet; CORS allowlist.
+* Strong bcrypt cost; password rules; email verification for students.
+* Media access keys (signed URLs) where needed.
+* Audit logs for Admin actions.
+* GDPR-style export/delete (MVP: export profile & activity).
+
+---
+
+## 15) UI Components (Tailwind + Bootstrap)
+
+* **Card primitives**, progress bars, badge chips, tag multi-select, timeline, table with pagination, modal, toast notifications, skeleton loaders.
+* Recharts: line (weekly hours), radial progress (course %), bar (XP by week).
+
+---
+
+## 16) Folder Structure
+
+**Frontend (Vite)**
+
+```
+src/
+  api/axios.ts
+  auth/{AuthProvider.tsx, useAuth.ts}
+  routes/AppRoutes.tsx
+  pages/{Login, RegisterStudent, Onboarding, ...}
+  features/{dashboard, courses, assignments, progress, profile, store}
+  components/{cards, charts, forms, layout}
+  i18n/{en/*.json, ta/*.json}
+  store/{queryClient.ts}
+  utils/{rbac.ts, date.ts}
+  sw.ts (service worker)
+```
+
+**Backend**
+
+```
+src/
+  index.ts
+  config/{env.ts, db.ts, cloudinary.ts}
+  middleware/{auth.ts, rbac.ts, error.ts, rateLimit.ts}
+  models/*.ts
+  controllers/*.ts
+  routes/*.ts
+  services/{auth, courses, commerce, recs, gamification, live}
+  jobs/{sync.ts}
+  utils/{jwt.ts, email.ts}
+  seed/{seedAdmin.ts, seedDemo.ts}
+```
+
+---
+
+## 17) Environment Variables (examples)
+
+```
+MONGO_URI=
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
+BCRYPT_SALT_ROUNDS=12
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+ALLOWED_OAUTH_EMAILS_DOMAIN?= (optional)
+STRIPE_KEY= or RAZORPAY_KEY=
+CLIENT_URL=
+CORS_ORIGIN_LIST=
+```
+
+---
+
+## 18) Seeding & Access Rules
+
+* `seedAdmin.ts` creates **one Admin** (email/username + strong password).
+* Admin UI → “Create Instructor”: set username, temp password, (optional) googleEmail whitelist. Sends email with credentials.
+* **No public route** creates Admin/Instructor.
+
+---
+
+## 19) Acceptance Criteria (Auth & Routing)
+
+* Student can **register**, verify email, login, see **Onboarding** exactly once, then Dashboard.
+* Instructor/Admin cannot register; only login with provisioned credentials or whitelisted Google OAuth email.
+* Role-based route guards fully enforced; 403 for cross-role access.
+* Refresh tokens rotate; logout invalidates.
+* Onboarding persisted; subsequent visits don’t show onboarding.
+
+---
+
+## 20) Sprint Plan (step-by-step)
+
+**Sprint 1: Auth & RBAC**
+
+* Build `/auth/student/register`, `/auth/login`, JWT (access+refresh), bcrypt.
+* Google OAuth login—**allow only if user/email exists**.
+* Client: auth context, protected routes, role-based redirects.
+* Seed admin; Admin login page (no register).
+
+**Sprint 2: Onboarding**
+
+* Student Onboarding form + validation.
+* `PUT /me/profile` sets `onboarded=true`.
+* Force routing to `/onboarding` if not onboarded.
+
+**Sprint 3: Course Core**
+
+* Models: Course, Lecture, Enrollment.
+* Instructor (provisioned) CRUD for course content; Admin assignment endpoint.
+* Student: Explore → Enroll → Continue Learning. Progress calc.
+
+**Sprint 4: Assignments & Quizzes**
+
+* Assignment create/submit/grade; quiz engine with time limit; submissions & scores.
+* Student Assignments tab with statuses, deadlines, reminders.
+
+**Sprint 5: Progress & Gamification**
+
+* Progress charts (Recharts), XP logs, badges, streak counter + rules.
+* Leaderboard (global + per course).
+
+**Sprint 6: Live Sessions & Attendance**
+
+* Schedule sessions; join links; attendance capture; CSV export; notifications.
+
+**Sprint 7: Store & Commerce**
+
+* Product catalog, cart, checkout (online), orders.
+* **Offline order queue** with Background Sync; COD/reserve option.
+
+**Sprint 8: Recommendations**
+
+* Rule-based recs for courses & accessories; API + UI slots; daily regeneration.
+
+**Sprint 9: Media & Cloudinary**
+
+* Multer upload, Cloudinary storage, thumbnails, duration; secure URLs.
+
+**Sprint 10: Multilingual**
+
+* i18next setup; English/Tamil packs; language switcher.
+* Translate top 50 UI strings.
+
+**Sprint 11: PWA & Offline**
+
+* Service Worker, pre-cache shell, IndexedDB (progress, cart, orders).
+* Background sync endpoints.
+
+**Sprint 12: Admin Analytics & Finishing**
+
+* Admin dashboards (users, courses, sales, usage), CSV exports.
+* Hardening: rate limits, logs, audits, e2e smoke tests.
+
+---
+
+## 21) Testing Checklist
+
+* Unit: auth, RBAC, recommendation scoring, XP rules.
+* API: Postman collection with role-scoped tests.
+* E2E (Playwright/Cypress):
+
+  * Student register → onboarding → enroll → progress → submit assignment → gain XP.
+  * Admin create instructor → assign course → instructor uploads lecture → student sees it.
+  * Offline: create cart & order offline → auto sync on reconnect.
+
+---
+
+## 22) UX Polishing
+
+* Skeleton loaders, optimistic UI for ToDo & progress tick.
+* Keyboard nav, accessible forms, focus states.
+* Empty states for each tab.
+* Gentle micro-interactions (Framer Motion).
+
+---
+
+## 23) “Done” Definition
+
+* All role rules enforced; **no instructor/admin signup routes exist**.
+* Onboarding one-time works; profile editable later.
+* Recommendations appear on Dashboard & Store.
+* PWA installable; offline order/progress sync proven.
+* Multilingual switch persists; Tamil translations present.
+* Admin can fully manage users/courses/products and assign instructors.
+* Instructor can run a course end-to-end (lectures, live, assignments, grading).
+* Student can learn, submit, track progress, buy accessories.
+
+---
+
+**Build it exactly as specified above. Adhere to the Student-only registration rule, Admin pre-seed, and Admin-provisioned Instructors. Redirect users to their dashboards only when credentials (username/password or whitelisted Google email) match existing DB records.**
