@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { CourseLevel } from '../../shared/schema.js';
+import { CourseLevel } from '../constants.js';
 
 const lectureSchema = new mongoose.Schema({
   title: {

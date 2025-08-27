@@ -153,7 +153,7 @@ const LiveSessions = () => {
                 <span className="text-lg">{getHostTypeIcon(session.hostType)}</span>
                 {session.title}
                 {isLive && (
-                  <Badge className={getStatusColor(session.status)} className="animate-pulse">
+                  <Badge className={`${getStatusColor(session.status)} animate-pulse`}>
                     LIVE
                   </Badge>
                 )}

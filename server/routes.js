@@ -8,8 +8,10 @@ import * as authController from './controllers/authController.js';
 import * as userController from './controllers/userController.js';
 import * as courseController from './controllers/courseController.js';
 import * as assignmentController from './controllers/assignmentController.js';
+import * as liveSessionController from './controllers/liveSessionController.js';
 import * as productController from './controllers/productController.js';
 import * as recommendationService from './services/recommendationService.js';
+import * as analyticsController from './controllers/analyticsController.js';
 
 // Import middleware
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
@@ -32,14 +34,22 @@ export async function registerRoutes(app) {
   // User routes
   app.get('/api/users/profile', authenticateToken, userController.getStudentProfile);
   app.put('/api/users/profile', authenticateToken, requireStudent, userController.updateStudentProfile);
+  app.put('/api/users/password', authenticateToken, userController.changePassword);
+  app.post('/api/users/email/change-request', authenticateToken, userController.requestEmailChange);
+  app.post('/api/users/email/verify', authenticateToken, userController.verifyEmailChange);
+  app.post('/api/users/avatar', authenticateToken, userController.uploadAvatarMiddleware, userController.uploadAvatar);
   
   // Admin user management
   app.post('/api/admin/instructors', authenticateToken, requireAdmin, userController.createInstructor);
   app.get('/api/admin/users', authenticateToken, requireAdmin, userController.getAllUsers);
   app.put('/api/admin/users/:userId/status', authenticateToken, requireAdmin, userController.updateUserStatus);
+  app.get('/api/admin/users/:userId/progress', authenticateToken, requireAdmin, userController.getUserProgress);
   
   // Course routes
-  app.post('/api/courses', authenticateToken, requireInstructorOrAdmin, courseController.createCourse);
+  app.post('/api/courses', authenticateToken, requireInstructorOrAdmin, courseController.uploadCourseCoverMiddleware, courseController.createCourse);
+  app.put('/api/courses/:courseId/structure', authenticateToken, requireInstructorOrAdmin, courseController.updateCourseStructure);
+  app.post('/api/courses/:courseId/lectures/upload', authenticateToken, requireInstructorOrAdmin, courseController.uploadLectureVideoMiddleware, courseController.uploadLectureVideo);
+  app.put('/api/courses/:courseId', authenticateToken, requireInstructorOrAdmin, courseController.uploadCourseCoverMiddleware, courseController.updateCourse);
   app.get('/api/courses', optionalAuth, courseController.getAllCourses);
   app.get('/api/courses/:courseId', optionalAuth, courseController.getCourseById);
   app.post('/api/courses/:courseId/enroll', authenticateToken, requireStudent, courseController.enrollInCourse);
@@ -53,6 +63,7 @@ export async function registerRoutes(app) {
   app.post('/api/assignments/:assignmentId/submit', authenticateToken, requireStudent, assignmentController.submitAssignment);
   app.put('/api/assignments/:assignmentId/submissions/:submissionId/grade', authenticateToken, requireInstructorOrAdmin, assignmentController.gradeSubmission);
   app.get('/api/students/assignments', authenticateToken, requireStudent, assignmentController.getStudentAssignments);
+  app.get('/api/live-sessions/mine', authenticateToken, requireStudent, liveSessionController.getMyLiveSessions);
   
   // Product routes
   app.post('/api/products', authenticateToken, requireAdmin, productController.createProduct);
@@ -61,6 +72,9 @@ export async function registerRoutes(app) {
   app.get('/api/products/:productId', productController.getProductById);
   app.put('/api/products/:productId', authenticateToken, requireAdmin, productController.updateProduct);
   app.delete('/api/products/:productId', authenticateToken, requireAdmin, productController.deleteProduct);
+  
+  // Admin analytics
+  app.get('/api/admin/analytics/overview', authenticateToken, requireAdmin, analyticsController.getOverview);
   
   // Recommendation routes
   app.get('/api/recommendations', authenticateToken, async (req, res) => {
@@ -94,10 +108,12 @@ export async function registerRoutes(app) {
         .limit(5);
       
       // Get upcoming assignments
-      const { Assignment, Course } = await import('./models/index.js');
-      const courseIds = enrollments.map(e => e.courseId._id);
+      const { Assignment } = await import('./models/index.js');
+      const courseIds = enrollments
+        .map(e => (e && e.courseId ? e.courseId._id : null))
+        .filter(Boolean);
       
-      const assignments = await Assignment.find({
+      const assignments = courseIds.length === 0 ? [] : await Assignment.find({
         courseId: { $in: courseIds },
         isPublished: true,
         dueAt: { $gte: new Date() }
@@ -107,9 +123,9 @@ export async function registerRoutes(app) {
       .limit(5);
       
       // Add submission status
-      const assignmentsWithStatus = assignments.map(assignment => {
-        const submission = assignment.submissions.find(
-          sub => sub.studentId.toString() === userId.toString()
+      const assignmentsWithStatus = (assignments || []).map(assignment => {
+        const submission = (assignment.submissions || []).find(
+          sub => sub.studentId && sub.studentId.toString() === userId.toString()
         );
         
         return {
@@ -120,12 +136,17 @@ export async function registerRoutes(app) {
       });
       
       // Get recommendations
-      const recommendations = await recommendationService.updateUserRecommendations(userId);
+      let recommendations = { courses: [], products: [] };
+      try {
+        const rec = await recommendationService.updateUserRecommendations(userId);
+        recommendations = rec || recommendations;
+      } catch {}
       
       // Calculate stats
-      const totalXP = enrollments.reduce((sum, e) => sum + (e.xp || 0), 0);
-      const completedCourses = enrollments.filter(e => e.isCompleted).length;
-      const currentStreak = Math.max(...enrollments.map(e => e.streakCount || 0), 0);
+      const totalXP = (enrollments || []).reduce((sum, e) => sum + (e.xp || 0), 0);
+      const completedCourses = (enrollments || []).filter(e => e.isCompleted).length;
+      const streaks = (enrollments || []).map(e => e.streakCount || 0);
+      const currentStreak = streaks.length ? Math.max(...streaks) : 0;
       
       res.json({
         enrollments,
@@ -139,9 +160,12 @@ export async function registerRoutes(app) {
         }
       });
     } catch (error) {
-      res.status(500).json({
-        message: 'Failed to get dashboard data',
-        error: error.message
+      console.error('Dashboard error:', error);
+      res.json({
+        enrollments: [],
+        assignments: [],
+        recommendations: { courses: [], products: [] },
+        stats: { totalXP: 0, completedCourses: 0, currentStreak: 0, weeklyHours: 0 }
       });
     }
   });

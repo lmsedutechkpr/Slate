@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,23 +13,30 @@ import { Search, ShoppingCart, Star, Filter, Package, Gift, Headphones, Smartpho
 const Store = () => {
   const { accessToken } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [priceRange, setPriceRange] = useState('');
-  const [sortBy, setSortBy] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [priceRange, setPriceRange] = useState('all');
+  const [sortBy, setSortBy] = useState('default');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Debounce search term to avoid refetch on every keystroke
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearchTerm(searchTerm), 400);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
 
   // Fetch products
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['/api/products', { search: searchTerm, category: selectedCategory, priceRange, sortBy }],
+    queryKey: ['/api/products', { search: debouncedSearchTerm, category: selectedCategory, priceRange, sortBy }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory) params.append('category', selectedCategory);
-      if (priceRange) {
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+      if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (priceRange && priceRange !== 'all') {
         const [min, max] = priceRange.split('-');
         if (min) params.append('minPrice', min);
         if (max) params.append('maxPrice', max);
       }
-      if (sortBy) {
+      if (sortBy && sortBy !== 'default') {
         const [field, order] = sortBy.split('-');
         params.append('sortBy', field);
         params.append('sortOrder', order);
@@ -43,6 +50,8 @@ const Store = () => {
       
       return response.json();
     },
+    keepPreviousData: true,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch product categories
@@ -257,7 +266,7 @@ const Store = () => {
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category} className="capitalize">
                     {category}
@@ -271,7 +280,7 @@ const Store = () => {
                 <SelectValue placeholder="Price" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Prices</SelectItem>
+                <SelectItem value="all">All Prices</SelectItem>
                 <SelectItem value="0-1000">Under ₹1,000</SelectItem>
                 <SelectItem value="1000-3000">₹1,000 - ₹3,000</SelectItem>
                 <SelectItem value="3000-5000">₹3,000 - ₹5,000</SelectItem>
@@ -284,7 +293,7 @@ const Store = () => {
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Default</SelectItem>
+                <SelectItem value="default">Default</SelectItem>
                 <SelectItem value="price-asc">Price: Low to High</SelectItem>
                 <SelectItem value="price-desc">Price: High to Low</SelectItem>
                 <SelectItem value="rating-desc">Highest Rated</SelectItem>

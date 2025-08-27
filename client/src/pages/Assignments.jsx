@@ -13,13 +13,14 @@ const Assignments = () => {
   const [activeTab, setActiveTab] = useState('all');
 
   const { data: assignmentsData, isLoading, error } = useQuery({
-    queryKey: ['/api/students/assignments'],
+    queryKey: ['/api/students/assignments', accessToken],
     queryFn: async () => {
       const response = await fetch('/api/students/assignments', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        cache: 'no-store'
       });
       
       if (!response.ok) {

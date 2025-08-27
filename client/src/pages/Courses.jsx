@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,24 +13,32 @@ import { Search, BookOpen, Users, Clock, Star, Filter } from 'lucide-react';
 const Courses = () => {
   const { accessToken } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedLevel, setSelectedLevel] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Debounce search term to avoid refetch on every keystroke
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearchTerm(searchTerm), 700);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
 
   // Fetch all courses
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
-    queryKey: ['/api/courses', { search: searchTerm, category: selectedCategory, level: selectedLevel }],
+    queryKey: ['/api/courses', { search: debouncedSearchTerm, category: selectedCategory, level: selectedLevel }, accessToken],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory) params.append('category', selectedCategory);
-      if (selectedLevel) params.append('level', selectedLevel);
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+      if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (selectedLevel && selectedLevel !== 'all') params.append('level', selectedLevel);
       
       const response = await fetch(`/api/courses?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        cache: 'no-store'
       });
       
       if (!response.ok) {
@@ -40,17 +48,20 @@ const Courses = () => {
       return response.json();
     },
     enabled: !!accessToken,
+    keepPreviousData: true,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch enrolled courses
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useQuery({
-    queryKey: ['/api/enrollments'],
+    queryKey: ['/api/enrollments', accessToken],
     queryFn: async () => {
       const response = await fetch('/api/enrollments', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        cache: 'no-store'
       });
       
       if (!response.ok) {
@@ -64,13 +75,14 @@ const Courses = () => {
 
   // Fetch recommendations
   const { data: recommendationsData } = useQuery({
-    queryKey: ['/api/recommendations'],
+    queryKey: ['/api/recommendations', accessToken],
     queryFn: async () => {
       const response = await fetch('/api/recommendations', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        cache: 'no-store'
       });
       
       if (!response.ok) {
@@ -101,7 +113,9 @@ const Courses = () => {
   };
 
   const CourseCard = ({ course, isEnrolled = false, enrollment = null }) => {
-    const totalLectures = course.sections?.reduce((total, section) => 
+    if (!course) return null;
+    const safeSections = (course && Array.isArray(course.sections)) ? course.sections : [];
+    const totalLectures = safeSections.reduce((total, section) => 
       total + (section.lectures?.length || 0), 0) || 0;
 
     return (
@@ -180,6 +194,19 @@ const Courses = () => {
               size="sm"
               variant={isEnrolled ? "outline" : "default"}
               data-testid={`button-${isEnrolled ? 'continue' : 'enroll'}-${course._id}`}
+              onClick={async () => {
+                if (isEnrolled) return;
+                try {
+                  const res = await fetch(`/api/courses/${course._id}/enroll`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                  })
+                  if (!res.ok) throw new Error('Enroll failed')
+                  window.location.reload()
+                } catch (e) {
+                  console.error(e)
+                }
+              }}
             >
               {isEnrolled ? 'Continue Learning' : 'Enroll Now'}
             </Button>
@@ -227,7 +254,7 @@ const Courses = () => {
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="programming">Programming</SelectItem>
                 <SelectItem value="design">Design</SelectItem>
                 <SelectItem value="data-science">Data Science</SelectItem>
@@ -240,7 +267,7 @@ const Courses = () => {
                 <SelectValue placeholder="Level" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Levels</SelectItem>
+                <SelectItem value="all">All Levels</SelectItem>
                 <SelectItem value="beginner">Beginner</SelectItem>
                 <SelectItem value="intermediate">Intermediate</SelectItem>
                 <SelectItem value="advanced">Advanced</SelectItem>
@@ -275,7 +302,7 @@ const Courses = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course) => {
-                const enrollment = enrollments.find(e => e.courseId._id === course._id);
+                const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
                 return (
                   <CourseCard
                     key={course._id}
@@ -328,7 +355,7 @@ const Courses = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendations.map((course) => {
-                const enrollment = enrollments.find(e => e.courseId._id === course._id);
+                const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
                 return (
                   <CourseCard
                     key={course._id}

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { AssignmentStatus } from '../../shared/schema.js';
+import { AssignmentStatus } from '../constants.js';
 
 const submissionSchema = new mongoose.Schema({
   studentId: {

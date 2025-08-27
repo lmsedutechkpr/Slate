@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import { UserRoles } from '../../shared/schema.js';
+import { UserRoles } from '../constants.js';
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -43,6 +43,20 @@ const userSchema = new mongoose.Schema({
     lastName: String,
     avatar: String,
     phone: String
+  },
+  studentProfile: {
+    yearOfStudy: String,
+    degree: String,
+    interestType: String,
+    domains: [String],
+    careerGoal: String,
+    learningPace: String,
+    onboarded: { type: Boolean, default: false }
+  },
+  emailVerification: {
+    pendingEmail: String,
+    code: String,
+    expiresAt: Date
   }
 }, {
   timestamps: true

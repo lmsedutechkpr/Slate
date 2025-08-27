@@ -36,27 +36,9 @@ const LiveClasses = ({ liveSessions = [] }) => {
     return 'completed';
   };
 
-  // Mock data if no live sessions provided
-  const mockSessions = liveSessions.length ? liveSessions : [
-    {
-      _id: 'mock-1',
-      title: 'Advanced React Patterns',
-      instructorId: { username: 'Dr. Sarah Chen' },
-      startAt: new Date(Date.now() - 15 * 60 * 1000), // Started 15 minutes ago
-      endAt: new Date(Date.now() + 45 * 60 * 1000), // Ends in 45 minutes
-      joinLink: '#',
-      status: 'live'
-    },
-    {
-      _id: 'mock-2',
-      title: 'JavaScript Debugging Workshop',
-      instructorId: { username: 'Prof. Mike Johnson' },
-      startAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-      endAt: new Date(Date.now() + 25 * 60 * 60 * 1000),
-      joinLink: '#',
-      status: 'scheduled'
-    }
-  ];
+  if (!liveSessions.length) {
+    return null;
+  }
 
   return (
     <Card className="card-hover">
@@ -65,7 +47,7 @@ const LiveClasses = ({ liveSessions = [] }) => {
           <CardTitle className="text-lg font-semibold text-gray-900">
             Live Classes
           </CardTitle>
-          {mockSessions.some(session => isLive(session)) && (
+          {liveSessions.some(session => isLive(session)) && (
             <Badge variant="destructive" className="bg-red-100 text-red-700">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-1"></div>
               Live Now
@@ -74,7 +56,7 @@ const LiveClasses = ({ liveSessions = [] }) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {mockSessions.map((session) => {
+        {liveSessions.map((session) => {
           const status = getSessionStatus(session);
           const isCurrentlyLive = status === 'live';
           

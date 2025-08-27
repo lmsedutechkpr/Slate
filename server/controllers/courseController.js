@@ -1,9 +1,17 @@
 import { Course, Enrollment, User } from '../models/index.js';
-import { UserRoles } from '../../shared/schema.js';
+import multer from 'multer';
+import cloudinary from '../utils/cloudinary.js';
+import fs from 'fs';
+import { UserRoles } from '../constants.js';
+
+// Multer for handling optional cover upload
+const uploadsDir = 'uploads';
+try { if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir); } catch {}
+export const uploadCourseCoverMiddleware = multer({ dest: uploadsDir + '/' }).single('cover');
 
 export const createCourse = async (req, res) => {
   try {
-    const { title, description, category, tags, level, language, price } = req.body;
+    const { title, description, category, tags, level, language, price, isPublished } = req.body;
     
     const course = new Course({
       title,
@@ -14,8 +22,19 @@ export const createCourse = async (req, res) => {
       language: language || 'English',
       price: price || 0,
       createdBy: req.user._id,
-      assignedInstructor: req.user.role === UserRoles.INSTRUCTOR ? req.user._id : null
+      assignedInstructor: req.user.role === UserRoles.INSTRUCTOR ? req.user._id : null,
+      isPublished: isPublished === 'true' || isPublished === true
     });
+
+    // Optional cover upload
+    if (req.file) {
+      const uploadRes = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'course-covers',
+        transformation: [{ width: 800, height: 450, crop: 'fill' }]
+      });
+      try { fs.unlinkSync(req.file.path); } catch {}
+      course.coverUrl = uploadRes.secure_url;
+    }
     
     await course.save();
     
@@ -28,6 +47,76 @@ export const createCourse = async (req, res) => {
       message: 'Failed to create course',
       error: error.message
     });
+  }
+};
+
+export const updateCourseStructure = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { sections } = req.body;
+    if (!Array.isArray(sections)) {
+      return res.status(400).json({ message: 'sections must be an array' });
+    }
+    const course = await Course.findByIdAndUpdate(
+      courseId,
+      { $set: { sections } },
+      { new: true, runValidators: false }
+    );
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    res.json({ message: 'Structure updated', course });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update structure', error: error.message });
+  }
+};
+
+export const uploadLectureVideoMiddleware = multer({ dest: uploadsDir + '/' }).single('video');
+
+export const uploadLectureVideo = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    // Ensure course exists
+    const course = await Course.findById(courseId).select('_id');
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    const uploadRes = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'course-videos',
+      resource_type: 'video'
+    });
+    try { fs.unlinkSync(req.file.path); } catch {}
+    res.json({ message: 'Video uploaded', url: uploadRes.secure_url });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to upload video', error: error.message });
+  }
+};
+
+export const updateCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { title, description, category, level, language, price, isPublished } = req.body;
+    const update = {};
+    if (title != null) update.title = title;
+    if (description != null) update.description = description;
+    if (category != null) update.category = category;
+    if (level != null) update.level = level;
+    if (language != null) update.language = language;
+    if (price != null) update.price = price;
+    if (isPublished != null) update.isPublished = (isPublished === 'true' || isPublished === true);
+
+    if (req.file) {
+      const uploadRes = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'course-covers',
+        transformation: [{ width: 800, height: 450, crop: 'fill' }]
+      });
+      try { fs.unlinkSync(req.file.path); } catch {}
+      update.coverUrl = uploadRes.secure_url;
+    }
+
+    const course = await Course.findByIdAndUpdate(courseId, { $set: update }, { new: true });
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    res.json({ message: 'Course updated', course });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update course', error: error.message });
   }
 };
 

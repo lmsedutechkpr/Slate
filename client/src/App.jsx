@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import NotFound from "@/pages/not-found";
+import Redirect from "@/components/Common/Redirect.jsx";
 import Login from "@/pages/Login.jsx";
 import Register from "@/pages/Register.jsx";
 import Dashboard from "@/pages/Dashboard.jsx";
@@ -13,6 +14,7 @@ import Courses from "@/pages/Courses.jsx";
 import Assignments from "@/pages/Assignments.jsx";
 import Progress from "@/pages/Progress.jsx";
 import Store from "@/pages/Store.jsx";
+import Profile from "@/pages/Profile.jsx";
 import AdminDashboard from "@/pages/AdminDashboard.jsx";
 import InstructorDashboard from "@/pages/InstructorDashboard.jsx";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute.jsx";
@@ -48,32 +50,38 @@ function AppRoutes() {
         </Route>
         
         <Route path="/dashboard">
-          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+          <ProtectedRoute requiredRole="student">
             <Dashboard />
           </ProtectedRoute>
         </Route>
         
         <Route path="/courses">
-          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+          <ProtectedRoute requiredRole="student">
             <Courses />
           </ProtectedRoute>
         </Route>
         
         <Route path="/assignments">
-          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+          <ProtectedRoute requiredRole="student">
             <Assignments />
           </ProtectedRoute>
         </Route>
         
         <Route path="/progress">
-          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+          <ProtectedRoute requiredRole="student">
             <Progress />
           </ProtectedRoute>
         </Route>
         
         <Route path="/store">
-          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+          <ProtectedRoute requiredRole="student">
             <Store />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/profile">
+          <ProtectedRoute requiredRole="student">
+            <Profile />
           </ProtectedRoute>
         </Route>
         
@@ -89,13 +97,9 @@ function AppRoutes() {
           </ProtectedRoute>
         </Route>
         
-        {/* Default route */}
+        {/* Default route: redirect */}
         <Route path="/">
-          {!isAuthenticated ? (
-            <Login />
-          ) : (
-            <Dashboard />
-          )}
+          {!isAuthenticated ? <Redirect to="/login" /> : <Redirect to="/dashboard" />}
         </Route>
         
         {/* 404 fallback */}

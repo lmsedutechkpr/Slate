@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Search, Filter, MoreHorizontal, Ban, CheckCircle, XCircle } from 'lucide-react';
+import { UserPlus, Search, Filter, MoreHorizontal, Ban, CheckCircle, XCircle, BarChart2 } from 'lucide-react';
 
 const UserManagement = () => {
   const { accessToken } = useAuth();
@@ -30,15 +30,23 @@ const UserManagement = () => {
     lastName: '',
     googleEmail: ''
   });
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [progressData, setProgressData] = useState([]);
+  const [progressUser, setProgressUser] = useState(null);
 
   // Fetch users
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['/api/admin/users', { role: selectedRole, status: selectedStatus, search: searchTerm }],
+    queryKey: ['/api/admin/users', { role: selectedRole, status: selectedStatus, search: searchTerm, page, limit }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedRole) params.append('role', selectedRole);
       if (selectedStatus) params.append('status', selectedStatus);
       if (searchTerm) params.append('search', searchTerm);
+      params.append('page', String(page));
+      params.append('limit', String(limit));
       
       const response = await fetch(`/api/admin/users?${params.toString()}`, {
         headers: {
@@ -136,6 +144,7 @@ const UserManagement = () => {
   });
 
   const users = usersData?.users || [];
+  const pagination = usersData?.pagination || { page, limit, total: users.length };
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -161,6 +170,22 @@ const UserManagement = () => {
 
   const handleUpdateStatus = (userId, status) => {
     updateStatusMutation.mutate({ userId, status });
+  };
+
+  const openProgress = async (user) => {
+    setProgressUser(user);
+    setProgressOpen(true);
+    setProgressLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user._id}/progress`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load progress');
+      setProgressData(data.progress || []);
+    } catch (e) {
+      setProgressData([]);
+    } finally {
+      setProgressLoading(false);
+    }
   };
 
   const formatDate = (date) => {
@@ -381,6 +406,15 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openProgress(user)}
+                          data-testid={`button-progress-${user._id}`}
+                        >
+                          <BarChart2 className="w-3 h-3 mr-1" />
+                          Progress
+                        </Button>
                         {user.status === 'active' ? (
                           <Button
                             size="sm"
@@ -411,7 +445,67 @@ const UserManagement = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-600">Page {pagination.page} of {Math.max(1, Math.ceil((pagination.total || 0) / (pagination.limit || limit)))} • {pagination.total || 0} results</div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" disabled={pagination.page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</Button>
+          <Button variant="outline" disabled={pagination.page >= Math.ceil((pagination.total || 0) / (pagination.limit || limit))} onClick={() => setPage(p => p + 1)}>Next</Button>
+          <Select value={String(limit)} onValueChange={v => { setLimit(Number(v)); setPage(1); }}>
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="Rows" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 / page</SelectItem>
+              <SelectItem value="20">20 / page</SelectItem>
+              <SelectItem value="50">50 / page</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    {/* Progress Drawer */}
+    <Dialog open={progressOpen} onOpenChange={setProgressOpen}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Progress - {progressUser?.username}</DialogTitle>
+          <DialogDescription>Course progress details for this user</DialogDescription>
+        </DialogHeader>
+        {progressLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          </div>
+        ) : progressData.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No progress data</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Course</TableHead>
+                <TableHead>Progress</TableHead>
+                <TableHead>Lectures</TableHead>
+                <TableHead>XP</TableHead>
+                <TableHead>Last Active</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {progressData.map((p) => (
+                <TableRow key={p.enrollmentId}>
+                  <TableCell>{p.courseTitle}</TableCell>
+                  <TableCell>{Math.round(p.progressPct)}%</TableCell>
+                  <TableCell>{p.completedLectures}/{p.totalLectures}</TableCell>
+                  <TableCell>{p.xp}</TableCell>
+                  <TableCell>{p.lastActivityAt ? new Date(p.lastActivityAt).toLocaleString() : '-'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </DialogContent>
+    </Dialog>
+  </div>
   );
 };
 

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Search, Users, UserCheck, Plus, Eye } from 'lucide-react';
+import { BookOpen, Search, Users, UserCheck, Plus, Eye, ListPlus, Video, Edit } from 'lucide-react';
 
 const CourseManagement = () => {
   const { accessToken } = useAuth();
@@ -20,18 +20,42 @@ const CourseManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newCourse, setNewCourse] = useState({
+    title: '',
+    description: '',
+    category: '',
+    level: 'beginner',
+    language: 'English',
+    price: 0,
+    isPublished: false,
+  });
+  const [coverFile, setCoverFile] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedInstructor, setSelectedInstructor] = useState('');
+  const [structureOpen, setStructureOpen] = useState(false);
+  const [structureCourse, setStructureCourse] = useState(null);
+  const [sections, setSections] = useState([]);
+  const [savingStructure, setSavingStructure] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editCourse, setEditCourse] = useState(null);
+  const [editCover, setEditCover] = useState(null);
 
-  // Fetch courses
+  // Fetch courses with pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
-    queryKey: ['/api/courses', { isPublished: 'false', search: searchTerm, category: selectedCategory, level: selectedLevel }],
+    queryKey: ['/api/courses', { isPublished: 'false', search: searchTerm, category: selectedCategory, level: selectedLevel, page, limit }],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append('isPublished', 'false'); // Get all courses, including unpublished
       if (searchTerm) params.append('search', searchTerm);
       if (selectedCategory) params.append('category', selectedCategory);
       if (selectedLevel) params.append('level', selectedLevel);
+      params.append('page', String(page));
+      params.append('limit', String(limit));
       
       const response = await fetch(`/api/courses?${params.toString()}`, {
         headers: {
@@ -108,6 +132,7 @@ const CourseManagement = () => {
   });
 
   const courses = coursesData?.courses || [];
+  const pagination = coursesData?.pagination || { page, limit, total: courses.length };
   const instructors = instructorsData?.users || [];
 
   const getLevelColor = (level) => {
@@ -140,6 +165,54 @@ const CourseManagement = () => {
     setAssignDialogOpen(true);
   };
 
+  const openStructureDialog = (course) => {
+    setStructureCourse(course);
+    setSections(Array.isArray(course.sections) ? JSON.parse(JSON.stringify(course.sections)) : []);
+    setStructureOpen(true);
+  };
+
+  const addSection = () => setSections(prev => [...prev, { title: '', lectures: [] }]);
+  const updateSectionTitle = (idx, title) => setSections(prev => prev.map((s, i) => i === idx ? { ...s, title } : s));
+  const removeSection = (idx) => setSections(prev => prev.filter((_, i) => i !== idx));
+  const addLecture = (sidx) => setSections(prev => prev.map((s, i) => i === sidx ? { ...s, lectures: [...(s.lectures || []), { title: '', videoUrl: '' }] } : s));
+  const updateLecture = (sidx, lidx, field, value) => setSections(prev => prev.map((s, i) => {
+    if (i !== sidx) return s;
+    const lectures = (s.lectures || []).map((l, j) => j === lidx ? { ...l, [field]: value } : l);
+    return { ...s, lectures };
+  }));
+  const removeLecture = (sidx, lidx) => setSections(prev => prev.map((s, i) => i === sidx ? { ...s, lectures: (s.lectures || []).filter((_, j) => j !== lidx) } : s));
+
+  const uploadLectureVideo = async (file) => {
+    const form = new FormData();
+    form.append('video', file);
+    const res = await fetch(`/api/courses/${structureCourse._id}/lectures/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to upload');
+    return data.url;
+  };
+
+  const saveStructure = async () => {
+    setSavingStructure(true);
+    try {
+      const res = await fetch(`/api/courses/${structureCourse._id}/structure`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save');
+      toast({ title: 'Saved', description: 'Course structure updated' });
+      setStructureOpen(false);
+      setStructureCourse(null);
+      setSections([]);
+      queryClient.invalidateQueries(['/api/courses']);
+    } catch (e) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setSavingStructure(false);
+    }
+  };
+
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -157,7 +230,7 @@ const CourseManagement = () => {
           <p className="text-gray-600">Manage all courses and assign instructors</p>
         </div>
         
-        <Button data-testid="button-create-course">
+        <Button onClick={() => setCreateOpen(true)} data-testid="button-create-course">
           <Plus className="w-4 h-4 mr-2" />
           Create Course
         </Button>
@@ -242,6 +315,25 @@ const CourseManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-600">Page {pagination.page} of {Math.max(1, Math.ceil((pagination.total || 0) / (pagination.limit || limit)))} • {pagination.total || 0} results</div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" disabled={pagination.page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</Button>
+          <Button variant="outline" disabled={pagination.page >= Math.ceil((pagination.total || 0) / (pagination.limit || limit))} onClick={() => setPage(p => p + 1)}>Next</Button>
+          <Select value={String(limit)} onValueChange={v => { setLimit(Number(v)); setPage(1); }}>
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="Rows" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 / page</SelectItem>
+              <SelectItem value="20">20 / page</SelectItem>
+              <SelectItem value="50">50 / page</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {/* Courses Table */}
       <Card>
@@ -339,6 +431,24 @@ const CourseManagement = () => {
                         >
                           <Eye className="w-3 h-3" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setEditCourse(course); setEditOpen(true); setEditCover(null); }}
+                          data-testid={`button-edit-course-${course._id}`}
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openStructureDialog(course)}
+                          data-testid={`button-structure-${course._id}`}
+                        >
+                          <ListPlus className="w-3 h-3 mr-1" />
+                          Structure
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -391,6 +501,245 @@ const CourseManagement = () => {
               >
                 {assignInstructorMutation.isPending ? 'Assigning...' : 'Assign Instructor'}
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Structure Dialog */}
+      <Dialog open={structureOpen} onOpenChange={setStructureOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Structure - {structureCourse?.title}</DialogTitle>
+            <DialogDescription>Manage sections and lectures. Upload lecture videos to attach URLs.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[70vh] overflow-auto pr-1">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-600">Total sections: {sections.length}</div>
+              <Button size="sm" onClick={addSection}><ListPlus className="w-4 h-4 mr-1" />Add Section</Button>
+            </div>
+            {sections.map((section, sidx) => (
+              <div key={sidx} className="border rounded-lg p-3 space-y-3">
+                <div className="flex gap-2 items-center">
+                  <span className="text-sm text-gray-500">Section {sidx + 1}</span>
+                  <Input placeholder="Section title" value={section.title} onChange={e => updateSectionTitle(sidx, e.target.value)} />
+                  <Button size="sm" variant="outline" onClick={() => removeSection(sidx)}>Remove</Button>
+                </div>
+                <div className="space-y-2">
+                  {(section.lectures || []).map((lec, lidx) => (
+                    <div key={lidx} className="border rounded p-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Input placeholder="Lecture title" value={lec.title} onChange={e => updateLecture(sidx, lidx, 'title', e.target.value)} />
+                        <div className="flex items-center gap-2">
+                          <Input placeholder="Video URL" value={lec.videoUrl || ''} onChange={e => updateLecture(sidx, lidx, 'videoUrl', e.target.value)} />
+                          <label className="text-sm cursor-pointer inline-flex items-center gap-1 text-primary-600">
+                            <input type="file" accept="video/*" className="hidden" onChange={async e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                const url = await uploadLectureVideo(file);
+                                updateLecture(sidx, lidx, 'videoUrl', url);
+                                toast({ title: 'Uploaded', description: 'Video attached to lecture' });
+                              } catch (err) {
+                                toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+                              }
+                            }} />
+                            <Video className="w-4 h-4" /> Upload
+                          </label>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-right">
+                        <Button size="sm" variant="outline" onClick={() => removeLecture(sidx, lidx)}>Remove Lecture</Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button size="sm" variant="outline" onClick={() => addLecture(sidx)}>Add Lecture</Button>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setStructureOpen(false)}>Cancel</Button>
+              <Button disabled={savingStructure} onClick={saveStructure}>{savingStructure ? 'Saving...' : 'Save'}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Course Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Course</DialogTitle>
+          </DialogHeader>
+          {editCourse && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Title</label>
+                <Input value={editCourse.title} onChange={e => setEditCourse(c => ({...c, title: e.target.value}))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <Input value={editCourse.description} onChange={e => setEditCourse(c => ({...c, description: e.target.value}))} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <Input value={editCourse.category || ''} onChange={e => setEditCourse(c => ({...c, category: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Level</label>
+                  <Select value={editCourse.level || 'beginner'} onValueChange={v => setEditCourse(c => ({...c, level: v}))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Language</label>
+                  <Input value={editCourse.language || ''} onChange={e => setEditCourse(c => ({...c, language: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Price</label>
+                  <Input type="number" value={editCourse.price ?? 0} onChange={e => setEditCourse(c => ({...c, price: Number(e.target.value)}))} />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!editCourse.isPublished} onChange={e => setEditCourse(c => ({...c, isPublished: e.target.checked}))} />
+                  Published
+                </label>
+                <div className="text-sm text-gray-600">Current cover: {editCourse.coverUrl ? 'Yes' : 'No'}</div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Replace Cover</label>
+                <input type="file" accept="image/*" onChange={e => setEditCover(e.target.files?.[0] || null)} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                <Button disabled={editing} onClick={async () => {
+                  setEditing(true);
+                  try {
+                    const form = new FormData();
+                    form.append('title', editCourse.title);
+                    form.append('description', editCourse.description);
+                    if (editCourse.category != null) form.append('category', editCourse.category);
+                    if (editCourse.level != null) form.append('level', editCourse.level);
+                    if (editCourse.language != null) form.append('language', editCourse.language);
+                    if (editCourse.price != null) form.append('price', String(editCourse.price));
+                    form.append('isPublished', String(!!editCourse.isPublished));
+                    if (editCover) form.append('cover', editCover);
+                    const res = await fetch(`/api/courses/${editCourse._id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message || 'Failed to update');
+                    toast({ title: 'Updated', description: 'Course updated' });
+                    setEditOpen(false);
+                    setEditCourse(null);
+                    setEditCover(null);
+                    queryClient.invalidateQueries(['/api/courses']);
+                  } catch (e) {
+                    toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                  } finally {
+                    setEditing(false);
+                  }
+                }}>{editing ? 'Saving...' : 'Save'}</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* Create Course Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Course</DialogTitle>
+            <DialogDescription>Fill in details and optionally upload a cover image.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <Input value={newCourse.title} onChange={e => setNewCourse(c => ({...c, title: e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Input value={newCourse.description} onChange={e => setNewCourse(c => ({...c, description: e.target.value}))} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Category</label>
+                <Input value={newCourse.category} onChange={e => setNewCourse(c => ({...c, category: e.target.value}))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Level</label>
+                <Select value={newCourse.level} onValueChange={v => setNewCourse(c => ({...c, level: v}))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Language</label>
+                <Input value={newCourse.language} onChange={e => setNewCourse(c => ({...c, language: e.target.value}))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Price</label>
+                <Input type="number" value={newCourse.price} onChange={e => setNewCourse(c => ({...c, price: Number(e.target.value)}))} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Cover Image</label>
+              <input type="file" accept="image/*" onChange={e => setCoverFile(e.target.files?.[0] || null)} />
+            </div>
+            <div>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={newCourse.isPublished} onChange={e => setNewCourse(c => ({...c, isPublished: e.target.checked}))} />
+                Publish immediately
+              </label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button disabled={creating} onClick={async () => {
+                if (!newCourse.title || !newCourse.description) {
+                  toast({ title: 'Validation', description: 'Title and description are required', variant: 'destructive' });
+                  return;
+                }
+                setCreating(true);
+                try {
+                  const form = new FormData();
+                  form.append('title', newCourse.title);
+                  form.append('description', newCourse.description);
+                  if (newCourse.category) form.append('category', newCourse.category);
+                  if (newCourse.level) form.append('level', newCourse.level);
+                  if (newCourse.language) form.append('language', newCourse.language);
+                  if (newCourse.price != null) form.append('price', String(newCourse.price));
+                  form.append('isPublished', String(newCourse.isPublished));
+                  if (coverFile) form.append('cover', coverFile);
+                  const res = await fetch('/api/courses', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.message || 'Failed to create course');
+                  toast({ title: 'Created', description: 'Course created successfully' });
+                  setCreateOpen(false);
+                  setNewCourse({ title: '', description: '', category: '', level: 'beginner', language: 'English', price: 0, isPublished: false });
+                  setCoverFile(null);
+                  queryClient.invalidateQueries(['/api/courses']);
+                } catch (e) {
+                  toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                } finally {
+                  setCreating(false);
+                }
+              }}>{creating ? 'Creating...' : 'Create'}</Button>
             </div>
           </div>
         </DialogContent>

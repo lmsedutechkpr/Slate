@@ -65,10 +65,12 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserData = async (token) => {
     try {
-      const response = await fetch('/api/auth/user', {
+      const response = await fetch(`/api/auth/user?ts=${Date.now()}` , {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
+        },
+        cache: 'no-store'
       });
 
       if (response.ok) {
@@ -134,14 +136,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        
-        dispatch({
-          type: 'LOGIN_SUCCESS',
-          payload: data
-        });
-        
+        // Do NOT auto-login after registration. Require explicit login.
         return { success: true, user: data.user };
       } else {
         return { success: false, message: data.message };
@@ -172,10 +167,11 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
 
-      const response = await fetch('/api/auth/refresh', {
+      const response = await fetch(`/api/auth/refresh?ts=${Date.now()}` , {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({ refreshToken })
       });
@@ -218,6 +214,11 @@ export const AuthProvider = ({ children }) => {
           type: 'UPDATE_USER',
           payload: data.user
         });
+        try {
+          if (data.user?.studentProfile?.onboarded) {
+            localStorage.setItem('onboarded', 'true');
+          }
+        } catch {}
         return { success: true };
       } else {
         const data = await response.json();

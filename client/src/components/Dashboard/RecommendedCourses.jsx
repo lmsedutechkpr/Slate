@@ -17,28 +17,7 @@ const RecommendedCourses = ({ courses = [] }) => {
     }
   };
 
-  if (!courses.length) {
-    return (
-      <Card className="card-hover">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">
-            Recommended for You
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-500 mb-4">Complete your onboarding to get personalized recommendations</p>
-            <Link href="/onboarding">
-              <button className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
-                Complete Profile
-              </button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!courses.length) return null;
 
   return (
     <Card className="card-hover">

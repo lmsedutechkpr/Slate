@@ -1,5 +1,5 @@
 import { User } from '../models/index.js';
-import { UserRoles } from '../../shared/schema.js';
+import { UserRoles } from '../constants.js';
 
 export const seedAdmin = async () => {
   try {

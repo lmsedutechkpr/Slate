@@ -5,25 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Gift } from 'lucide-react';
 
 const StoreSection = ({ products = [] }) => {
-  // Mock data if no products provided
-  const mockProducts = products.length ? products : [
-    {
-      _id: 'mock-1',
-      title: 'Premium Wireless Headphones',
-      description: 'Perfect for video lectures',
-      price: 2999,
-      images: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=60&h=60&fit=crop&crop=center'],
-      category: 'headphones'
-    },
-    {
-      _id: 'mock-2', 
-      title: 'Digital Stylus',
-      description: 'For note-taking and design',
-      price: 1499,
-      images: ['https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=60&h=60&fit=crop&crop=center'],
-      category: 'stylus'
-    }
-  ];
+  if (!products.length) {
+    return null;
+  }
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
@@ -51,7 +35,7 @@ const StoreSection = ({ products = [] }) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {mockProducts.slice(0, 2).map((product) => (
+        {products.slice(0, 2).map((product) => (
           <div 
             key={product._id}
             className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-primary-300 transition-colors cursor-pointer"
@@ -96,18 +80,7 @@ const StoreSection = ({ products = [] }) => {
           </div>
         ))}
         
-        {/* Student Discount Banner */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-3">
-          <div className="flex items-center space-x-2 mb-1">
-            <Gift className="h-4 w-4 text-yellow-600" />
-            <span className="text-sm font-medium text-yellow-800">
-              Student Discount
-            </span>
-          </div>
-          <p className="text-xs text-yellow-700">
-            Get 20% off on all accessories with your student account!
-          </p>
-        </div>
+        
       </CardContent>
     </Card>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, GraduationCap } from 'lucide-react';
-import { InterestTypes, LearningPace, Domains } from '../../../shared/schema.js';
+import { InterestTypes, LearningPace, Domains } from "../constants.js";
 
 const OnboardingStep = ({ step, title, children }) => (
   <div className="space-y-6">
@@ -31,6 +31,9 @@ const Onboarding = () => {
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
     yearOfStudy: '',
     degree: '',
     interestType: '',
@@ -40,6 +43,31 @@ const Onboarding = () => {
   });
 
   const progress = (currentStep / 3) * 100;
+
+  // If already onboarded, never show this page again
+  useEffect(() => {
+    const onboardedFlag = localStorage.getItem('onboarded') === 'true';
+    const onboardedProfile = Boolean(user && user.studentProfile && user.studentProfile.onboarded);
+    if (onboardedFlag || onboardedProfile) {
+      setLocation('/dashboard');
+    }
+  }, [user, setLocation]);
+
+  // Prefill from existing profile if available
+  useEffect(() => {
+    if (!user) return;
+    setFormData(prev => ({
+      firstName: prev.firstName || user.profile?.firstName || '',
+      lastName: prev.lastName || user.profile?.lastName || '',
+      phone: prev.phone || user.profile?.phone || '',
+      yearOfStudy: prev.yearOfStudy || user.studentProfile?.yearOfStudy || '',
+      degree: prev.degree || user.studentProfile?.degree || '',
+      interestType: prev.interestType || user.studentProfile?.interestType || '',
+      domains: prev.domains && prev.domains.length ? prev.domains : (user.studentProfile?.domains || []),
+      careerGoal: prev.careerGoal || user.studentProfile?.careerGoal || '',
+      learningPace: prev.learningPace || user.studentProfile?.learningPace || ''
+    }));
+  }, [user]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -60,7 +88,7 @@ const Onboarding = () => {
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        return formData.yearOfStudy && formData.degree;
+        return formData.firstName && formData.lastName && formData.yearOfStudy && formData.degree;
       case 2:
         return formData.interestType && formData.domains.length > 0;
       case 3:
@@ -97,6 +125,7 @@ const Onboarding = () => {
       const result = await updateUserProfile(formData);
       
       if (result.success) {
+        try { localStorage.setItem('onboarded', 'true'); } catch {}
         setLocation('/dashboard');
       } else {
         setError(result.message || 'Failed to update profile. Please try again.');
@@ -108,8 +137,23 @@ const Onboarding = () => {
     }
   };
 
-  const handleSkip = () => {
-    setLocation('/dashboard');
+  const handleSkip = async () => {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      // Mark onboarded without collecting details
+      const result = await updateUserProfile({});
+      if (result.success) {
+        try { localStorage.setItem('onboarded', 'true'); } catch {}
+        setLocation('/dashboard');
+      } else {
+        setLocation('/dashboard');
+      }
+    } catch {
+      setLocation('/dashboard');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -169,10 +213,39 @@ const Onboarding = () => {
               </Alert>
             )}
 
-            {/* Step 1: Academic Information */}
+            {/* Step 1: Personal + Academic Information */}
             {currentStep === 1 && (
-              <OnboardingStep step={1} title="Academic Information">
+              <OnboardingStep step={1} title="Your Details">
                 <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input
+                        id="firstName"
+                        value={formData.firstName}
+                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                        placeholder="e.g., John"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input
+                        id="lastName"
+                        value={formData.lastName}
+                        onChange={(e) => handleInputChange('lastName', e.target.value)}
+                        placeholder="e.g., Doe"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone (Optional)</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="e.g., +1 555 123 4567"
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="yearOfStudy">Year of Study *</Label>
                     <Select 

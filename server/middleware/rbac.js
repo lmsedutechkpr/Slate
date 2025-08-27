@@ -1,4 +1,4 @@
-import { UserRoles } from '../../shared/schema.js';
+import { UserRoles } from '../constants.js';
 
 export const requireRole = (roles) => {
   return (req, res, next) => {

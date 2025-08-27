@@ -15,13 +15,14 @@ const Dashboard = () => {
   const { user, accessToken } = useAuth();
   
   const { data: dashboardData, isLoading, error } = useQuery({
-    queryKey: ['/api/dashboard'],
+    queryKey: ['/api/dashboard', accessToken],
     queryFn: async () => {
       const response = await fetch('/api/dashboard', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        cache: 'no-store'
       });
       
       if (!response.ok) {
@@ -32,6 +33,20 @@ const Dashboard = () => {
     },
     enabled: !!accessToken,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const { data: liveData } = useQuery({
+    queryKey: ['/api/live-sessions/mine', accessToken],
+    queryFn: async () => {
+      const response = await fetch('/api/live-sessions/mine', {
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('Failed to fetch live sessions');
+      return response.json();
+    },
+    enabled: !!accessToken,
+    staleTime: 60 * 1000,
   });
 
   if (isLoading) {
@@ -84,27 +99,10 @@ const Dashboard = () => {
         <RecommendedCourses courses={recommendations.courses} />
       </div>
 
-      {/* Live Classes and Store Section */}
+      {/* Live Classes and Store Section (only if DB provides) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Live Classes */}
-        <LiveClasses />
-
-        {/* Store Section */}
+        <LiveClasses liveSessions={liveData?.sessions || []} />
         <StoreSection products={recommendations.products} />
-      </div>
-
-      {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button 
-          className="bg-primary-600 hover:bg-primary-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
-          data-testid="button-floating-action"
-          onClick={() => {
-            // Quick actions menu would be implemented here
-            console.log('Quick actions menu');
-          }}
-        >
-          <Plus className="w-6 h-6" />
-        </button>
       </div>
     </div>
   );

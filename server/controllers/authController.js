@@ -1,6 +1,6 @@
 import { User } from '../models/index.js';
 import { generateTokens, verifyRefreshToken } from '../utils/jwt.js';
-import { UserRoles } from '../../shared/schema.js';
+import { UserRoles } from '../constants.js';
 
 export const registerStudent = async (req, res) => {
   try {

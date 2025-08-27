@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,16 @@ import { getRoleRedirectPath } from '../lib/authUtils.js';
 
 const Login = () => {
   const [, setLocation] = useLocation();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isAuthenticated, user } = useAuth();
+  // If already authenticated, redirect away from login based on user state
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const needsOnboarding = user.role === 'student' && !(user.studentProfile && user.studentProfile.onboarded);
+      const redirectPath = needsOnboarding ? '/onboarding' : getRoleRedirectPath(user.role);
+      setLocation(redirectPath);
+    }
+  }, [isAuthenticated, user, setLocation]);
+
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -37,7 +46,8 @@ const Login = () => {
       const result = await login(formData);
       
       if (result.success) {
-        const redirectPath = getRoleRedirectPath(result.user.role);
+        const needsOnboarding = result.user.role === 'student' && !(result.user.studentProfile && result.user.studentProfile.onboarded);
+        const redirectPath = needsOnboarding ? '/onboarding' : getRoleRedirectPath(result.user.role);
         setLocation(redirectPath);
       } else {
         setError(result.message || 'Login failed. Please try again.');

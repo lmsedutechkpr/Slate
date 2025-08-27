@@ -8,24 +8,26 @@ const ProtectedRoute = ({ children, requiredRole = null, requireOnboarded = fals
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
       setLocation('/login');
       return;
     }
 
-    if (!isLoading && isAuthenticated && user) {
-      // Check role requirements
-      if (requiredRole && user.role !== requiredRole) {
-        setLocation('/unauthorized');
-        return;
-      }
+    if (!user) return;
 
-      // Check onboarding requirements for students
-      if (requireOnboarded && 
-          user.role === 'student' && 
-          (!user.studentProfile || !user.studentProfile.onboarded)) {
+    if (requiredRole && user.role !== requiredRole) {
+      setLocation('/unauthorized');
+      return;
+    }
+
+    if (requireOnboarded && user.role === 'student') {
+      const onboardedProfile = Boolean(user.studentProfile && user.studentProfile.onboarded);
+      const onboardedFlag = localStorage.getItem('onboarded') === 'true';
+      const onboarded = onboardedProfile || onboardedFlag;
+      if (!onboarded) {
         setLocation('/onboarding');
-        return;
       }
     }
   }, [isLoading, isAuthenticated, user, requiredRole, requireOnboarded, setLocation]);
@@ -34,19 +36,10 @@ const ProtectedRoute = ({ children, requiredRole = null, requireOnboarded = fals
     return <LoadingSpinner />;
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  if (requiredRole && user?.role !== requiredRole) {
-    return null;
-  }
-
-  if (requireOnboarded && 
-      user?.role === 'student' && 
-      (!user.studentProfile || !user.studentProfile.onboarded)) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
+  if (!user) return null;
+  if (requiredRole && user.role !== requiredRole) return null;
+  if (requireOnboarded && user.role === 'student' && !(user.studentProfile && user.studentProfile.onboarded)) return null;
 
   return children;
 };

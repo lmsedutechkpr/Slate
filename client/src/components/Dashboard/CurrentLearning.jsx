@@ -56,17 +56,18 @@ const CurrentLearning = ({ enrollments = [] }) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {enrollments.slice(0, 2).map((enrollment) => {
-          const course = enrollment.courseId;
+          const course = enrollment && enrollment.courseId ? enrollment.courseId : null;
+          if (!course) return null;
           const progress = enrollment.progressPct || 0;
-          const totalLectures = course.sections?.reduce((total, section) => 
+          const totalLectures = (course.sections || []).reduce((total, section) => 
             total + (section.lectures?.length || 0), 0) || 0;
           const completedLectures = enrollment.completedLectures?.length || 0;
           
           return (
             <div 
-              key={enrollment._id}
+              key={enrollment._id || Math.random().toString(36)}
               className="border border-gray-200 rounded-xl p-4 hover:border-primary-300 transition-colors"
-              data-testid={`course-card-${course._id}`}
+              data-testid={`course-card-${course?._id || 'unknown'}`}
             >
               <div className="flex items-start space-x-4">
                 {/* Course thumbnail */}
@@ -87,7 +88,7 @@ const CurrentLearning = ({ enrollments = [] }) => {
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h4 className="font-medium text-gray-900" data-testid={`course-title-${course._id}`}>
+                      <h4 className="font-medium text-gray-900" data-testid={`course-title-${course?._id || 'unknown'}`}>
                         {course.title}
                       </h4>
                       <p className="text-sm text-gray-500">
@@ -97,7 +98,7 @@ const CurrentLearning = ({ enrollments = [] }) => {
                     <Badge 
                       variant={progress > 70 ? 'default' : 'secondary'}
                       className={progress > 70 ? 'bg-green-100 text-green-700' : 'bg-primary-100 text-primary-700'}
-                      data-testid={`progress-badge-${course._id}`}
+                      data-testid={`progress-badge-${course?._id || 'unknown'}`}
                     >
                       {Math.round(progress)}% Complete
                     </Badge>
@@ -106,7 +107,7 @@ const CurrentLearning = ({ enrollments = [] }) => {
                   <Progress 
                     value={progress} 
                     className="mb-2"
-                    data-testid={`progress-bar-${course._id}`}
+                    data-testid={`progress-bar-${course?._id || 'unknown'}`}
                   />
                   
                   <div className="flex justify-between text-xs text-gray-500">
@@ -118,10 +119,10 @@ const CurrentLearning = ({ enrollments = [] }) => {
                     </span>
                   </div>
                   
-                  <Link href={`/courses/${course._id}`}>
+                  <Link href={`/courses/${course?._id || ''}`}>
                     <button 
                       className="mt-2 text-sm bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700 transition-colors"
-                      data-testid={`button-continue-${course._id}`}
+                      data-testid={`button-continue-${course?._id || 'unknown'}`}
                     >
                       Continue Learning
                     </button>

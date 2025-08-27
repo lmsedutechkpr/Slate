@@ -1,5 +1,5 @@
 import { Assignment, Course, Enrollment } from '../models/index.js';
-import { AssignmentStatus, UserRoles } from '../../shared/schema.js';
+import { AssignmentStatus, UserRoles } from '../constants.js';
 
 export const createAssignment = async (req, res) => {
   try {
