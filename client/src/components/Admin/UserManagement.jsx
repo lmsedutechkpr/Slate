@@ -19,8 +19,8 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newInstructor, setNewInstructor] = useState({
     username: '',
@@ -42,8 +42,8 @@ const UserManagement = () => {
     queryKey: ['/api/admin/users', { role: selectedRole, status: selectedStatus, search: searchTerm, page, limit }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedRole) params.append('role', selectedRole);
-      if (selectedStatus) params.append('status', selectedStatus);
+      if (selectedRole && selectedRole !== 'all') params.append('role', selectedRole);
+      if (selectedStatus && selectedStatus !== 'all') params.append('status', selectedStatus);
       if (searchTerm) params.append('search', searchTerm);
       params.append('page', String(page));
       params.append('limit', String(limit));
@@ -323,7 +323,7 @@ const UserManagement = () => {
                   <SelectValue placeholder="Role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Roles</SelectItem>
+                  <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="instructor">Instructor</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
@@ -335,7 +335,7 @@ const UserManagement = () => {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="banned">Banned</SelectItem>

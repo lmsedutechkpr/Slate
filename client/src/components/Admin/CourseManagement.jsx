@@ -17,8 +17,8 @@ const CourseManagement = () => {
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedLevel, setSelectedLevel] = useState('all');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -52,8 +52,8 @@ const CourseManagement = () => {
       const params = new URLSearchParams();
       params.append('isPublished', 'false'); // Get all courses, including unpublished
       if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory) params.append('category', selectedCategory);
-      if (selectedLevel) params.append('level', selectedLevel);
+      if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (selectedLevel && selectedLevel !== 'all') params.append('level', selectedLevel);
       params.append('page', String(page));
       params.append('limit', String(limit));
       
@@ -292,7 +292,7 @@ const CourseManagement = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="programming">Programming</SelectItem>
                   <SelectItem value="design">Design</SelectItem>
                   <SelectItem value="data-science">Data Science</SelectItem>
@@ -305,7 +305,7 @@ const CourseManagement = () => {
                   <SelectValue placeholder="Level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Levels</SelectItem>
+                  <SelectItem value="all">All Levels</SelectItem>
                   <SelectItem value="beginner">Beginner</SelectItem>
                   <SelectItem value="intermediate">Intermediate</SelectItem>
                   <SelectItem value="advanced">Advanced</SelectItem>
