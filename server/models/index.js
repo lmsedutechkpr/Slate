@@ -4,6 +4,7 @@ import Enrollment from './Enrollment.js';
 import Assignment from './Assignment.js';
 import Product from './Product.js';
 import LiveSession from './LiveSession.js';
+import AuditLog from './AuditLog.js';
 
 export {
   User,
@@ -12,4 +13,5 @@ export {
   Assignment,
   Product,
   LiveSession
+  , AuditLog
 };

@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient.js";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,14 +17,28 @@ import Progress from "@/pages/Progress.jsx";
 import Store from "@/pages/Store.jsx";
 import Profile from "@/pages/Profile.jsx";
 import AdminDashboard from "@/pages/AdminDashboard.jsx";
+import AdminStudents from "@/pages/AdminStudents.jsx";
+import AdminCourses from "@/pages/AdminCourses.jsx";
+import AdminInstructors from "@/pages/AdminInstructors.jsx";
+import AdminAnalytics from "@/pages/AdminAnalytics.jsx";
+import AdminSettings from "@/pages/AdminSettings.jsx";
+import AdminUsers from "@/pages/AdminUsers.jsx";
+import AdminAuditLogs from "@/pages/AdminAuditLogs.jsx";
+import AdminCourseDetail from "@/pages/AdminCourseDetail.jsx";
+import AdminInstructorDetail from "@/pages/AdminInstructorDetail.jsx";
+import AdminStudentReport from "@/pages/AdminStudentReport.jsx";
+import AdminProfile from "@/pages/AdminProfile.jsx";
 import InstructorDashboard from "@/pages/InstructorDashboard.jsx";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute.jsx";
+import AdminLayout from "@/components/Admin/AdminLayout.jsx";
 import Navbar from "@/components/Layout/Navbar.jsx";
 import MobileBottomNav from "@/components/Layout/MobileBottomNav.jsx";
 import { useAuth } from "./hooks/useAuth.js";
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
+  const isAdminRoute = location.startsWith('/admin');
 
   if (isLoading) {
     return (
@@ -35,7 +50,7 @@ function AppRoutes() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {isAuthenticated && <Navbar />}
+      {isAuthenticated && !isAdminRoute && <Navbar />}
       
       <Switch>
         {/* Public Routes */}
@@ -85,9 +100,100 @@ function AppRoutes() {
           </ProtectedRoute>
         </Route>
         
+        {/* Admin Routes - Wrapped with AdminLayout */}
         <Route path="/admin">
           <ProtectedRoute requiredRole="admin">
-            <AdminDashboard />
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/admin/students">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminStudents />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/students/:id">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminStudentReport />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/profile">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminProfile />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/courses">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminCourses />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/courses/:id">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminCourseDetail />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/instructors">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminInstructors />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/instructors/:id">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminInstructorDetail />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/analytics">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminAnalytics />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/admin/logs">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminAuditLogs />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/admin/settings">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminSettings />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/users">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminUsers />
+            </AdminLayout>
           </ProtectedRoute>
         </Route>
         
@@ -99,14 +205,22 @@ function AppRoutes() {
         
         {/* Default route: redirect */}
         <Route path="/">
-          {!isAuthenticated ? <Redirect to="/login" /> : <Redirect to="/dashboard" />}
+          {!isAuthenticated ? (
+            <Redirect to="/login" />
+          ) : user?.role === 'admin' ? (
+            <Redirect to="/admin" />
+          ) : user?.role === 'instructor' ? (
+            <Redirect to="/instructor" />
+          ) : (
+            <Redirect to="/dashboard" />
+          )}
         </Route>
         
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
       
-      {isAuthenticated && <MobileBottomNav />}
+      {isAuthenticated && !isAdminRoute && <MobileBottomNav />}
     </div>
   );
 }

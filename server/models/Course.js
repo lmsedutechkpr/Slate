@@ -9,10 +9,22 @@ const lectureSchema = new mongoose.Schema({
   videoUrl: String,
   youtubeId: String,
   durationSec: Number,
-  resources: [String],
+  resources: [{
+    title: String,
+    url: String,
+    type: {
+      type: String,
+      enum: ['pdf', 'link', 'video', 'other'],
+      default: 'link'
+    }
+  }],
   order: {
     type: Number,
     default: 0
+  },
+  isPublished: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -21,7 +33,15 @@ const sectionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  lectures: [lectureSchema]
+  lectures: [lectureSchema],
+  order: {
+    type: Number,
+    default: 0
+  },
+  isPublished: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const courseSchema = new mongoose.Schema({
@@ -59,6 +79,15 @@ const courseSchema = new mongoose.Schema({
     ref: 'User'
   },
   sections: [sectionSchema],
+  prerequisites: [String],
+  learningOutcomes: [String],
+  maxStudents: Number,
+  startDate: Date,
+  endDate: Date,
+  completionCertificate: {
+    type: Boolean,
+    default: false
+  },
   isPublished: {
     type: Boolean,
     default: false
@@ -81,6 +110,11 @@ const courseSchema = new mongoose.Schema({
       type: Number,
       default: 0
     }
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'review', 'published', 'archived'],
+    default: 'draft'
   }
 }, {
   timestamps: true

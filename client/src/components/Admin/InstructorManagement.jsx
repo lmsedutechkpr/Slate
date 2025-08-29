@@ -179,9 +179,10 @@ const InstructorManagement = () => {
                     <TableCell>{instructor.email}</TableCell>
                     <TableCell>{new Date(instructor.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => { setSelectedInstructor(instructor); setCoursesOpen(true); }}>
+                      <Button size="sm" variant="outline" className="mr-2" onClick={() => { setSelectedInstructor(instructor); setCoursesOpen(true); }}>
                         <BookOpen className="w-3 h-3 mr-1" /> Courses
                       </Button>
+                      <Button size="sm" variant="outline" onClick={() => window.location.assign(`/admin/instructors/${instructor._id}`)}>View</Button>
                       <Button size="sm" className="ml-2" variant="outline" onClick={async () => {
                         setSelectedInstructor(instructor);
                         setAssignOpen(true);

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '../../hooks/useAuth.js';
-import { Home, BookOpen, FileText, TrendingUp, ShoppingCart, Settings, Users } from 'lucide-react';
+import { Home, BookOpen, FileText, TrendingUp, ShoppingCart, Settings, Users, Shield, BarChart3 } from 'lucide-react';
 
 const MobileBottomNav = () => {
   const { user } = useAuth();
@@ -26,10 +26,10 @@ const MobileBottomNav = () => {
       ],
       admin: [
         { icon: Home, label: 'Dashboard', path: '/admin' },
-        { icon: Users, label: 'Users', path: '/admin/users' },
+        { icon: Users, label: 'Students', path: '/admin/students' },
         { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
-        { icon: TrendingUp, label: 'Analytics', path: '/admin/analytics' },
-        { icon: Settings, label: 'Settings', path: '/admin/settings' }
+        { icon: Shield, label: 'Instructors', path: '/admin/instructors' },
+        { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' }
       ]
     };
 
@@ -40,6 +40,9 @@ const MobileBottomNav = () => {
 
   const isActive = (path) => {
     if (path === '/dashboard' && (location === '/' || location === '/dashboard')) {
+      return true;
+    }
+    if (path === '/admin' && location === '/admin') {
       return true;
     }
     return location === path || location.startsWith(path + '/');

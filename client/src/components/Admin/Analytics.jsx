@@ -4,58 +4,74 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, BookOpen, DollarSign, Calendar, Download } from 'lucide-react';
-import { useState } from 'react';
+import { TrendingUp, Users, BookOpen, DollarSign } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 const Analytics = () => {
   const { accessToken } = useAuth();
   const [timeRange, setTimeRange] = useState('30d');
 
-  // Mock analytics data (in a real app, this would come from the API)
-  const mockAnalytics = {
-    overview: {
-      totalRevenue: 125000,
-      totalUsers: 1245,
-      totalEnrollments: 3421,
-      completionRate: 72.5,
-      revenueGrowth: 15.3,
-      userGrowth: 12.1,
-      enrollmentGrowth: 8.7,
-      completionGrowth: 3.2
+  // Live overview
+  const { data: overview } = useQuery({
+    queryKey: ['/api/admin/analytics/overview'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/analytics/overview', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      if (!res.ok) throw new Error('Failed to load overview');
+      return res.json();
     },
-    userGrowth: [
-      { month: 'Jan', students: 120, instructors: 8 },
-      { month: 'Feb', students: 145, instructors: 10 },
-      { month: 'Mar', students: 180, instructors: 12 },
-      { month: 'Apr', students: 220, instructors: 15 },
-      { month: 'May', students: 280, instructors: 18 },
-      { month: 'Jun', students: 340, instructors: 22 }
-    ],
-    courseEnrollments: [
-      { course: 'JavaScript Fundamentals', enrollments: 245 },
-      { course: 'React Development', enrollments: 189 },
-      { course: 'Node.js Backend', enrollments: 156 },
-      { course: 'Python Basics', enrollments: 134 },
-      { course: 'Data Science', enrollments: 98 }
-    ],
-    revenueData: [
-      { month: 'Jan', revenue: 15000 },
-      { month: 'Feb', revenue: 18000 },
-      { month: 'Mar', revenue: 22000 },
-      { month: 'Apr', revenue: 25000 },
-      { month: 'May', revenue: 28000 },
-      { month: 'Jun', revenue: 32000 }
-    ],
-    categoryDistribution: [
-      { name: 'Programming', value: 45, count: 18 },
-      { name: 'Design', value: 25, count: 10 },
-      { name: 'Data Science', value: 15, count: 6 },
-      { name: 'Business', value: 10, count: 4 },
-      { name: 'Marketing', value: 5, count: 2 }
-    ]
-  };
+    enabled: !!accessToken
+  });
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  // Students sample for growth (derive monthly counts)
+  const { data: studentsData } = useQuery({
+    queryKey: ['/api/admin/analytics/students', { timeRange }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '500');
+      const res = await fetch(`/api/admin/analytics/students?${params.toString()}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      if (!res.ok) throw new Error('Failed to load students');
+      return res.json();
+    },
+    enabled: !!accessToken
+  });
+
+  // Courses for category distribution
+  const { data: coursesData } = useQuery({
+    queryKey: ['/api/courses', { published: 'all' }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '500');
+      params.append('isPublished', 'false');
+      const res = await fetch(`/api/courses?${params.toString()}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      if (!res.ok) throw new Error('Failed to load courses');
+      return res.json();
+    },
+    enabled: !!accessToken
+  });
+
+  const studentList = studentsData?.students || [];
+  const courseList = coursesData?.courses || [];
+
+  const userGrowth = useMemo(() => {
+    const byMonth = new Map();
+    studentList.forEach(s => {
+      const d = new Date(s.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      byMonth.set(key, (byMonth.get(key) || 0) + 1);
+    });
+    const keys = Array.from(byMonth.keys()).sort();
+    return keys.map(k => ({ month: k, students: byMonth.get(k) }));
+  }, [studentList]);
+
+  const categoryDistribution = useMemo(() => {
+    const m = new Map();
+    courseList.forEach(c => m.set(c.category || 'other', (m.get(c.category || 'other') || 0) + 1));
+    return Array.from(m.entries()).map(([name, count]) => ({ name, count }));
+  }, [courseList]);
+
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#14b8a6'];
 
   const StatCard = ({ title, value, change, icon: Icon, color, subtitle }) => (
     <Card className="card-hover">
@@ -63,16 +79,11 @@ const Analytics = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {typeof value === 'number' ? value.toLocaleString() : value}
-            </p>
-            {subtitle && (
-              <p className="text-sm text-gray-500">{subtitle}</p>
-            )}
-            {change && (
-              <p className={`text-sm flex items-center mt-1 ${change > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                <TrendingUp className="w-3 h-3 mr-1" />
-                {change > 0 ? '+' : ''}{change}% vs last period
+            <p className="text-2xl font-bold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+            {subtitle && (<p className="text-sm text-gray-500">{subtitle}</p>)}
+            {change != null && (
+              <p className={`text-sm flex items-center mt-1 ${change > 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                <TrendingUp className="w-3 h-3 mr-1" /> {change > 0 ? `+${change}%` : `${change || 0}%`} vs last period
               </p>
             )}
           </div>
@@ -92,113 +103,59 @@ const Analytics = () => {
           <h2 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h2>
           <p className="text-gray-600">Monitor platform performance and insights</p>
         </div>
-        
         <div className="flex gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
               <SelectItem value="30d">Last 30 days</SelectItem>
               <SelectItem value="90d">Last 90 days</SelectItem>
               <SelectItem value="12m">Last 12 months</SelectItem>
             </SelectContent>
           </Select>
-          <button className="flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </button>
         </div>
       </div>
 
-      {/* Overview Stats */}
+      {/* Overview Stats (live) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Revenue"
-          value={`₹${Math.round(mockAnalytics.overview.totalRevenue / 1000)}k`}
-          change={mockAnalytics.overview.revenueGrowth}
-          icon={DollarSign}
-          color="bg-green-500"
-        />
-        <StatCard
-          title="Total Users"
-          value={mockAnalytics.overview.totalUsers}
-          change={mockAnalytics.overview.userGrowth}
-          icon={Users}
-          color="bg-blue-500"
-        />
-        <StatCard
-          title="Total Enrollments"
-          value={mockAnalytics.overview.totalEnrollments}
-          change={mockAnalytics.overview.enrollmentGrowth}
-          icon={BookOpen}
-          color="bg-purple-500"
-        />
-        <StatCard
-          title="Completion Rate"
-          value={`${mockAnalytics.overview.completionRate}%`}
-          change={mockAnalytics.overview.completionGrowth}
-          icon={TrendingUp}
-          color="bg-orange-500"
-        />
+        <StatCard title="Total Revenue" value={`₹${(overview?.totalRevenue || 0).toLocaleString()}`} change={0} icon={DollarSign} color="bg-green-500" />
+        <StatCard title="Total Users" value={overview?.totalUsers || 0} change={0} icon={Users} color="bg-blue-500" />
+        <StatCard title="Total Enrollments" value={overview?.totalEnrollments || 0} change={0} icon={BookOpen} color="bg-purple-500" />
+        <StatCard title="Active Users" value={overview?.activeUsers || 0} change={0} icon={TrendingUp} color="bg-orange-500" />
       </div>
 
       {/* Analytics Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid grid-cols-4 w-fit">
-          <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
-          <TabsTrigger value="courses" data-testid="tab-courses">Courses</TabsTrigger>
-          <TabsTrigger value="revenue" data-testid="tab-revenue">Revenue</TabsTrigger>
+        <TabsList className="flex w-full overflow-x-auto whitespace-nowrap p-1 bg-gray-100 rounded-lg gap-1 md:grid md:grid-cols-4 md:overflow-visible md:whitespace-normal">
+          <TabsTrigger value="overview" data-testid="tab-overview" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md md:w-full md:justify-center data-[state=active]:bg-white data-[state=active]:text-gray-900">Overview</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-users" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md md:w-full md:justify-center data-[state=active]:bg-white data-[state=active]:text-gray-900">Users</TabsTrigger>
+          <TabsTrigger value="courses" data-testid="tab-courses" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md md:w-full md:justify-center data-[state=active]:bg-white data-[state=active]:text-gray-900">Courses</TabsTrigger>
+          <TabsTrigger value="revenue" data-testid="tab-revenue" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md md:w-full md:justify-center data-[state=active]:bg-white data-[state=active]:text-gray-900">Revenue</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* User Growth Chart */}
             <Card>
-              <CardHeader>
-                <CardTitle>User Growth</CardTitle>
-                <CardDescription>
-                  New user registrations over time
-                </CardDescription>
-              </CardHeader>
+              <CardHeader><CardTitle>User Growth</CardTitle><CardDescription>New user registrations over time (from recent data)</CardDescription></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={mockAnalytics.userGrowth}>
+                  <LineChart data={userGrowth}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="students" fill="#3b82f6" name="Students" />
-                    <Bar dataKey="instructors" fill="#10b981" name="Instructors" />
-                  </BarChart>
+                    <Line type="monotone" dataKey="students" stroke="#3b82f6" strokeWidth={2} />
+                  </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            {/* Course Category Distribution */}
             <Card>
-              <CardHeader>
-                <CardTitle>Course Categories</CardTitle>
-                <CardDescription>
-                  Distribution of courses by category
-                </CardDescription>
-              </CardHeader>
+              <CardHeader><CardTitle>Course Categories</CardTitle><CardDescription>Distribution by category</CardDescription></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie
-                      data={mockAnalytics.categoryDistribution}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                      label={({ name, count }) => `${name}: ${count}`}
-                    >
-                      {mockAnalytics.categoryDistribution.map((entry, index) => (
+                    <Pie data={categoryDistribution} cx="50%" cy="50%" outerRadius={80} dataKey="count" label={({ name, count }) => `${name}: ${count}`}>
+                      {categoryDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -210,124 +167,39 @@ const Analytics = () => {
           </div>
         </TabsContent>
 
-        {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>User Analytics</CardTitle>
-              <CardDescription>
-                Detailed user growth and engagement metrics
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>User Metrics</CardTitle><CardDescription>Based on student analytics endpoint</CardDescription></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={mockAnalytics.userGrowth}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="students" stroke="#3b82f6" strokeWidth={2} name="Students" />
-                  <Line type="monotone" dataKey="instructors" stroke="#10b981" strokeWidth={2} name="Instructors" />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="text-sm text-gray-600">Total students fetched: {studentList.length}</div>
             </CardContent>
           </Card>
-
-          {/* User Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-2xl font-bold text-blue-600">92%</div>
-                <div className="text-sm text-gray-600">Active Users</div>
-                <div className="text-xs text-gray-500 mt-1">Last 30 days</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-2xl font-bold text-green-600">4.2h</div>
-                <div className="text-sm text-gray-600">Avg Session</div>
-                <div className="text-xs text-gray-500 mt-1">Per user</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-2xl font-bold text-purple-600">68%</div>
-                <div className="text-sm text-gray-600">Retention Rate</div>
-                <div className="text-xs text-gray-500 mt-1">30-day</div>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
 
-        {/* Courses Tab */}
         <TabsContent value="courses" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Popular Courses</CardTitle>
-              <CardDescription>
-                Most enrolled courses on the platform
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Courses Metrics</CardTitle><CardDescription>Live snapshot of course distribution</CardDescription></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={mockAnalytics.courseEnrollments} layout="horizontal">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={categoryDistribution}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="course" type="category" width={150} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
                   <Tooltip />
-                  <Bar dataKey="enrollments" fill="#3b82f6" />
+                  <Bar dataKey="count" fill="#3b82f6" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Revenue Tab */}
         <TabsContent value="revenue" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Revenue Trends</CardTitle>
-              <CardDescription>
-                Monthly revenue growth over time
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Revenue</CardTitle><CardDescription>From overview (placeholder until revenue tracking implemented)</CardDescription></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={mockAnalytics.revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Revenue']} />
-                  <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="text-3xl font-bold">₹{(overview?.totalRevenue || 0).toLocaleString()}</div>
             </CardContent>
           </Card>
-
-          {/* Revenue Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-2xl font-bold text-green-600">₹32k</div>
-                <div className="text-sm text-gray-600">This Month</div>
-                <div className="text-xs text-green-500 mt-1">+12.5% vs last month</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-2xl font-bold text-blue-600">₹2.1k</div>
-                <div className="text-sm text-gray-600">Avg Order Value</div>
-                <div className="text-xs text-gray-500 mt-1">Per student</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="text-2xl font-bold text-purple-600">78%</div>
-                <div className="text-sm text-gray-600">Payment Success</div>
-                <div className="text-xs text-gray-500 mt-1">Rate</div>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
     </div>

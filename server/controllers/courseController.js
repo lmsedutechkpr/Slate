@@ -1,4 +1,4 @@
-import { Course, Enrollment, User } from '../models/index.js';
+import { Course, Enrollment, User, AuditLog } from '../models/index.js';
 import multer from 'multer';
 import cloudinary from '../utils/cloudinary.js';
 import fs from 'fs';
@@ -23,7 +23,8 @@ export const createCourse = async (req, res) => {
       price: price || 0,
       createdBy: req.user._id,
       assignedInstructor: req.user.role === UserRoles.INSTRUCTOR ? req.user._id : null,
-      isPublished: isPublished === 'true' || isPublished === true
+      isPublished: isPublished === 'true' || isPublished === true,
+      status: (isPublished === 'true' || isPublished === true) ? 'published' : 'draft'
     });
 
     // Optional cover upload
@@ -38,6 +39,7 @@ export const createCourse = async (req, res) => {
     
     await course.save();
     
+    try { await AuditLog.create({ action: 'course:create', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id), meta: { title } }); } catch {}
     res.status(201).json({
       message: 'Course created successfully',
       course
@@ -63,6 +65,7 @@ export const updateCourseStructure = async (req, res) => {
       { new: true, runValidators: false }
     );
     if (!course) return res.status(404).json({ message: 'Course not found' });
+    try { await AuditLog.create({ action: 'course:structure:update', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id) }); } catch {}
     res.json({ message: 'Structure updated', course });
   } catch (error) {
     res.status(500).json({ message: 'Failed to update structure', error: error.message });
@@ -93,7 +96,22 @@ export const uploadLectureVideo = async (req, res) => {
 export const updateCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { title, description, category, level, language, price, isPublished } = req.body;
+    const { 
+      title, 
+      description, 
+      category, 
+      level, 
+      language, 
+      price, 
+      isPublished,
+      prerequisites,
+      learningOutcomes,
+      maxStudents,
+      startDate,
+      endDate,
+      completionCertificate
+    } = req.body;
+    
     const update = {};
     if (title != null) update.title = title;
     if (description != null) update.description = description;
@@ -101,7 +119,19 @@ export const updateCourse = async (req, res) => {
     if (level != null) update.level = level;
     if (language != null) update.language = language;
     if (price != null) update.price = price;
-    if (isPublished != null) update.isPublished = (isPublished === 'true' || isPublished === true);
+    if (isPublished != null) {
+      const pub = (isPublished === 'true' || isPublished === true);
+      update.isPublished = pub;
+      // Preserve draft/review if toggling off publish without explicit status
+      if (pub) update.status = 'published';
+      else if (!update.status) update.status = 'archived';
+    }
+    if (prerequisites != null) update.prerequisites = prerequisites.split(',').map(p => p.trim()).filter(Boolean);
+    if (learningOutcomes != null) update.learningOutcomes = learningOutcomes.split(',').map(o => o.trim()).filter(Boolean);
+    if (maxStudents != null) update.maxStudents = parseInt(maxStudents);
+    if (startDate != null) update.startDate = new Date(startDate);
+    if (endDate != null) update.endDate = new Date(endDate);
+    if (completionCertificate != null) update.completionCertificate = (completionCertificate === 'true' || completionCertificate === true);
 
     if (req.file) {
       const uploadRes = await cloudinary.uploader.upload(req.file.path, {
@@ -114,6 +144,7 @@ export const updateCourse = async (req, res) => {
 
     const course = await Course.findByIdAndUpdate(courseId, { $set: update }, { new: true });
     if (!course) return res.status(404).json({ message: 'Course not found' });
+    try { await AuditLog.create({ action: 'course:update', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id), meta: { update } }); } catch {}
     res.json({ message: 'Course updated', course });
   } catch (error) {
     res.status(500).json({ message: 'Failed to update course', error: error.message });
@@ -129,33 +160,71 @@ export const getAllCourses = async (req, res) => {
       instructorId,
       page = 1, 
       limit = 10,
-      isPublished = true 
+      isPublished,
+      sortBy = 'createdAt',
+      sortDir = 'desc'
     } = req.query;
     
-    const filter = {};
+    let filter = {};
     
-    if (isPublished !== 'false') {
-      filter.isPublished = true;
+    // Admin pages may request both published/unpublished; default only when query param omitted
+    if (isPublished !== undefined && isPublished !== null) {
+      if (String(isPublished) === 'true') filter.isPublished = true;
+      else if (String(isPublished) === 'false') filter.isPublished = false;
     }
     
     if (category) filter.category = category;
     if (level) filter.level = level;
+    if (req.query.status) {
+      const allowed = ['draft','review','published','archived'];
+      const st = String(req.query.status);
+      if (allowed.includes(st)) filter.status = st;
+    }
     if (instructorId) filter.assignedInstructor = instructorId;
     
+    const andClauses = [];
     if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
+      andClauses.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { tags: { $in: [new RegExp(search, 'i')] } }
+        ]
+      });
+    }
+
+    if (req.query.status) {
+      const st = String(req.query.status);
+      if (['draft','review','published','archived'].includes(st)) {
+        if (st === 'published') {
+          andClauses.push({ $or: [{ status: 'published' }, { isPublished: true }] });
+        } else if (st === 'archived') {
+          andClauses.push({ $or: [{ status: 'archived' }, { isPublished: false }] });
+        } else {
+          andClauses.push({ status: st });
+        }
+      }
+    }
+
+    if (andClauses.length > 0) {
+      filter = { ...filter, $and: andClauses };
     }
     
+    const allowedSort = {
+      createdAt: 'createdAt',
+      title: 'title',
+      price: 'price',
+      enrollmentCount: 'enrollmentCount',
+    };
+    const sortField = allowedSort[sortBy] || 'createdAt';
+    const direction = String(sortDir).toLowerCase() === 'asc' ? 1 : -1;
+
     const courses = await Course.find(filter)
       .populate('assignedInstructor', 'username profile')
       .populate('createdBy', 'username profile')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+      .limit(parseInt(limit) * 1)
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .sort({ [sortField]: direction });
     
     const total = await Course.countDocuments(filter);
     
@@ -206,6 +275,50 @@ export const getCourseById = async (req, res) => {
       message: 'Failed to get course',
       error: error.message
     });
+  }
+};
+
+// Delete a course (admin or owning instructor)
+export const deleteCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    await Course.findByIdAndDelete(courseId);
+    try { await AuditLog.create({ action: 'course:delete', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(courseId), meta: { title: course.title } }); } catch {}
+    res.json({ message: 'Course deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete course', error: error.message });
+  }
+};
+
+// Bulk publish courses (set isPublished=true)
+export const bulkPublishCourses = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'ids array is required' });
+    }
+    await Course.updateMany({ _id: { $in: ids } }, { $set: { isPublished: true, status: 'published' } });
+    try { await AuditLog.create({ action: 'course:bulk:publish', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', meta: { ids } }); } catch {}
+    res.json({ message: 'Courses published', ids });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to publish courses', error: error.message });
+  }
+};
+
+// Bulk archive courses (set isPublished=false)
+export const bulkArchiveCourses = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'ids array is required' });
+    }
+    await Course.updateMany({ _id: { $in: ids } }, { $set: { isPublished: false, status: 'archived' } });
+    try { await AuditLog.create({ action: 'course:bulk:archive', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', meta: { ids } }); } catch {}
+    res.json({ message: 'Courses archived', ids });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to archive courses', error: error.message });
   }
 };
 
@@ -346,6 +459,7 @@ export const assignInstructor = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
     
+    try { await AuditLog.create({ action: 'course:assign-instructor', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id), meta: { instructorId } }); } catch {}
     res.json({
       message: 'Instructor assigned successfully',
       course

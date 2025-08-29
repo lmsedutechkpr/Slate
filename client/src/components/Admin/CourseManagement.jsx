@@ -731,7 +731,21 @@ const CourseManagement = () => {
                   if (!res.ok) throw new Error(data.message || 'Failed to create course');
                   toast({ title: 'Created', description: 'Course created successfully' });
                   setCreateOpen(false);
-                  setNewCourse({ title: '', description: '', category: '', level: 'beginner', language: 'English', price: 0, isPublished: false });
+                  setNewCourse({ 
+                    title: '', 
+                    description: '', 
+                    category: '', 
+                    level: 'beginner', 
+                    language: 'English', 
+                    price: 0, 
+                    isPublished: false,
+                    prerequisites: '',
+                    learningOutcomes: '',
+                    maxStudents: '',
+                    startDate: '',
+                    endDate: '',
+                    completionCertificate: false
+                  });
                   setCoverFile(null);
                   queryClient.invalidateQueries(['/api/courses']);
                 } catch (e) {

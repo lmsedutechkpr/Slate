@@ -1,4 +1,4 @@
-import { User } from '../models/index.js';
+import { User, AuditLog } from '../models/index.js';
 import { UserRoles, InterestTypes, LearningPace, Domains } from '../constants.js';
 import multer from 'multer';
 import cloudinary from '../utils/cloudinary.js';
@@ -19,18 +19,26 @@ const StudentProfileSchema = {
 export const updateStudentProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { yearOfStudy, degree, interestType, domains, careerGoal, learningPace, firstName, lastName, phone } = req.body;
+    const { yearOfStudy, degree, interestType, domains = [], careerGoal, learningPace, firstName, lastName, phone, nickname, username } = req.body;
     
     // Validate domains
     const validDomains = domains.filter(domain => Domains.includes(domain));
     
+    // If username provided, ensure it's unique (and not changing to same)
+    if (username && username !== req.user.username) {
+      const exists = await User.findOne({ username });
+      if (exists) return res.status(400).json({ message: 'Username already taken' });
+    }
+
     const user = await User.findByIdAndUpdate(
       userId,
       {
         $set: {
           'profile.firstName': firstName ?? req.user.profile?.firstName,
           'profile.lastName': lastName ?? req.user.profile?.lastName,
+          'profile.nickname': nickname ?? req.user.profile?.nickname,
           'profile.phone': phone ?? req.user.profile?.phone,
+          'username': username ?? req.user.username,
           'studentProfile.yearOfStudy': yearOfStudy,
           'studentProfile.degree': degree,
           'studentProfile.interestType': interestType,
@@ -56,6 +64,38 @@ export const updateStudentProfile = async (req, res) => {
       message: 'Failed to update profile',
       error: error.message
     });
+  }
+};
+
+// Admin profile updater (role: admin). Updates only basic profile fields
+export const updateAdminProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { firstName, lastName, phone, nickname, username } = req.body || {};
+
+    // Enforce unique username if changed
+    if (username && username !== req.user.username) {
+      const exists = await User.findOne({ username });
+      if (exists) return res.status(400).json({ message: 'Username already taken' });
+    }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          'profile.firstName': firstName ?? req.user.profile?.firstName,
+          'profile.lastName': lastName ?? req.user.profile?.lastName,
+          'profile.nickname': nickname ?? req.user.profile?.nickname,
+          'profile.phone': phone ?? req.user.profile?.phone,
+          'username': username ?? req.user.username,
+        }
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    try { await AuditLog.create({ action: 'admin:profile:update', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'User', targetId: String(user._id) }); } catch {}
+    res.json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update profile', error: error.message });
   }
 };
 
@@ -87,6 +127,7 @@ export const changePassword = async (req, res) => {
     if (!ok) return res.status(400).json({ message: 'Current password incorrect' });
     user.password = newPassword;
     await user.save();
+    try { await AuditLog.create({ action: 'user:password:update', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'User', targetId: String(user._id) }); } catch {}
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to update password', error: error.message });
@@ -216,7 +257,7 @@ export const createInstructor = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const { role, status, page = 1, limit = 10, search } = req.query;
+    const { role, status, page = 1, limit = 10, search, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
     
     const filter = {};
     if (role) filter.role = role;
@@ -229,14 +270,26 @@ export const getAllUsers = async (req, res) => {
         { googleEmail: rx },
         { 'profile.firstName': rx },
         { 'profile.lastName': rx },
+        { 'profile.nickname': rx },
       ];
     }
     
+    // Sorting whitelist
+    const allowedSort = {
+      createdAt: 'createdAt',
+      username: 'username',
+      email: 'email',
+      role: 'role',
+      status: 'status',
+    };
+    const sortField = allowedSort[sortBy] || 'createdAt';
+    const direction = String(sortDir).toLowerCase() === 'asc' ? 1 : -1;
+
     const users = await User.find(filter)
       .select('-password')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+      .limit(parseInt(limit) * 1)
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .sort({ [sortField]: direction });
     
     const total = await User.countDocuments(filter);
     

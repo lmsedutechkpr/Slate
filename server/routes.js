@@ -12,6 +12,7 @@ import * as liveSessionController from './controllers/liveSessionController.js';
 import * as productController from './controllers/productController.js';
 import * as recommendationService from './services/recommendationService.js';
 import * as analyticsController from './controllers/analyticsController.js';
+import * as notificationController from './controllers/notificationController.js';
 
 // Import middleware
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
@@ -33,7 +34,11 @@ export async function registerRoutes(app) {
   
   // User routes
   app.get('/api/users/profile', authenticateToken, userController.getStudentProfile);
-  app.put('/api/users/profile', authenticateToken, requireStudent, userController.updateStudentProfile);
+  // Allow admins to update their own profile; students use student updater
+  app.put('/api/users/profile', authenticateToken, (req, res, next) => {
+    if (req.user?.role === 'admin' || req.user?.role === 'super-admin') return userController.updateAdminProfile(req, res);
+    return requireStudent(req, res, () => userController.updateStudentProfile(req, res));
+  });
   app.put('/api/users/password', authenticateToken, userController.changePassword);
   app.post('/api/users/email/change-request', authenticateToken, userController.requestEmailChange);
   app.post('/api/users/email/verify', authenticateToken, userController.verifyEmailChange);
@@ -52,6 +57,9 @@ export async function registerRoutes(app) {
   app.put('/api/courses/:courseId', authenticateToken, requireInstructorOrAdmin, courseController.uploadCourseCoverMiddleware, courseController.updateCourse);
   app.get('/api/courses', optionalAuth, courseController.getAllCourses);
   app.get('/api/courses/:courseId', optionalAuth, courseController.getCourseById);
+  app.delete('/api/courses/:courseId', authenticateToken, requireInstructorOrAdmin, courseController.deleteCourse);
+  app.post('/api/admin/courses/bulk/publish', authenticateToken, requireAdmin, courseController.bulkPublishCourses);
+  app.post('/api/admin/courses/bulk/archive', authenticateToken, requireAdmin, courseController.bulkArchiveCourses);
   app.post('/api/courses/:courseId/enroll', authenticateToken, requireStudent, courseController.enrollInCourse);
   app.get('/api/enrollments', authenticateToken, requireStudent, courseController.getMyEnrollments);
   app.put('/api/courses/:courseId/progress', authenticateToken, requireStudent, courseController.updateCourseProgress);
@@ -75,6 +83,75 @@ export async function registerRoutes(app) {
   
   // Admin analytics
   app.get('/api/admin/analytics/overview', authenticateToken, requireAdmin, analyticsController.getOverview);
+  app.get('/api/admin/analytics/students', authenticateToken, requireAdmin, analyticsController.getStudentAnalytics);
+  app.get('/api/admin/analytics/courses/:courseId', authenticateToken, requireAdmin, analyticsController.getCourseAnalytics);
+  app.get('/api/admin/analytics/instructors/:instructorId', authenticateToken, requireAdmin, analyticsController.getInstructorAnalytics);
+
+  // Audit logs
+  app.get('/api/admin/audit-logs', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { AuditLog, User } = await import('./models/index.js');
+      const { page = 1, limit = 20, action, actor, targetId, q, format } = req.query;
+      const filter = {};
+      if (action) filter.action = action;
+      if (targetId) filter.targetId = targetId;
+      if (actor) {
+        const rx = new RegExp(actor, 'i');
+        const actors = await User.find({ $or: [{ username: rx }, { email: rx }] }).select('_id');
+        filter.actorId = { $in: actors.map(a => a._id) };
+      }
+      if (q) {
+        const rx = new RegExp(q, 'i');
+        filter.$or = [
+          { action: rx },
+          { actorUsername: rx },
+          { actorEmail: rx },
+          { targetId: rx },
+          { targetType: rx },
+          { ip: rx },
+          { userAgent: rx },
+        ];
+      }
+      const logs = await AuditLog.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .skip((parseInt(page) - 1) * parseInt(limit));
+      const total = await AuditLog.countDocuments(filter);
+      if (String(format).toLowerCase() === 'csv') {
+        const fields = ['createdAt','action','actorUsername','actorEmail','actorRole','ip','userAgent','targetType','targetId','meta'];
+        const esc = (v) => {
+          if (v == null) return '';
+          const s = typeof v === 'string' ? v : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+          const needs = /[",\n]/.test(s);
+          return needs ? '"' + s.replace(/"/g, '""') + '"' : s;
+        };
+        const header = fields.join(',');
+        const rows = logs.map(l => [
+          l.createdAt?.toISOString?.() || '',
+          l.action,
+          l.actorUsername,
+          l.actorEmail,
+          l.actorRole,
+          l.ip,
+          l.userAgent,
+          l.targetType,
+          l.targetId,
+          l.meta || ''
+        ].map(esc).join(','));
+        const csv = [header, ...rows].join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="audit-logs.csv"');
+        return res.send(csv);
+      }
+      res.json({ logs, pagination: { page: parseInt(page), limit: parseInt(limit), total } });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to load audit logs', error: e.message });
+    }
+  });
+
+  // Simple notifications (polling)
+  app.get('/api/admin/notifications', authenticateToken, requireAdmin, notificationController.list);
+  app.post('/api/admin/notifications', authenticateToken, requireAdmin, notificationController.publish);
   
   // Recommendation routes
   app.get('/api/recommendations', authenticateToken, async (req, res) => {

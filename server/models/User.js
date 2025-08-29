@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema({
   profile: {
     firstName: String,
     lastName: String,
+    nickname: String,
     avatar: String,
     phone: String
   },

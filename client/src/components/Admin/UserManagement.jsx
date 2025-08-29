@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +19,11 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedRole, setSelectedRole] = useState(() => localStorage.getItem('adminUsers.role') || 'all');
+  const [selectedStatus, setSelectedStatus] = useState(() => localStorage.getItem('adminUsers.status') || 'all');
+  const [savedViews, setSavedViews] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('adminUsers.savedViews') || '[]'); } catch { return []; }
+  });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newInstructor, setNewInstructor] = useState({
     username: '',
@@ -38,8 +41,10 @@ const UserManagement = () => {
   // Fetch users
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDir, setSortDir] = useState('desc');
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['/api/admin/users', { role: selectedRole, status: selectedStatus, search: searchTerm, page, limit }],
+    queryKey: ['/api/admin/users', { role: selectedRole, status: selectedStatus, search: searchTerm, page, limit, sortBy, sortDir }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedRole && selectedRole !== 'all') params.append('role', selectedRole);
@@ -47,6 +52,8 @@ const UserManagement = () => {
       if (searchTerm) params.append('search', searchTerm);
       params.append('page', String(page));
       params.append('limit', String(limit));
+      params.append('sortBy', sortBy);
+      params.append('sortDir', sortDir);
       
       const response = await fetch(`/api/admin/users?${params.toString()}`, {
         headers: {
@@ -63,6 +70,36 @@ const UserManagement = () => {
     },
     enabled: !!accessToken,
   });
+
+  // Persist filters
+  useEffect(() => {
+    try {
+      localStorage.setItem('adminUsers.role', selectedRole);
+      localStorage.setItem('adminUsers.status', selectedStatus);
+    } catch {}
+  }, [selectedRole, selectedStatus]);
+
+  const saveCurrentView = () => {
+    const name = prompt('Save current filters as view name:');
+    if (!name) return;
+    const view = { name, role: selectedRole, status: selectedStatus, search: searchTerm };
+    const next = [...savedViews.filter(v => v.name !== name), view];
+    setSavedViews(next);
+    try { localStorage.setItem('adminUsers.savedViews', JSON.stringify(next)); } catch {}
+  };
+
+  const loadView = (view) => {
+    setSelectedRole(view.role || 'all');
+    setSelectedStatus(view.status || 'all');
+    setSearchTerm(view.search || '');
+    setPage(1);
+  };
+
+  const deleteView = (name) => {
+    const next = savedViews.filter(v => v.name !== name);
+    setSavedViews(next);
+    try { localStorage.setItem('adminUsers.savedViews', JSON.stringify(next)); } catch {}
+  };
 
   // Create instructor mutation
   const createInstructorMutation = useMutation({
@@ -341,10 +378,34 @@ const UserManagement = () => {
                   <SelectItem value="banned">Banned</SelectItem>
                 </SelectContent>
               </Select>
+              <Button variant="outline" onClick={saveCurrentView}>
+                Save View
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {savedViews.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Saved Views</CardTitle>
+            <CardDescription>Quickly apply commonly used filters</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {savedViews.map(v => (
+                <div key={v.name} className="flex items-center gap-2 border rounded px-2 py-1 text-sm">
+                  <button className="underline" onClick={() => loadView(v)}>{v.name}</button>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-600">{v.role}, {v.status}{v.search ? `, "${v.search}"` : ''}</span>
+                  <Button size="sm" variant="ghost" onClick={() => deleteView(v.name)}>✕</Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Users Table */}
       <Card>
@@ -367,10 +428,30 @@ const UserManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
+                  <TableHead
+                    className="cursor-pointer"
+                    onClick={() => { setSortBy('username'); setSortDir(d => (sortBy === 'username' && d === 'asc') ? 'desc' : 'asc'); }}
+                  >
+                    User {sortBy === 'username' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer"
+                    onClick={() => { setSortBy('role'); setSortDir(d => (sortBy === 'role' && d === 'asc') ? 'desc' : 'asc'); }}
+                  >
+                    Role {sortBy === 'role' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer"
+                    onClick={() => { setSortBy('status'); setSortDir(d => (sortBy === 'status' && d === 'asc') ? 'desc' : 'asc'); }}
+                  >
+                    Status {sortBy === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer"
+                    onClick={() => { setSortBy('createdAt'); setSortDir(d => (sortBy === 'createdAt' && d === 'asc') ? 'desc' : 'asc'); }}
+                  >
+                    Joined {sortBy === 'createdAt' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>

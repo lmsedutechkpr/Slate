@@ -38,6 +38,28 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  // Socket.io for realtime notifications
+  const { Server } = await import('socket.io');
+  const io = new Server(server, { cors: { origin: '*' } });
+
+  io.on('connection', (socket) => {
+    socket.on('notifications:subscribe', () => {
+      socket.join('admin');
+    });
+  });
+
+  // Patch notificationController.publish to emit
+  try {
+    const { publish } = await import('./controllers/notificationController.js');
+    const originalPublish = publish;
+    (await import('./controllers/notificationController.js')).publish = async (req, res) => {
+      await originalPublish(req, res);
+      io.to('admin').emit('notification', {
+        title: req.body?.title || 'Notification',
+        message: req.body?.message || ''
+      });
+    };
+  } catch {}
 
   app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
