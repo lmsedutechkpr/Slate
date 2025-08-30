@@ -85,6 +85,14 @@ export const AuthProvider = ({ children }) => {
           type: 'LOGIN_SUCCESS',
           payload: userData
         });
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('Token expired, attempting refresh...');
+        const refreshSuccess = await refreshTokens();
+        if (refreshSuccess) {
+          // Retry fetching user data
+          await fetchUserData();
+        }
       } else {
         logout();
       }
@@ -231,13 +239,57 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Utility function to make authenticated requests with automatic token refresh
+  const authenticatedFetch = async (url, options = {}) => {
+    let accessToken = state.accessToken || localStorage.getItem('accessToken');
+    
+    if (!accessToken) {
+      throw new Error('No access token available');
+    }
+    
+    // Add authorization header
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${accessToken}`
+    };
+    
+    try {
+      const response = await fetch(url, { ...options, headers });
+      
+      // If token expired, try to refresh and retry
+      if (response.status === 401) {
+        console.log('Token expired during request, attempting refresh...');
+        const refreshSuccess = await refreshTokens();
+        
+        if (refreshSuccess) {
+          // Get new token and retry
+          const newToken = localStorage.getItem('accessToken');
+          headers.Authorization = `Bearer ${newToken}`;
+          
+          const retryResponse = await fetch(url, { ...options, headers });
+          return retryResponse;
+        } else {
+          // Refresh failed, logout
+          logout();
+          throw new Error('Authentication failed');
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Request failed:', error);
+      throw error;
+    }
+  };
+
   const value = {
     ...state,
     login,
     register,
     logout,
     refreshTokens,
-    updateUserProfile
+    updateUserProfile,
+    authenticatedFetch
   };
 
   return (

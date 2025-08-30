@@ -20,9 +20,16 @@ import {
 } from 'lucide-react';
 
 const CourseManagement = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, user, isAuthenticated, authenticatedFetch } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Debug: Log authentication state
+  console.log('=== AUTH DEBUG ===');
+  console.log('accessToken:', accessToken ? 'Present' : 'Missing');
+  console.log('user:', user);
+  console.log('isAuthenticated:', isAuthenticated);
+  console.log('localStorage accessToken:', localStorage.getItem('accessToken'));
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -65,9 +72,8 @@ const CourseManagement = () => {
       params.append('page', String(page));
       params.append('limit', String(limit));
       
-      const response = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), {
+      const response = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`), {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -85,9 +91,8 @@ const CourseManagement = () => {
   const { data: instructorsData } = useQuery({
     queryKey: ['/api/admin/users', { role: 'instructor' }],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/admin/users?role=instructor'), {
+      const response = await authenticatedFetch(buildApiUrl('/api/admin/users?role=instructor'), {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -104,10 +109,9 @@ const CourseManagement = () => {
   // Assign instructor mutation
   const assignInstructorMutation = useMutation({
     mutationFn: async ({ courseId, instructorId }) => {
-      const response = await fetch(buildApiUrl(`/api/courses/${courseId}/assign-instructor`), {
+      const response = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId}/assign-instructor`), {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ instructorId })
@@ -193,7 +197,7 @@ const CourseManagement = () => {
   const uploadLectureVideo = async (file) => {
     const form = new FormData();
     form.append('video', file);
-          const res = await fetch(buildApiUrl(`/api/courses/${structureCourse._id}/lectures/upload`), { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+          const res = await authenticatedFetch(buildApiUrl(`/api/courses/${structureCourse._id}/lectures/upload`), { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to upload');
     return data.url;
@@ -202,9 +206,9 @@ const CourseManagement = () => {
   const saveStructure = async () => {
     setSavingStructure(true);
     try {
-      const res = await fetch(buildApiUrl(`/api/courses/${structureCourse._id}/structure`), {
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses/${structureCourse._id}/structure`), {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sections })
       });
       const data = await res.json();
@@ -666,12 +670,8 @@ const CourseManagement = () => {
                     if (editCourse.price != null) form.append('price', String(editCourse.price));
                     form.append('isPublished', String(!!editCourse.isPublished));
                     if (editCover) form.append('cover', editCover);
-                    const res = await fetch(buildApiUrl(`/api/courses/${editCourse._id}`), { 
+                    const res = await authenticatedFetch(buildApiUrl(`/api/courses/${editCourse._id}`), { 
                       method: 'PUT', 
-                      headers: { 
-                        'Authorization': `Bearer ${accessToken}` 
-                        // Don't set Content-Type for FormData - browser will set it automatically with boundary
-                      }, 
                       body: form 
                     });
                     const data = await res.json();
@@ -775,12 +775,8 @@ const CourseManagement = () => {
                   console.log('API URL:', buildApiUrl('/api/courses'));
                   console.log('Token:', accessToken ? 'Present' : 'Missing');
                   
-                  const res = await fetch(buildApiUrl('/api/courses'), { 
+                  const res = await authenticatedFetch(buildApiUrl('/api/courses'), { 
                     method: 'POST', 
-                    headers: { 
-                      'Authorization': `Bearer ${accessToken}` 
-                      // Don't set Content-Type for FormData - browser will set it automatically with boundary
-                    }, 
                     body: form 
                   });
                   
