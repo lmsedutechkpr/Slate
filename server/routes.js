@@ -19,6 +19,9 @@ import { authenticateToken, optionalAuth } from './middleware/auth.js';
 import { requireAdmin, requireInstructorOrAdmin, requireStudent } from './middleware/rbac.js';
 
 export async function registerRoutes(app) {
+  // Health
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
   // Initialize database connection
   await connectDB();
   
@@ -148,7 +151,7 @@ export async function registerRoutes(app) {
       res.status(500).json({ message: 'Failed to load audit logs', error: e.message });
     }
   });
-
+  
   // Simple notifications (polling)
   app.get('/api/admin/notifications', authenticateToken, requireAdmin, notificationController.list);
   app.post('/api/admin/notifications', authenticateToken, requireAdmin, notificationController.publish);
