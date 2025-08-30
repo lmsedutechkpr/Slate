@@ -25,6 +25,36 @@ export async function registerRoutes(app) {
   // Test route
   app.get('/api/test', (_req, res) => res.json({ message: 'Test route working', time: new Date().toISOString() }));
   
+  // Debug route for course creation testing
+  app.post('/api/courses/test', (req, res) => {
+    console.log('=== TEST COURSE ROUTE ===');
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    console.log('Files:', req.files);
+    console.log('User agent:', req.get('User-Agent'));
+    res.json({ 
+      message: 'Test route hit successfully',
+      received: {
+        method: req.method,
+        path: req.path,
+        hasBody: !!req.body,
+        bodyKeys: Object.keys(req.body || {}),
+        hasFiles: !!req.files,
+        contentType: req.get('Content-Type')
+      }
+    });
+  });
+  
+  // Simple test route without authentication
+  app.get('/api/courses/test-simple', (req, res) => {
+    res.json({ 
+      message: 'Simple test route working',
+      time: new Date().toISOString(),
+      method: req.method,
+      path: req.path
+    });
+  });
+  
   // Serve uploaded files (for local storage fallback)
   app.use('/uploads', express.static('uploads'));
   
