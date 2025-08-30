@@ -1,6 +1,6 @@
 import { Course, Enrollment, User, AuditLog } from '../models/index.js';
 import multer from 'multer';
-import cloudinary from '../utils/cloudinary.js';
+import { uploadToCloudinary } from '../utils/cloudinary.js';
 import fs from 'fs';
 import { UserRoles } from '../constants.js';
 
@@ -29,10 +29,10 @@ export const createCourse = async (req, res) => {
 
     // Optional cover upload
     if (req.file) {
-      const uploadRes = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'course-covers',
-        transformation: [{ width: 800, height: 450, crop: 'fill' }]
-      });
+              const uploadRes = await uploadToCloudinary(req.file.path, {
+          folder: 'course-covers',
+          transformation: [{ width: 800, height: 450, crop: 'fill' }]
+        });
       try { fs.unlinkSync(req.file.path); } catch {}
       course.coverUrl = uploadRes.secure_url;
     }
@@ -82,10 +82,10 @@ export const uploadLectureVideo = async (req, res) => {
     const course = await Course.findById(courseId).select('_id');
     if (!course) return res.status(404).json({ message: 'Course not found' });
 
-    const uploadRes = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'course-videos',
-      resource_type: 'video'
-    });
+          const uploadRes = await uploadToCloudinary(req.file.path, {
+        folder: 'course-videos',
+        resource_type: 'video'
+      });
     try { fs.unlinkSync(req.file.path); } catch {}
     res.json({ message: 'Video uploaded', url: uploadRes.secure_url });
   } catch (error) {
@@ -134,10 +134,10 @@ export const updateCourse = async (req, res) => {
     if (completionCertificate != null) update.completionCertificate = (completionCertificate === 'true' || completionCertificate === true);
 
     if (req.file) {
-      const uploadRes = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'course-covers',
-        transformation: [{ width: 800, height: 450, crop: 'fill' }]
-      });
+              const uploadRes = await uploadToCloudinary(req.file.path, {
+          folder: 'course-covers',
+          transformation: [{ width: 800, height: 450, crop: 'fill' }]
+        });
       try { fs.unlinkSync(req.file.path); } catch {}
       update.coverUrl = uploadRes.secure_url;
     }

@@ -1,7 +1,7 @@
 import { User, AuditLog } from '../models/index.js';
 import { UserRoles, InterestTypes, LearningPace, Domains } from '../constants.js';
 import multer from 'multer';
-import cloudinary from '../utils/cloudinary.js';
+import { uploadToCloudinary } from '../utils/cloudinary.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -192,7 +192,7 @@ export const uploadAvatar = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
     const localPath = req.file.path;
-    const result = await cloudinary.uploader.upload(localPath, {
+    const result = await uploadToCloudinary(localPath, {
       folder: 'avatars',
       transformation: [{ width: 256, height: 256, crop: 'fill', gravity: 'face' }]
     });

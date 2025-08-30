@@ -25,6 +25,9 @@ export async function registerRoutes(app) {
   // Test route
   app.get('/api/test', (_req, res) => res.json({ message: 'Test route working', time: new Date().toISOString() }));
   
+  // Serve uploaded files (for local storage fallback)
+  app.use('/uploads', express.static('uploads'));
+  
   // API Info
   app.get('/api', (_req, res) => res.json({ 
     message: 'EduTech LMS API',

@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
-import { useAuth } from '../hooks/useAuth.js'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import LoadingSpinner from '../components/Common/LoadingSpinner.jsx'
+import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth.js';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LoadingSpinner from '@/components/Common/LoadingSpinner.jsx';
+import { getImageUrl } from '@/lib/utils.js';
+import { API_BASE_URL } from '@/config.js';
 
 export default function Profile() {
   const { accessToken, user, updateUserProfile } = useAuth()
@@ -164,7 +166,7 @@ export default function Profile() {
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center">
               {profile.avatar ? (
-                <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={getImageUrl(profile.avatar, API_BASE_URL)} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-sm text-muted-foreground">No photo</span>
               )}

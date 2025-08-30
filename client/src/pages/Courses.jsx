@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
+import { getImageUrl } from '@/lib/utils.js';
+import { API_BASE_URL } from '@/config.js';
 import { Search, BookOpen, Users, Clock, Star, Filter } from 'lucide-react';
 
 const Courses = () => {
@@ -132,7 +134,7 @@ const Courses = () => {
             </div>
             {course.coverUrl && (
               <img 
-                src={course.coverUrl}
+                src={getImageUrl(course.coverUrl, API_BASE_URL)}
                 alt={course.title}
                 className="w-16 h-12 object-cover rounded-lg ml-4"
               />
