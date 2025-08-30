@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
+import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const AdminAuditLogs = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [action, setAction] = useState('all');
@@ -27,15 +29,29 @@ const AdminAuditLogs = () => {
       if (actor) params.append('actor', actor);
       if (targetId) params.append('targetId', targetId);
       if (query) params.append('q', query);
-      const res = await fetch(buildApiUrl(`/api/admin/audit-logs?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/audit-logs?${params.toString()}`));
       if (!res.ok) throw new Error('Failed to load logs');
       return res.json();
     },
-    enabled: !!accessToken
+    enabled: !!accessToken && !authLoading
   });
 
   const logs = data?.logs || [];
   const pagination = data?.pagination || { page, limit, total: logs.length };
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const actions = [
     'course:create', 'course:update', 'course:structure:update', 'course:delete', 'course:bulk:publish', 'course:bulk:archive', 'course:assign-instructor',

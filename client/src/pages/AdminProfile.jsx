@@ -6,18 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { buildApiUrl } from '../lib/utils.js';
+import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 
 const AdminProfile = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['/api/users/profile'],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/users/profile'), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl('/api/users/profile'));
       if (!res.ok) throw new Error('Failed to load profile');
       return res.json();
     },
-    enabled: !!accessToken
+    enabled: !!accessToken && !authLoading
   });
 
   const user = data?.user || {};
@@ -26,6 +28,20 @@ const AdminProfile = () => {
   const [nickname, setNickname] = useState('');
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // hydrate fields when data loads
   if (!isLoading && firstName === '' && lastName === '' && phone === '' && user?.profile && username === '') {
@@ -38,9 +54,9 @@ const AdminProfile = () => {
 
   const updateProfile = useMutation({
     mutationFn: async () => {
-      const res = await fetch(buildApiUrl('/api/users/profile'), {
+      const res = await authenticatedFetch(buildApiUrl('/api/users/profile'), {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName, lastName, phone, nickname, username })
       });
       if (!res.ok) throw new Error('Failed to update profile');
@@ -56,7 +72,7 @@ const AdminProfile = () => {
     const form = new FormData();
     form.append('avatar', file);
     try {
-      const res = await fetch(buildApiUrl('/api/users/avatar'), { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+      const res = await authenticatedFetch(buildApiUrl('/api/users/avatar'), { method: 'POST', body: form });
       if (!res.ok) throw new Error('Failed to upload avatar');
       await res.json();
       await refetch();
@@ -67,9 +83,9 @@ const AdminProfile = () => {
   const [newPassword, setNewPassword] = useState('');
   const changePassword = useMutation({
     mutationFn: async () => {
-      const res = await fetch(buildApiUrl('/api/users/password'), {
+      const res = await authenticatedFetch(buildApiUrl('/api/users/password'), {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword })
       });
       if (!res.ok) {

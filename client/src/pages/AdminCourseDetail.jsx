@@ -4,9 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useRoute, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { buildApiUrl } from '../lib/utils.js';
+import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 
 const AdminCourseDetail = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const [, params] = useRoute('/admin/courses/:id');
   const [, setLocation] = useLocation();
   const courseId = params?.id;
@@ -14,24 +16,38 @@ const AdminCourseDetail = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['/api/courses', courseId],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/courses/${courseId}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId}`));
       if (!res.ok) throw new Error('Failed to load course');
       return res.json();
     },
-    enabled: !!accessToken && !!courseId
+    enabled: !!accessToken && !authLoading && !!courseId
   });
 
   const { data: analytics } = useQuery({
     queryKey: ['/api/admin/analytics/courses', courseId],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/admin/analytics/courses/${courseId}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/analytics/courses/${courseId}`));
       if (!res.ok) throw new Error('Failed to load course analytics');
       return res.json();
     },
-    enabled: !!accessToken && !!courseId
+    enabled: !!accessToken && !authLoading && !!courseId
   });
 
   const course = data?.course || data;
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

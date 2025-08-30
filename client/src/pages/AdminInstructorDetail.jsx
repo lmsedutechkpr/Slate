@@ -4,9 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useRoute, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { buildApiUrl } from '../lib/utils.js';
+import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 
 const AdminInstructorDetail = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const [, params] = useRoute('/admin/instructors/:id');
   const [, setLocation] = useLocation();
   const instructorId = params?.id;
@@ -14,15 +16,29 @@ const AdminInstructorDetail = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['/api/admin/analytics/instructors', instructorId],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/admin/analytics/instructors/${instructorId}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/analytics/instructors/${instructorId}`));
       if (!res.ok) throw new Error('Failed to load instructor analytics');
       return res.json();
     },
-    enabled: !!accessToken && !!instructorId
+    enabled: !!accessToken && !authLoading && !!instructorId
   });
 
   const instructor = data?.instructor;
   const stats = data?.statistics;
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

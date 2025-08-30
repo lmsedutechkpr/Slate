@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
+import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,18 +10,19 @@ import { TrendingUp, Users, BookOpen, DollarSign } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
 const Analytics = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const [timeRange, setTimeRange] = useState('30d');
 
   // Live overview
   const { data: overview } = useQuery({
     queryKey: ['/api/admin/analytics/overview'],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/admin/analytics/overview'), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl('/api/admin/analytics/overview'));
       if (!res.ok) throw new Error('Failed to load overview');
       return res.json();
     },
-    enabled: !!accessToken
+    enabled: !!accessToken && !authLoading
   });
 
   // Students sample for growth (derive monthly counts)
@@ -30,11 +32,11 @@ const Analytics = () => {
       const params = new URLSearchParams();
       params.append('page', '1');
       params.append('limit', '500');
-      const res = await fetch(buildApiUrl(`/api/admin/analytics/students?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/analytics/students?${params.toString()}`));
       if (!res.ok) throw new Error('Failed to load students');
       return res.json();
     },
-    enabled: !!accessToken
+    enabled: !!accessToken && !authLoading
   });
 
   // Courses for category distribution
@@ -45,15 +47,29 @@ const Analytics = () => {
       params.append('page', '1');
       params.append('limit', '500');
       params.append('isPublished', 'false');
-      const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
       if (!res.ok) throw new Error('Failed to load courses');
       return res.json();
     },
-    enabled: !!accessToken
+    enabled: !!accessToken && !authLoading
   });
 
   const studentList = studentsData?.students || [];
   const courseList = coursesData?.courses || [];
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const userGrowth = useMemo(() => {
     const byMonth = new Map();
