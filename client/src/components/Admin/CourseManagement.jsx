@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../hooks/useAuth.js';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { buildApiUrl } from '../../lib/utils.js';
-import { BookOpen, Search, Users, UserCheck, Plus, Eye, ListPlus, Video, Edit } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { buildApiUrl, getImageUrl } from '../../lib/utils.js';
+import { 
+  BookOpen, Search, Users, UserCheck, Plus, Eye, Edit, 
+  Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload,
+  ListPlus, Video, User
+} from 'lucide-react';
 
 const CourseManagement = () => {
   const { accessToken } = useAuth();
@@ -186,7 +193,7 @@ const CourseManagement = () => {
   const uploadLectureVideo = async (file) => {
     const form = new FormData();
     form.append('video', file);
-    const res = await fetch(`/api/courses/${structureCourse._id}/lectures/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+          const res = await fetch(buildApiUrl(`/api/courses/${structureCourse._id}/lectures/upload`), { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to upload');
     return data.url;
@@ -195,7 +202,7 @@ const CourseManagement = () => {
   const saveStructure = async () => {
     setSavingStructure(true);
     try {
-      const res = await fetch(`/api/courses/${structureCourse._id}/structure`, {
+      const res = await fetch(buildApiUrl(`/api/courses/${structureCourse._id}/structure`), {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ sections })
@@ -358,7 +365,8 @@ const CourseManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Course</TableHead>
+                  <TableHead className="w-16">Thumbnail</TableHead>
+                  <TableHead className="w-80">Course</TableHead>
                   <TableHead>Instructor</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead>Status</TableHead>
@@ -371,9 +379,29 @@ const CourseManagement = () => {
                 {courses.map((course) => (
                   <TableRow key={course._id} data-testid={`course-row-${course._id}`}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{course.title}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                        {course.coverUrl ? (
+                          <img 
+                            src={getImageUrl(course.coverUrl, buildApiUrl(''))} 
+                            alt={course.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        {!course.coverUrl && (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <BookOpen className="w-6 h-6" />
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs">
+                        <div className="font-medium text-gray-900 truncate">{course.title}</div>
+                        <div className="text-sm text-gray-500 line-clamp-2 mt-1">
                           {course.description}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
@@ -638,7 +666,7 @@ const CourseManagement = () => {
                     if (editCourse.price != null) form.append('price', String(editCourse.price));
                     form.append('isPublished', String(!!editCourse.isPublished));
                     if (editCover) form.append('cover', editCover);
-                    const res = await fetch(`/api/courses/${editCourse._id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+                    const res = await fetch(buildApiUrl(`/api/courses/${editCourse._id}`), { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.message || 'Failed to update');
                     toast({ title: 'Updated', description: 'Course updated' });
