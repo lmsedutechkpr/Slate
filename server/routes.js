@@ -77,20 +77,23 @@ export async function registerRoutes(app) {
   app.put('/api/admin/users/:userId/status', authenticateToken, requireAdmin, userController.updateUserStatus);
   app.get('/api/admin/users/:userId/progress', authenticateToken, requireAdmin, userController.getUserProgress);
   
-  // Course routes
-  app.post('/api/courses', authenticateToken, requireInstructorOrAdmin, courseController.uploadCourseCoverMiddleware, courseController.createCourse);
-  app.put('/api/courses/:courseId/structure', authenticateToken, requireInstructorOrAdmin, courseController.updateCourseStructure);
+  // Course routes - Specific routes first (with parameters)
   app.post('/api/courses/:courseId/lectures/upload', authenticateToken, requireInstructorOrAdmin, courseController.uploadLectureVideoMiddleware, courseController.uploadLectureVideo);
+  app.put('/api/courses/:courseId/structure', authenticateToken, requireInstructorOrAdmin, courseController.updateCourseStructure);
   app.put('/api/courses/:courseId', authenticateToken, requireInstructorOrAdmin, courseController.uploadCourseCoverMiddleware, courseController.updateCourse);
-  app.get('/api/courses', optionalAuth, courseController.getAllCourses);
-  app.get('/api/courses/:courseId', optionalAuth, courseController.getCourseById);
   app.delete('/api/courses/:courseId', authenticateToken, requireInstructorOrAdmin, courseController.deleteCourse);
-  app.post('/api/admin/courses/bulk/publish', authenticateToken, requireAdmin, courseController.bulkPublishCourses);
-  app.post('/api/admin/courses/bulk/archive', authenticateToken, requireAdmin, courseController.bulkArchiveCourses);
   app.post('/api/courses/:courseId/enroll', authenticateToken, requireStudent, courseController.enrollInCourse);
-  app.get('/api/enrollments', authenticateToken, requireStudent, courseController.getMyEnrollments);
   app.put('/api/courses/:courseId/progress', authenticateToken, requireStudent, courseController.updateCourseProgress);
   app.put('/api/courses/:courseId/assign-instructor', authenticateToken, requireAdmin, courseController.assignInstructor);
+  
+  // Course routes - General routes after (without parameters)
+  app.post('/api/courses', authenticateToken, requireInstructorOrAdmin, courseController.uploadCourseCoverMiddleware, courseController.createCourse);
+  app.get('/api/courses', optionalAuth, courseController.getAllCourses);
+  app.get('/api/courses/:courseId', optionalAuth, courseController.getCourseById);
+  
+  app.post('/api/admin/courses/bulk/publish', authenticateToken, requireAdmin, courseController.bulkPublishCourses);
+  app.post('/api/admin/courses/bulk/archive', authenticateToken, requireAdmin, courseController.bulkArchiveCourses);
+  app.get('/api/enrollments', authenticateToken, requireStudent, courseController.getMyEnrollments);
   
   // Assignment routes
   app.post('/api/assignments', authenticateToken, requireInstructorOrAdmin, assignmentController.createAssignment);
@@ -272,6 +275,11 @@ export async function registerRoutes(app) {
         stats: { totalXP: 0, completedCourses: 0, currentStreak: 0, weeklyHours: 0 }
       });
     }
+  });
+  
+  // Debug route to test POST /api/courses
+  app.post('/api/courses/test', (req, res) => {
+    res.json({ message: 'POST /api/courses/test is working', method: req.method, path: req.path });
   });
   
   const httpServer = createServer(app);

@@ -11,6 +11,11 @@ export const uploadCourseCoverMiddleware = multer({ dest: uploadsDir + '/' }).si
 
 export const createCourse = async (req, res) => {
   try {
+    console.log('createCourse called with method:', req.method);
+    console.log('createCourse called with path:', req.path);
+    console.log('createCourse called with body:', req.body);
+    console.log('createCourse called with file:', req.file);
+    
     const { title, description, category, tags, level, language, price, isPublished } = req.body;
     
     const course = new Course({
@@ -29,15 +34,18 @@ export const createCourse = async (req, res) => {
 
     // Optional cover upload
     if (req.file) {
-              const uploadRes = await uploadToCloudinary(req.file.path, {
-          folder: 'course-covers',
-          transformation: [{ width: 800, height: 450, crop: 'fill' }]
-        });
+      console.log('Processing cover upload...');
+      const uploadRes = await uploadToCloudinary(req.file.path, {
+        folder: 'course-covers',
+        transformation: [{ width: 800, height: 450, crop: 'fill' }]
+      });
       try { fs.unlinkSync(req.file.path); } catch {}
       course.coverUrl = uploadRes.secure_url;
+      console.log('Cover uploaded successfully:', uploadRes.secure_url);
     }
     
     await course.save();
+    console.log('Course saved successfully:', course._id);
     
     try { await AuditLog.create({ action: 'course:create', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id), meta: { title } }); } catch {}
     res.status(201).json({
@@ -45,6 +53,7 @@ export const createCourse = async (req, res) => {
       course
     });
   } catch (error) {
+    console.error('Error in createCourse:', error);
     res.status(500).json({
       message: 'Failed to create course',
       error: error.message

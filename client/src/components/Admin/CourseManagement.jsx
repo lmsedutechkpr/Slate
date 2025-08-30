@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { buildApiUrl } from '../../lib/utils.js';
 import { BookOpen, Search, Users, UserCheck, Plus, Eye, ListPlus, Video, Edit } from 'lucide-react';
 
 const CourseManagement = () => {
@@ -57,7 +58,7 @@ const CourseManagement = () => {
       params.append('page', String(page));
       params.append('limit', String(limit));
       
-      const response = await fetch(`/api/courses?${params.toString()}`, {
+      const response = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -77,7 +78,7 @@ const CourseManagement = () => {
   const { data: instructorsData } = useQuery({
     queryKey: ['/api/admin/users', { role: 'instructor' }],
     queryFn: async () => {
-      const response = await fetch('/api/admin/users?role=instructor', {
+      const response = await fetch(buildApiUrl('/api/admin/users?role=instructor'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -96,7 +97,7 @@ const CourseManagement = () => {
   // Assign instructor mutation
   const assignInstructorMutation = useMutation({
     mutationFn: async ({ courseId, instructorId }) => {
-      const response = await fetch(`/api/courses/${courseId}/assign-instructor`, {
+      const response = await fetch(buildApiUrl(`/api/courses/${courseId}/assign-instructor`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -729,7 +730,7 @@ const CourseManagement = () => {
                   if (newCourse.price != null) form.append('price', String(newCourse.price));
                   form.append('isPublished', String(newCourse.isPublished));
                   if (coverFile) form.append('cover', coverFile);
-                  const res = await fetch('/api/courses', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+                  const res = await fetch(buildApiUrl('/api/courses'), { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
                   const data = await res.json();
                   if (!res.ok) throw new Error(data.message || 'Failed to create course');
                   toast({ title: 'Created', description: 'Course created successfully' });

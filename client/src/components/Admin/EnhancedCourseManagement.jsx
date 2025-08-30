@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { buildApiUrl } from '../../lib/utils.js';
 import { 
   BookOpen, Search, Users, UserCheck, Plus, Eye, Edit, 
   Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload
@@ -49,7 +50,7 @@ const EnhancedCourseManagement = () => {
       params.append('sortBy', sortBy);
       params.append('sortDir', sortDir);
 
-      const res = await fetch(`/api/courses?${params.toString()}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to fetch courses');
       return res.json();
     },
@@ -76,7 +77,7 @@ const EnhancedCourseManagement = () => {
 
   const bulkPublishMutation = useMutation({
     mutationFn: async (courseIds) => {
-      const res = await fetch('/api/admin/courses/bulk/publish', {
+      const res = await fetch(buildApiUrl('/api/admin/courses/bulk/publish'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
         body: JSON.stringify({ ids: courseIds })
@@ -95,7 +96,7 @@ const EnhancedCourseManagement = () => {
 
   const bulkArchiveMutation = useMutation({
     mutationFn: async (courseIds) => {
-      const res = await fetch('/api/admin/courses/bulk/archive', {
+      const res = await fetch(buildApiUrl('/api/admin/courses/bulk/archive'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
         body: JSON.stringify({ ids: courseIds })
@@ -175,7 +176,7 @@ const EnhancedCourseManagement = () => {
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify(payload);
       }
-      const res = await fetch('/api/courses', { method: 'POST', headers, body });
+      const res = await fetch(buildApiUrl('/api/courses'), { method: 'POST', headers, body });
       if (!res.ok) throw new Error('Failed to create course');
       return res.json();
     },
@@ -631,7 +632,7 @@ function StructureEditor({ open, onOpenChange, structure, setStructure, onSave, 
                           const file = e.target.files?.[0]; if (!file) return;
                           const form = new FormData(); form.append('video', file);
                           try {
-                            const res = await fetch(`/api/courses/${courseId || ''}/lectures/upload`, { method:'POST', body: form });
+                            const res = await fetch(buildApiUrl(`/api/courses/${courseId || ''}/lectures/upload`), { method:'POST', body: form });
                             const data = await res.json();
                             if (res.ok && data.url) updateLecture(sIdx, lIdx, { videoUrl: data.url, youtubeId: '' });
                           } catch {}
