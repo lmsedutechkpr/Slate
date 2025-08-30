@@ -241,28 +241,8 @@ function AppRoutes() {
             <Redirect to="/admin" />
           ) : user?.role === 'instructor' ? (
             <Redirect to="/instructor" />
-          ) : user?.role === 'student' ? (
-            (() => {
-              const onboardedProfile = user?.studentProfile?.onboarded === true;
-              const onboardedFlag = localStorage.getItem('onboarded') === 'true';
-              const isOnboarded = onboardedProfile || onboardedFlag;
-              
-              console.log('Root route onboarding check:', {
-                userRole: user?.role,
-                studentProfile: user?.studentProfile,
-                onboardedProfile,
-                onboardedFlag,
-                isOnboarded
-              });
-              
-              if (!isOnboarded) {
-                console.log('Student not onboarded, redirecting to onboarding');
-                return <Redirect to="/onboarding" />;
-              } else {
-                console.log('Student onboarded, redirecting to dashboard');
-                return <Redirect to="/dashboard" />;
-              }
-            })()
+          ) : user?.role === 'student' && !user?.completedOnboarding ? (
+            <Redirect to="/onboarding" />
           ) : (
             <Redirect to="/dashboard" />
           )}

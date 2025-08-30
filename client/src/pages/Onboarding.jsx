@@ -34,32 +34,25 @@ const Onboarding = () => {
     firstName: '',
     lastName: '',
     phone: '',
+    dateOfBirth: '',
+    gender: '',
     yearOfStudy: '',
     degree: '',
+    university: '',
     interestType: '',
     domains: [],
     careerGoal: '',
-    learningPace: ''
+    learningPace: '',
+    preferredLanguage: 'english',
+    studyGoals: [],
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 
   const progress = (currentStep / 3) * 100;
 
   // If already onboarded, never show this page again
   useEffect(() => {
-    const onboardedProfile = user?.studentProfile?.onboarded === true;
-    const onboardedFlag = localStorage.getItem('onboarded') === 'true';
-    const isOnboarded = onboardedProfile || onboardedFlag;
-    
-    console.log('Onboarding component check:', {
-      userRole: user?.role,
-      studentProfile: user?.studentProfile,
-      onboardedProfile,
-      onboardedFlag,
-      isOnboarded
-    });
-    
-    if (isOnboarded) {
-      console.log('User already onboarded, redirecting to dashboard');
+    if (user?.completedOnboarding) {
       setLocation('/dashboard');
     }
   }, [user, setLocation]);
@@ -71,12 +64,18 @@ const Onboarding = () => {
       firstName: prev.firstName || user.profile?.firstName || '',
       lastName: prev.lastName || user.profile?.lastName || '',
       phone: prev.phone || user.profile?.phone || '',
+      dateOfBirth: prev.dateOfBirth || user.profile?.dateOfBirth || '',
+      gender: prev.gender || user.profile?.gender || '',
       yearOfStudy: prev.yearOfStudy || user.studentProfile?.yearOfStudy || '',
       degree: prev.degree || user.studentProfile?.degree || '',
+      university: prev.university || user.studentProfile?.university || '',
       interestType: prev.interestType || user.studentProfile?.interestType || '',
       domains: prev.domains && prev.domains.length ? prev.domains : (user.studentProfile?.domains || []),
       careerGoal: prev.careerGoal || user.studentProfile?.careerGoal || '',
-      learningPace: prev.learningPace || user.studentProfile?.learningPace || ''
+      learningPace: prev.learningPace || user.studentProfile?.learningPace || '',
+      preferredLanguage: prev.preferredLanguage || user.studentProfile?.preferredLanguage || 'english',
+      studyGoals: prev.studyGoals || user.studentProfile?.studyGoals || [],
+      timeZone: prev.timeZone || user.studentProfile?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone
     }));
   }, [user]);
 
@@ -136,17 +135,11 @@ const Onboarding = () => {
       const result = await updateUserProfile(formData);
       
       if (result.success) {
-        try { 
-          localStorage.setItem('onboarded', 'true'); 
-        } catch (e) {
-          console.error('Failed to set localStorage:', e);
-        }
         setLocation('/dashboard');
       } else {
         setError(result.message || 'Failed to update profile. Please try again.');
       }
     } catch (err) {
-      console.error('Onboarding error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -253,6 +246,36 @@ const Onboarding = () => {
                       />
                     </div>
                   </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="dateOfBirth">Date of Birth (Optional)</Label>
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="gender">Gender (Optional)</Label>
+                      <Select 
+                        value={formData.gender} 
+                        onValueChange={(value) => handleInputChange('gender', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
                   <div>
                     <Label htmlFor="phone">Phone (Optional)</Label>
                     <Input
@@ -262,22 +285,34 @@ const Onboarding = () => {
                       placeholder="e.g., +1 555 123 4567"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="yearOfStudy">Year of Study *</Label>
-                    <Select 
-                      value={formData.yearOfStudy} 
-                      onValueChange={(value) => handleInputChange('yearOfStudy', value)}
-                    >
-                      <SelectTrigger data-testid="select-yearOfStudy">
-                        <SelectValue placeholder="Select your year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1st Year</SelectItem>
-                        <SelectItem value="2">2nd Year</SelectItem>
-                        <SelectItem value="3">3rd Year</SelectItem>
-                        <SelectItem value="4">4th Year</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="yearOfStudy">Year of Study *</Label>
+                      <Select 
+                        value={formData.yearOfStudy} 
+                        onValueChange={(value) => handleInputChange('yearOfStudy', value)}
+                      >
+                        <SelectTrigger data-testid="select-yearOfStudy">
+                          <SelectValue placeholder="Select your year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1st Year</SelectItem>
+                          <SelectItem value="2">2nd Year</SelectItem>
+                          <SelectItem value="3">3rd Year</SelectItem>
+                          <SelectItem value="4">4th Year</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="university">University/Institution (Optional)</Label>
+                      <Input
+                        id="university"
+                        value={formData.university}
+                        onChange={(e) => handleInputChange('university', e.target.value)}
+                        placeholder="e.g., MIT, Stanford University"
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -351,6 +386,62 @@ const Onboarding = () => {
                       placeholder="e.g., Full Stack Developer, Data Scientist"
                       data-testid="input-careerGoal"
                     />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-base font-medium">Study Goals (Optional)</Label>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      {['Get a job', 'Improve skills', 'Change career', 'Academic credit', 'Personal interest', 'Certification'].map((goal) => (
+                        <div key={goal} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={goal}
+                            checked={formData.studyGoals.includes(goal)}
+                            onCheckedChange={(checked) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                studyGoals: checked 
+                                  ? [...prev.studyGoals, goal]
+                                  : prev.studyGoals.filter(g => g !== goal)
+                              }));
+                            }}
+                          />
+                          <Label htmlFor={goal} className="text-sm">
+                            {goal}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="preferredLanguage">Preferred Language</Label>
+                      <Select 
+                        value={formData.preferredLanguage} 
+                        onValueChange={(value) => handleInputChange('preferredLanguage', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="english">English</SelectItem>
+                          <SelectItem value="spanish">Spanish</SelectItem>
+                          <SelectItem value="french">French</SelectItem>
+                          <SelectItem value="german">German</SelectItem>
+                          <SelectItem value="chinese">Chinese</SelectItem>
+                          <SelectItem value="hindi">Hindi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="timeZone">Time Zone</Label>
+                      <Input
+                        id="timeZone"
+                        value={formData.timeZone}
+                        onChange={(e) => handleInputChange('timeZone', e.target.value)}
+                        placeholder="e.g., UTC-5"
+                      />
+                    </div>
                   </div>
                   
                   <div>

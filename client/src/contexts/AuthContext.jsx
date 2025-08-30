@@ -247,11 +247,6 @@ export const AuthProvider = ({ children }) => {
           type: 'UPDATE_USER',
           payload: data.user
         });
-        try {
-          if (data.user?.studentProfile?.onboarded) {
-            localStorage.setItem('onboarded', 'true');
-          }
-        } catch {}
         return { success: true };
       } else {
         const data = await response.json();

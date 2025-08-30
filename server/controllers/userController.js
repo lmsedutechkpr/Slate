@@ -19,7 +19,25 @@ const StudentProfileSchema = {
 export const updateStudentProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { yearOfStudy, degree, interestType, domains = [], careerGoal, learningPace, firstName, lastName, phone, nickname, username } = req.body;
+    const { 
+      yearOfStudy, 
+      degree, 
+      university,
+      interestType, 
+      domains = [], 
+      careerGoal, 
+      learningPace, 
+      firstName, 
+      lastName, 
+      phone, 
+      nickname, 
+      username,
+      dateOfBirth,
+      gender,
+      preferredLanguage,
+      studyGoals = [],
+      timeZone
+    } = req.body;
     
     // Validate domains
     const validDomains = domains.filter(domain => Domains.includes(domain));
@@ -38,20 +56,27 @@ export const updateStudentProfile = async (req, res) => {
       'profile.lastName': lastName ?? req.user.profile?.lastName,
       'profile.nickname': nickname ?? req.user.profile?.nickname,
       'profile.phone': phone ?? req.user.profile?.phone,
+      'profile.dateOfBirth': dateOfBirth ?? req.user.profile?.dateOfBirth,
+      'profile.gender': gender ?? req.user.profile?.gender,
       'username': username ?? req.user.username,
     };
 
     // Only add student profile fields if they are provided
     if (yearOfStudy) updateData['studentProfile.yearOfStudy'] = yearOfStudy;
     if (degree) updateData['studentProfile.degree'] = degree;
+    if (university) updateData['studentProfile.university'] = university;
     if (interestType) updateData['studentProfile.interestType'] = interestType;
     if (validDomains.length > 0) updateData['studentProfile.domains'] = validDomains;
     if (careerGoal) updateData['studentProfile.careerGoal'] = careerGoal;
     if (learningPace) updateData['studentProfile.learningPace'] = learningPace;
+    if (preferredLanguage) updateData['studentProfile.preferredLanguage'] = preferredLanguage;
+    if (studyGoals.length > 0) updateData['studentProfile.studyGoals'] = studyGoals;
+    if (timeZone) updateData['studentProfile.timeZone'] = timeZone;
     
     // Only set onboarded to true if we have complete onboarding data
     if (hasRequiredOnboardingData) {
       updateData['studentProfile.onboarded'] = true;
+      updateData['completedOnboarding'] = true;
     }
 
     const user = await User.findByIdAndUpdate(

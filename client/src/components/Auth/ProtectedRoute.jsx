@@ -24,11 +24,7 @@ const ProtectedRoute = ({ children, requiredRole = null, requireOnboarded = fals
 
     // Check onboarding requirement for students
     if (requireOnboarded && user.role === 'student') {
-      const onboardedProfile = Boolean(user.studentProfile && user.studentProfile.onboarded);
-      const onboardedFlag = localStorage.getItem('onboarded') === 'true';
-      const onboarded = onboardedProfile || onboardedFlag;
-      
-      if (!onboarded) {
+      if (!user.completedOnboarding) {
         setLocation('/onboarding');
         return;
       }
@@ -44,12 +40,8 @@ const ProtectedRoute = ({ children, requiredRole = null, requireOnboarded = fals
   if (requiredRole && user.role !== requiredRole) return null;
   
   // Final onboarding check before rendering
-  if (requireOnboarded && user.role === 'student') {
-    const onboardedProfile = user?.studentProfile?.onboarded === true;
-    const onboardedFlag = localStorage.getItem('onboarded') === 'true';
-    const isOnboarded = onboardedProfile || onboardedFlag;
-    
-    if (!isOnboarded) return null;
+  if (requireOnboarded && user.role === 'student' && !user.completedOnboarding) {
+    return null;
   }
 
   return children;

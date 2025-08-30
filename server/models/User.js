@@ -43,16 +43,26 @@ const userSchema = new mongoose.Schema({
     lastName: String,
     nickname: String,
     avatar: String,
-    phone: String
+    phone: String,
+    dateOfBirth: String,
+    gender: String
   },
   studentProfile: {
     yearOfStudy: String,
     degree: String,
+    university: String,
     interestType: String,
     domains: [String],
     careerGoal: String,
     learningPace: String,
+    preferredLanguage: String,
+    studyGoals: [String],
+    timeZone: String,
     onboarded: { type: Boolean, default: false }
+  },
+  completedOnboarding: {
+    type: Boolean,
+    default: false
   },
   emailVerification: {
     pendingEmail: String,
