@@ -145,6 +145,19 @@ const CourseManagement = () => {
 
   const courses = coursesData?.courses || [];
   const pagination = coursesData?.pagination || { page, limit, total: courses.length };
+  
+  // Debug: Log course data to see coverUrl values
+  console.log('=== COURSES DEBUG ===');
+  console.log('Courses data:', courses);
+  courses.forEach((course, index) => {
+    console.log(`Course ${index + 1}:`, {
+      title: course.title,
+      coverUrl: course.coverUrl,
+      cover: course.cover,
+      hasCover: !!(course.coverUrl || course.cover),
+      allFields: Object.keys(course)
+    });
+  });
   const instructors = instructorsData?.users || [];
 
   const getLevelColor = (level) => {
@@ -366,54 +379,57 @@ const CourseManagement = () => {
               <p className="text-gray-500">No courses found</p>
             </div>
           ) : (
-            <Table>
+            <Table className="border-collapse border border-gray-200 rounded-lg overflow-hidden">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Thumbnail</TableHead>
-                  <TableHead className="w-80">Course</TableHead>
-                  <TableHead>Instructor</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Enrollments</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="bg-gray-50 border-b border-gray-200">
+                  <TableHead className="w-20 px-4 py-3 text-left font-semibold text-gray-700">Thumbnail</TableHead>
+                  <TableHead className="w-64 px-4 py-3 text-left font-semibold text-gray-700">Course</TableHead>
+                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Instructor</TableHead>
+                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Level</TableHead>
+                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Status</TableHead>
+                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Enrollments</TableHead>
+                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Created</TableHead>
+                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {courses.map((course) => (
-                  <TableRow key={course._id} data-testid={`course-row-${course._id}`}>
-                    <TableCell>
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                        {course.coverUrl ? (
+                  <TableRow key={course._id} data-testid={`course-row-${course._id}`} className="hover:bg-gray-50 transition-colors border-b border-gray-100">
+                    <TableCell className="px-4 py-3">
+                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center border shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                        {(course.coverUrl || course.cover) ? (
                           <img 
-                            src={getImageUrl(course.coverUrl, buildApiUrl(''))} 
+                            src={getImageUrl(course.coverUrl || course.cover, buildApiUrl(''))} 
                             alt={course.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                             onError={(e) => {
+                              console.log('Image failed to load:', course.coverUrl || course.cover);
+                              console.log('Generated URL:', getImageUrl(course.coverUrl || course.cover, buildApiUrl('')));
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
                             }}
+                            onLoad={() => console.log('Image loaded successfully:', course.coverUrl || course.cover)}
                           />
                         ) : null}
-                        {!course.coverUrl && (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <BookOpen className="w-6 h-6" />
+                        {!(course.coverUrl || course.cover) && (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                            <BookOpen className="w-8 h-8" />
                           </div>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="max-w-xs">
-                        <div className="font-medium text-gray-900 truncate">{course.title}</div>
-                        <div className="text-sm text-gray-500 line-clamp-2 mt-1">
+                    <TableCell className="px-4 py-3">
+                      <div className="w-64">
+                        <div className="font-semibold text-gray-900 truncate text-base mb-1">{course.title}</div>
+                        <div className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
                           {course.description}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">
+                        <div className="text-xs text-blue-600 font-medium mt-2 bg-blue-50 px-2 py-1 rounded-full inline-block">
                           {course.category}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       {course.assignedInstructor ? (
                         <div>
                           <div className="font-medium">
@@ -427,26 +443,26 @@ const CourseManagement = () => {
                         <span className="text-sm text-red-600">Not assigned</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       <Badge className={getLevelColor(course.level)}>
                         {course.level || 'Beginner'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       <Badge className={getStatusColor(course.isPublished)}>
                         {course.isPublished ? 'Published' : 'Draft'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center">
                         <Users className="w-4 h-4 mr-1 text-gray-500" />
                         {course.enrollmentCount || 0}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       {formatDate(course.createdAt)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="flex space-x-2">
                         <Button
                           size="sm"
