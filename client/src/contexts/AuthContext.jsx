@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { buildApiUrl } from '../config.js';
 
 const AuthContext = createContext();
 
@@ -57,35 +58,35 @@ export const AuthProvider = ({ children }) => {
     
     if (accessToken && refreshToken) {
       // Verify token and get user data
-      fetchUserData(accessToken);
+      fetchUserData();
     } else {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
-  const fetchUserData = async (token) => {
+  const fetchUserData = async () => {
     try {
-      const response = await fetch(`/api/auth/user?ts=${Date.now()}` , {
+      const accessToken = localStorage.getItem('accessToken');
+      
+      if (!accessToken) {
+        logout();
+        return;
+      }
+
+      const response = await fetch(buildApiUrl('/api/auth/user'), {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache'
-        },
-        cache: 'no-store'
+          'Authorization': `Bearer ${accessToken}`
+        }
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const userData = await response.json();
         dispatch({
           type: 'LOGIN_SUCCESS',
-          payload: {
-            user: data.user,
-            accessToken: token,
-            refreshToken: localStorage.getItem('refreshToken')
-          }
+          payload: userData
         });
       } else {
-        // Token invalid, try refresh
-        await refreshTokens();
+        logout();
       }
     } catch (error) {
       console.error('Failed to fetch user data:', error);
@@ -95,7 +96,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -125,7 +126,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await fetch('/api/auth/student/register', {
+      const response = await fetch(buildApiUrl('/api/auth/student/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -148,7 +149,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch(buildApiUrl('/api/auth/logout'), { method: 'POST' });
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -167,7 +168,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
 
-      const response = await fetch(`/api/auth/refresh?ts=${Date.now()}` , {
+      const response = await fetch(buildApiUrl(`/api/auth/refresh?ts=${Date.now()}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,6 +193,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
     } catch (error) {
+      console.error('Token refresh error:', error);
       logout();
       return false;
     }
@@ -199,7 +201,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUserProfile = async (profileData) => {
     try {
-      const response = await fetch('/api/users/profile', {
+      const response = await fetch(buildApiUrl('/api/users/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
