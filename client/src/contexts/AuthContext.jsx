@@ -273,7 +273,8 @@ export const AuthProvider = ({ children }) => {
 
   // Utility function to make authenticated requests with automatic token refresh
   const authenticatedFetch = async (url, options = {}) => {
-    let accessToken = state.accessToken || localStorage.getItem('accessToken');
+    // Always get the latest token from localStorage to ensure freshness
+    let accessToken = localStorage.getItem('accessToken');
     
     if (!accessToken) {
       throw new Error('No access token available');
@@ -286,7 +287,12 @@ export const AuthProvider = ({ children }) => {
     };
     
     try {
+      console.log('Making authenticated request to:', url);
+      console.log('Using token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'None');
+      
       const response = await fetch(url, { ...options, headers });
+      
+      console.log('Response status:', response.status);
       
       // If token expired, try to refresh and retry
       if (response.status === 401) {
@@ -298,11 +304,13 @@ export const AuthProvider = ({ children }) => {
           const newToken = localStorage.getItem('accessToken');
           headers.Authorization = `Bearer ${newToken}`;
           
+          console.log('Retrying request with new token:', newToken ? `${newToken.substring(0, 20)}...` : 'None');
+          
           const retryResponse = await fetch(url, { ...options, headers });
+          console.log('Retry response status:', retryResponse.status);
           return retryResponse;
         } else {
           // Refresh failed, logout
-          logout();
           throw new Error('Authentication failed');
         }
       }
@@ -314,6 +322,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Test function to debug authentication
+  const testAuth = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      console.log('=== AUTH TEST ===');
+      console.log('Current token:', token ? `${token.substring(0, 20)}...` : 'None');
+      console.log('State token:', state.accessToken ? `${state.accessToken.substring(0, 20)}...` : 'None');
+      
+      const response = await fetch(buildApiUrl('/api/auth/user'), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Test response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Test response data:', data);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.log('Test error:', errorData);
+      }
+    } catch (error) {
+      console.error('Test error:', error);
+    }
+  };
+
   const value = {
     ...state,
     login,
@@ -321,7 +356,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshTokens,
     updateUserProfile,
-    authenticatedFetch
+    authenticatedFetch,
+    testAuth
   };
 
   return (
