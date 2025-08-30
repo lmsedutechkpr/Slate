@@ -22,6 +22,9 @@ export async function registerRoutes(app) {
   // Health
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
   
+  // Test route
+  app.get('/api/test', (_req, res) => res.json({ message: 'Test route working', time: new Date().toISOString() }));
+  
   // API Info
   app.get('/api', (_req, res) => res.json({ 
     message: 'EduTech LMS API',

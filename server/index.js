@@ -10,13 +10,14 @@ app.use(cors({
   origin: [
     'http://localhost:5173', // Development
     'http://localhost:3000', // Alternative dev port
+    'https://edu-tech-rosy.vercel.app', // Your Vercel domain
     'https://*.vercel.app',  // Vercel preview deployments
-    'https://*.vercel.app',  // Vercel production deployments
     process.env.FRONTEND_URL // Custom frontend URL if set
   ].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
 app.use(express.json());
