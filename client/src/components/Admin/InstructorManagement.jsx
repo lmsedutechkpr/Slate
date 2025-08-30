@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
+import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Search, BookOpen } from 'lucide-react';
 
 const InstructorManagement = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [debounced, setDebounced] = useState('');
   const [page, setPage] = useState(1);
@@ -42,13 +44,11 @@ const InstructorManagement = () => {
       if (debounced) params.append('search', debounced);
       params.append('page', String(page));
       params.append('limit', String(limit));
-      const res = await fetch(buildApiUrl(`/api/admin/users?${params.toString()}`), {
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
-      });
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/users?${params.toString()}`));
       if (!res.ok) throw new Error('Failed to fetch instructors');
       return res.json();
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && !authLoading,
     keepPreviousData: true,
   });
 
@@ -64,16 +64,28 @@ const InstructorManagement = () => {
       params.append('isPublished', 'false');
       params.append('page', '1');
       params.append('limit', '100');
-      const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), {
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
-      });
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
       if (!res.ok) throw new Error('Failed to fetch courses');
       return res.json();
     },
-    enabled: !!accessToken && !!selectedInstructor && coursesOpen,
+    enabled: !!accessToken && !authLoading && !!selectedInstructor && coursesOpen,
   });
 
   const courses = coursesData?.courses || [];
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -106,8 +118,8 @@ const InstructorManagement = () => {
                   if (!newInstructor.username || !newInstructor.email || !newInstructor.password) return;
                   setCreating(true);
                   try {
-                    const res = await fetch(buildApiUrl('/api/admin/instructors'), {
-                      method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    const res = await authenticatedFetch(buildApiUrl('/api/admin/instructors'), {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(newInstructor)
                     });
                     const data = await res.json();
@@ -193,7 +205,7 @@ const InstructorManagement = () => {
                           params.append('isPublished', 'false');
                           params.append('page', '1');
                           params.append('limit', '100');
-                          const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+                          const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
                           const data = await res.json();
                           const all = (data.courses || []);
                           setAvailableCourses(all.filter(c => !c.assignedInstructor));
@@ -296,8 +308,8 @@ const InstructorManagement = () => {
                 <Button variant="outline" onClick={() => setAssignOpen(false)}>Cancel</Button>
                 <Button disabled={!selectedCourseId} onClick={async () => {
                   try {
-                    const res = await fetch(buildApiUrl(`/api/courses/${selectedCourseId}/assign-instructor`), {
-                      method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    const res = await authenticatedFetch(buildApiUrl(`/api/courses/${selectedCourseId}/assign-instructor`), {
+                      method: 'PUT', headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ instructorId: selectedInstructor._id })
                     });
                     const data = await res.json();

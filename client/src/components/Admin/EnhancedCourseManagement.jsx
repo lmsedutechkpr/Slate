@@ -12,13 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { buildApiUrl } from '../../lib/utils.js';
+import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
 import { 
   BookOpen, Search, Users, UserCheck, Plus, Eye, Edit, 
   Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload
 } from 'lucide-react';
 
 const EnhancedCourseManagement = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
@@ -50,11 +52,11 @@ const EnhancedCourseManagement = () => {
       params.append('sortBy', sortBy);
       params.append('sortDir', sortDir);
 
-      const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
       if (!res.ok) throw new Error('Failed to fetch courses');
       return res.json();
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && !authLoading,
     keepPreviousData: true,
     staleTime: 0,
     refetchOnMount: true,
@@ -63,6 +65,20 @@ const EnhancedCourseManagement = () => {
 
   const courses = courseList?.courses || [];
   const pagination = courseList?.pagination || { page, limit, total: courses.length };
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Handle bulk selection
   useEffect(() => {
@@ -77,9 +93,9 @@ const EnhancedCourseManagement = () => {
 
   const bulkPublishMutation = useMutation({
     mutationFn: async (courseIds) => {
-      const res = await fetch(buildApiUrl('/api/admin/courses/bulk/publish'), {
+      const res = await authenticatedFetch(buildApiUrl('/api/admin/courses/bulk/publish'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: courseIds })
       });
       if (!res.ok) throw new Error('Failed to publish courses');
@@ -96,9 +112,9 @@ const EnhancedCourseManagement = () => {
 
   const bulkArchiveMutation = useMutation({
     mutationFn: async (courseIds) => {
-      const res = await fetch(buildApiUrl('/api/admin/courses/bulk/archive'), {
+      const res = await authenticatedFetch(buildApiUrl('/api/admin/courses/bulk/archive'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: courseIds })
       });
       if (!res.ok) throw new Error('Failed to archive courses');
@@ -167,7 +183,7 @@ const EnhancedCourseManagement = () => {
 
   const createCourseMutation = useMutation({
     mutationFn: async (payload) => {
-      let body; let headers = { 'Authorization': `Bearer ${accessToken}` };
+      let body; let headers = {};
       if (coverFile) {
         body = new FormData();
         Object.entries(payload).forEach(([k,v]) => body.append(k, v));
@@ -176,7 +192,7 @@ const EnhancedCourseManagement = () => {
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify(payload);
       }
-      const res = await fetch(buildApiUrl('/api/courses'), { method: 'POST', headers, body });
+      const res = await authenticatedFetch(buildApiUrl('/api/courses'), { method: 'POST', headers, body });
       if (!res.ok) throw new Error('Failed to create course');
       return res.json();
     },
@@ -186,7 +202,7 @@ const EnhancedCourseManagement = () => {
 
   const updateCourseMutation = useMutation({
     mutationFn: async ({ id, payload }) => {
-      let body; let headers = { 'Authorization': `Bearer ${accessToken}` };
+      let body; let headers = {};
       if (coverFile) {
         body = new FormData();
         Object.entries(payload).forEach(([k,v]) => body.append(k, v));
@@ -195,7 +211,7 @@ const EnhancedCourseManagement = () => {
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify(payload);
       }
-      const res = await fetch(`/api/courses/${id}`, { method: 'PUT', headers, body });
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses/${id}`), { method: 'PUT', headers, body });
       if (!res.ok) throw new Error('Failed to update course');
       return res.json();
     },
@@ -225,9 +241,9 @@ const EnhancedCourseManagement = () => {
 
   const updateStructureMutation = useMutation({
     mutationFn: async ({ id, sections }) => {
-      const res = await fetch(`/api/courses/${id}/structure`, {
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses/${id}/structure`), {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sections })
       });
       if (!res.ok) throw new Error('Failed to update structure');
@@ -632,7 +648,7 @@ function StructureEditor({ open, onOpenChange, structure, setStructure, onSave, 
                           const file = e.target.files?.[0]; if (!file) return;
                           const form = new FormData(); form.append('video', file);
                           try {
-                            const res = await fetch(buildApiUrl(`/api/courses/${courseId || ''}/lectures/upload`), { method:'POST', body: form });
+                            const res = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId || ''}/lectures/upload`), { method:'POST', body: form });
                             const data = await res.json();
                             if (res.ok && data.url) updateLecture(sIdx, lIdx, { videoUrl: data.url, youtubeId: '' });
                           } catch {}

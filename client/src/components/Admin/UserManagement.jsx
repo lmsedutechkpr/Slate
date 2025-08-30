@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
+import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Search, Filter, MoreHorizontal, Ban, CheckCircle, XCircle, BarChart2 } from 'lucide-react';
 
 const UserManagement = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -56,12 +58,7 @@ const UserManagement = () => {
       params.append('sortBy', sortBy);
       params.append('sortDir', sortDir);
       
-      const response = await fetch(buildApiUrl(`/api/admin/users?${params.toString()}`), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await authenticatedFetch(buildApiUrl(`/api/admin/users?${params.toString()}`));
       
       if (!response.ok) {
         throw new Error('Failed to fetch users');
@@ -69,7 +66,7 @@ const UserManagement = () => {
       
       return response.json();
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && !authLoading,
   });
 
   // Persist filters
@@ -105,10 +102,9 @@ const UserManagement = () => {
   // Create instructor mutation
   const createInstructorMutation = useMutation({
     mutationFn: async (instructorData) => {
-      const response = await fetch(buildApiUrl('/api/admin/instructors'), {
+      const response = await authenticatedFetch(buildApiUrl('/api/admin/instructors'), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(instructorData)
@@ -149,10 +145,9 @@ const UserManagement = () => {
   // Update user status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ userId, status }) => {
-      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}/status`), {
+      const response = await authenticatedFetch(buildApiUrl(`/api/admin/users/${userId}/status`), {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status })
@@ -183,6 +178,20 @@ const UserManagement = () => {
 
   const users = usersData?.users || [];
   const pagination = usersData?.pagination || { page, limit, total: users.length };
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -215,7 +224,7 @@ const UserManagement = () => {
     setProgressOpen(true);
     setProgressLoading(true);
     try {
-      const res = await fetch(buildApiUrl(`/api/admin/users/${user._id}/progress`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/users/${user._id}/progress`));
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load progress');
       setProgressData(data.progress || []);

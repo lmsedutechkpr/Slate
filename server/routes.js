@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import connectDB from './db.js';
 import { seedAdmin } from './seed/seedAdmin.js';
+import mongoose from 'mongoose';
 
 // Import controllers
 import * as authController from './controllers/authController.js';
@@ -310,6 +311,212 @@ export async function registerRoutes(app) {
   // Debug route to test POST /api/courses
   app.post('/api/courses/test', (req, res) => {
     res.json({ message: 'POST /api/courses/test is working', method: req.method, path: req.path });
+  });
+  
+  // Debug route to test database connectivity and show real data
+  app.get('/api/debug/db-test', async (req, res) => {
+    try {
+      console.log('=== DATABASE DEBUG TEST ===');
+      
+      // Test database connection
+      const dbState = mongoose.connection.readyState;
+      const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+      console.log('Database state:', dbStates[dbState]);
+      
+      // Test basic collections
+      const userCount = await User.countDocuments({});
+      const courseCount = await Course.countDocuments({});
+      const enrollmentCount = await Enrollment.countDocuments({});
+      
+      console.log('Collection counts:', { userCount, courseCount, enrollmentCount });
+      
+      // Get sample data
+      const sampleUsers = await User.find({}).limit(3).select('username email role createdAt');
+      const sampleCourses = await Course.find({}).limit(3).select('title description category createdAt');
+      
+      res.json({
+        message: 'Database debug test',
+        time: new Date().toISOString(),
+        database: {
+          state: dbStates[dbState],
+          connected: dbState === 1,
+          collections: {
+            users: userCount,
+            courses: courseCount,
+            enrollments: enrollmentCount
+          }
+        },
+        sampleData: {
+          users: sampleUsers,
+          courses: sampleCourses
+        }
+      });
+    } catch (error) {
+      console.error('Database debug test failed:', error);
+      res.status(500).json({
+        message: 'Database debug test failed',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // Comprehensive debug route to test environment and data flow
+  app.get('/api/debug/comprehensive', async (req, res) => {
+    try {
+      console.log('=== COMPREHENSIVE DEBUG TEST ===');
+      
+      // Check environment variables
+      const envVars = {
+        NODE_ENV: process.env.NODE_ENV,
+        PORT: process.env.PORT,
+        MONGO_URI: process.env.MONGO_URI ? 'Set (hidden)' : 'Not set',
+        JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET ? 'Set (hidden)' : 'Not set',
+        JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ? 'Set (hidden)' : 'Not set',
+        CLOUDINARY_URL: process.env.CLOUDINARY_URL ? 'Set (hidden)' : 'Not set'
+      };
+      
+      // Check database connection
+      const dbState = mongoose.connection.readyState;
+      const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+      const dbConnected = dbState === 1;
+      
+      // Test database operations
+      let dbTestResults = {};
+      if (dbConnected) {
+        try {
+          const userCount = await User.countDocuments({});
+          const courseCount = await Course.countDocuments({});
+          const enrollmentCount = await Enrollment.countDocuments({});
+          
+          dbTestResults = {
+            success: true,
+            counts: { userCount, courseCount, enrollmentCount }
+          };
+        } catch (dbError) {
+          dbTestResults = {
+            success: false,
+            error: dbError.message
+          };
+        }
+      } else {
+        dbTestResults = {
+          success: false,
+          error: 'Database not connected'
+        };
+      }
+      
+      // Check if we can create and read data
+      let dataTestResults = {};
+      if (dbConnected) {
+        try {
+          // Try to create a test document
+          const testUser = new User({
+            username: `testuser_${Date.now()}`,
+            email: `test_${Date.now()}@test.com`,
+            password: 'testpass123',
+            role: 'student'
+          });
+          
+          const savedUser = await testUser.save();
+          console.log('Test user created:', savedUser._id);
+          
+          // Try to read it back
+          const fetchedUser = await User.findById(savedUser._id);
+          
+          // Clean up
+          await User.findByIdAndDelete(savedUser._id);
+          
+          dataTestResults = {
+            success: true,
+            create: 'success',
+            read: 'success',
+            delete: 'success'
+          };
+        } catch (dataError) {
+          dataTestResults = {
+            success: false,
+            error: dataError.message
+          };
+        }
+      }
+      
+      res.json({
+        message: 'Comprehensive debug test',
+        time: new Date().toISOString(),
+        environment: envVars,
+        database: {
+          state: dbStates[dbState],
+          connected: dbConnected,
+          testResults: dbTestResults
+        },
+        dataOperations: dataTestResults,
+        mongoose: {
+          version: mongoose.version,
+          models: Object.keys(mongoose.models)
+        }
+      });
+      
+    } catch (error) {
+      console.error('Comprehensive debug test failed:', error);
+      res.status(500).json({
+        message: 'Comprehensive debug test failed',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // Test route to create a course and verify database save
+  app.post('/api/debug/create-test-course', async (req, res) => {
+    try {
+      console.log('=== TEST COURSE CREATION ===');
+      console.log('Request body:', req.body);
+      console.log('User:', req.user);
+      
+      // Create a test course
+      const testCourse = new Course({
+        title: `Test Course ${Date.now()}`,
+        description: 'This is a test course to verify database connectivity',
+        category: 'test',
+        level: 'beginner',
+        language: 'English',
+        price: 0,
+        createdBy: req.user?._id || '000000000000000000000000', // Use dummy ID if no user
+        isPublished: false,
+        status: 'draft'
+      });
+      
+      console.log('Test course object:', testCourse);
+      
+      // Save to database
+      const savedCourse = await testCourse.save();
+      console.log('Course saved successfully:', savedCourse._id);
+      
+      // Verify it was saved by fetching it back
+      const fetchedCourse = await Course.findById(savedCourse._id);
+      console.log('Fetched course from database:', fetchedCourse);
+      
+      // Get updated count
+      const newCourseCount = await Course.countDocuments({});
+      
+      res.json({
+        message: 'Test course created successfully',
+        course: savedCourse,
+        fetchedCourse: fetchedCourse,
+        newCourseCount,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('Test course creation failed:', error);
+      res.status(500).json({
+        message: 'Test course creation failed',
+        error: error.message,
+        stack: error.stack,
+        success: false
+      });
+    }
   });
   
   const httpServer = createServer(app);

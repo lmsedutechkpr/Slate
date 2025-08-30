@@ -274,10 +274,74 @@ const CourseManagement = () => {
           <p className="text-gray-600">Manage all courses and assign instructors</p>
         </div>
         
-        <Button onClick={() => setCreateOpen(true)} data-testid="button-create-course">
-          <Plus className="w-4 h-4 mr-2" />
-          Create Course
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                console.log('Testing comprehensive database connectivity...');
+                const res = await authenticatedFetch(buildApiUrl('/api/debug/comprehensive'));
+                const data = await res.json();
+                console.log('Comprehensive debug result:', data);
+                toast({ 
+                  title: 'Comprehensive DB Test', 
+                  description: `DB: ${data.database.state}, Connected: ${data.database.connected}, Data Ops: ${data.dataOperations.success ? 'Success' : 'Failed'}` 
+                });
+              } catch (error) {
+                console.error('Comprehensive database test failed:', error);
+                toast({ 
+                  title: 'DB Test Failed', 
+                  description: error.message, 
+                  variant: 'destructive' 
+                });
+              }
+            }}
+          >
+            Test DB
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                console.log('Creating test course...');
+                const res = await authenticatedFetch(buildApiUrl('/api/debug/create-test-course'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ test: true })
+                });
+                const data = await res.json();
+                console.log('Test course creation result:', data);
+                if (data.success) {
+                  toast({ 
+                    title: 'Test Course Created', 
+                    description: `Course ID: ${data.course._id}, New Count: ${data.newCourseCount}` 
+                  });
+                  // Refresh the course list
+                  queryClient.invalidateQueries(['/api/courses']);
+                } else {
+                  toast({ 
+                    title: 'Test Course Failed', 
+                    description: data.message, 
+                    variant: 'destructive' 
+                  });
+                }
+              } catch (error) {
+                console.error('Test course creation failed:', error);
+                toast({ 
+                  title: 'Test Course Failed', 
+                  description: error.message, 
+                  variant: 'destructive' 
+                });
+              }
+            }}
+          >
+            Test Create
+          </Button>
+          <Button onClick={() => setCreateOpen(true)} data-testid="button-create-course">
+            <Plus className="w-4 h-4 mr-2" />
+            Create Course
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
