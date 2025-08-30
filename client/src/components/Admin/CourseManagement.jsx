@@ -666,7 +666,14 @@ const CourseManagement = () => {
                     if (editCourse.price != null) form.append('price', String(editCourse.price));
                     form.append('isPublished', String(!!editCourse.isPublished));
                     if (editCover) form.append('cover', editCover);
-                    const res = await fetch(buildApiUrl(`/api/courses/${editCourse._id}`), { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+                    const res = await fetch(buildApiUrl(`/api/courses/${editCourse._id}`), { 
+                      method: 'PUT', 
+                      headers: { 
+                        'Authorization': `Bearer ${accessToken}` 
+                        // Don't set Content-Type for FormData - browser will set it automatically with boundary
+                      }, 
+                      body: form 
+                    });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.message || 'Failed to update');
                     toast({ title: 'Updated', description: 'Course updated' });
@@ -758,8 +765,32 @@ const CourseManagement = () => {
                   if (newCourse.price != null) form.append('price', String(newCourse.price));
                   form.append('isPublished', String(newCourse.isPublished));
                   if (coverFile) form.append('cover', coverFile);
-                  const res = await fetch(buildApiUrl('/api/courses'), { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+                  
+                  // Debug: Log what we're sending
+                  console.log('=== FRONTEND COURSE CREATION ===');
+                  console.log('FormData contents:');
+                  for (let [key, value] of form.entries()) {
+                    console.log(`${key}:`, value);
+                  }
+                  console.log('API URL:', buildApiUrl('/api/courses'));
+                  console.log('Token:', accessToken ? 'Present' : 'Missing');
+                  
+                  const res = await fetch(buildApiUrl('/api/courses'), { 
+                    method: 'POST', 
+                    headers: { 
+                      'Authorization': `Bearer ${accessToken}` 
+                      // Don't set Content-Type for FormData - browser will set it automatically with boundary
+                    }, 
+                    body: form 
+                  });
+                  
+                  // Debug: Log the response
+                  console.log('Response status:', res.status);
+                  console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+                  
                   const data = await res.json();
+                  console.log('Response data:', data);
+                  
                   if (!res.ok) throw new Error(data.message || 'Failed to create course');
                   toast({ title: 'Created', description: 'Course created successfully' });
                   setCreateOpen(false);
