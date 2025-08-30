@@ -18,9 +18,40 @@ export async function setupVite(_app, _server) {
 
 export function serveStatic(app) {
   const distPath = path.resolve(process.cwd(), "client", "dist")
+  
+  // Check if client/dist exists, if not, just serve API routes
   if (!fs.existsSync(distPath)) {
-    throw new Error(`Could not find the build directory: ${distPath}`)
+    log("Client build directory not found, serving API only", "vite")
+    
+    // Add a catch-all route for API-only mode
+    app.use("*", (req, res) => {
+      if (req.path.startsWith("/api")) {
+        res.status(404).json({ 
+          message: "API endpoint not found",
+          path: req.path,
+          availableEndpoints: [
+            "/api/health",
+            "/api/auth/*",
+            "/api/users/*",
+            "/api/courses/*",
+            "/api/assignments/*",
+            "/api/products/*",
+            "/api/admin/*",
+            "/api/recommendations",
+            "/api/dashboard"
+          ]
+        })
+      } else {
+        res.status(404).json({ 
+          message: "Frontend not available. This is an API-only deployment.",
+          note: "Deploy the client separately or include client/dist in your deployment"
+        })
+      }
+    })
+    return
   }
+  
+  // If client/dist exists, serve static files
   app.use(express.static(distPath))
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"))

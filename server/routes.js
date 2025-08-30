@@ -21,6 +21,24 @@ import { requireAdmin, requireInstructorOrAdmin, requireStudent } from './middle
 export async function registerRoutes(app) {
   // Health
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+  
+  // API Info
+  app.get('/api', (_req, res) => res.json({ 
+    message: 'EduTech LMS API',
+    version: '1.0.0',
+    status: 'running',
+    time: new Date().toISOString(),
+    endpoints: {
+      auth: '/api/auth/*',
+      users: '/api/users/*',
+      courses: '/api/courses/*',
+      assignments: '/api/assignments/*',
+      products: '/api/products/*',
+      admin: '/api/admin/*',
+      recommendations: '/api/recommendations',
+      dashboard: '/api/dashboard'
+    }
+  }));
 
   // Initialize database connection
   await connectDB();
