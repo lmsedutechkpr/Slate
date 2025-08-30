@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { buildApiUrl, getImageUrl } from '../../lib/utils.js';
 import { 
@@ -26,13 +25,7 @@ const CourseManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Debug: Log authentication state
-  console.log('=== AUTH DEBUG ===');
-  console.log('accessToken:', accessToken ? 'Present' : 'Missing');
-  console.log('user:', user);
-  console.log('isAuthenticated:', isAuthenticated);
-  console.log('authLoading:', authLoading);
-  console.log('localStorage accessToken:', localStorage.getItem('accessToken'));
+
   
   // Show loading state while authentication is in progress
   if (authLoading) {
@@ -318,7 +311,7 @@ const CourseManagement = () => {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="shadow-md border-0 bg-gradient-to-r from-gray-50 to-blue-50">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -364,13 +357,13 @@ const CourseManagement = () => {
       </Card>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">Page {pagination.page} of {Math.max(1, Math.ceil((pagination.total || 0) / (pagination.limit || limit)))} • {pagination.total || 0} results</div>
+      <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="text-sm font-medium text-gray-700">Page {pagination.page} of {Math.max(1, Math.ceil((pagination.total || 0) / (pagination.limit || limit)))} • {pagination.total || 0} results</div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" disabled={pagination.page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</Button>
-          <Button variant="outline" disabled={pagination.page >= Math.ceil((pagination.total || 0) / (pagination.limit || limit))} onClick={() => setPage(p => p + 1)}>Next</Button>
+          <Button variant="outline" disabled={pagination.page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="hover:bg-blue-50 hover:border-blue-300">Prev</Button>
+          <Button variant="outline" disabled={pagination.page >= Math.ceil((pagination.total || 0) / (pagination.limit || limit))} onClick={() => setPage(p => p + 1)} className="hover:bg-blue-50 hover:border-blue-300">Next</Button>
           <Select value={String(limit)} onValueChange={v => { setLimit(Number(v)); setPage(1); }}>
-            <SelectTrigger className="w-24">
+            <SelectTrigger className="w-24 hover:border-blue-300">
               <SelectValue placeholder="Rows" />
             </SelectTrigger>
             <SelectContent>
@@ -383,14 +376,14 @@ const CourseManagement = () => {
       </div>
 
       {/* Courses Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Courses ({courses.length})</CardTitle>
-          <CardDescription>
+      <Card className="shadow-lg border-0">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+          <CardTitle className="text-2xl font-bold text-gray-800">All Courses ({courses.length})</CardTitle>
+          <CardDescription className="text-gray-600 font-medium">
             Manage courses and assign instructors
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {coursesLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
@@ -401,57 +394,60 @@ const CourseManagement = () => {
               <p className="text-gray-500">No courses found</p>
             </div>
           ) : (
-            <Table className="border-collapse border border-gray-200 rounded-lg overflow-hidden">
+            <Table className="w-full border-collapse border border-gray-200 rounded-xl overflow-hidden shadow-lg">
               <TableHeader>
-                <TableRow className="bg-gray-50 border-b border-gray-200">
-                  <TableHead className="w-20 px-4 py-3 text-left font-semibold text-gray-700">Thumbnail</TableHead>
-                  <TableHead className="w-64 px-4 py-3 text-left font-semibold text-gray-700">Course</TableHead>
-                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Instructor</TableHead>
-                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Level</TableHead>
-                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Status</TableHead>
-                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Enrollments</TableHead>
-                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Created</TableHead>
-                  <TableHead className="px-4 py-3 text-left font-semibold text-gray-700">Actions</TableHead>
+                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
+                  <TableHead className="w-20 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Thumbnail</TableHead>
+                  <TableHead className="w-64 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Course</TableHead>
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Instructor</TableHead>
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Level</TableHead>
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Status</TableHead>
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Enrollments</TableHead>
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Created</TableHead>
+                  <TableHead className="w-48 px-4 py-3 text-left font-bold text-gray-800 hover:bg-gray-100 transition-colors cursor-pointer">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {courses.map((course) => (
-                  <TableRow key={course._id} data-testid={`course-row-${course._id}`} className="hover:bg-gray-50 transition-colors border-b border-gray-100">
-                    <TableCell className="px-4 py-3">
-                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center border shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <TableRow key={course._id} data-testid={`course-row-${course._id}`} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 hover:shadow-md hover:scale-[1.01] transform">
+                    <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105">
                         {(course.coverUrl || course.cover) ? (
                           <img 
                             src={getImageUrl(course.coverUrl || course.cover, buildApiUrl(''))} 
                             alt={course.title}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                             onError={(e) => {
-                              console.log('Image failed to load:', course.coverUrl || course.cover);
-                              console.log('Generated URL:', getImageUrl(course.coverUrl || course.cover, buildApiUrl('')));
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
                             }}
-                            onLoad={() => console.log('Image loaded successfully:', course.coverUrl || course.cover)}
                           />
-                        ) : null}
-                        {!(course.coverUrl || course.cover) && (
+                        ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
                             <BookOpen className="w-8 h-8" />
                           </div>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
                       <div className="w-64">
-                        <div className="font-semibold text-gray-900 truncate text-base mb-1">{course.title}</div>
-                        <div className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                          {course.description}
+                        <div className="font-bold text-gray-900 truncate text-lg mb-2 hover:text-blue-600 transition-colors cursor-pointer">{course.title}</div>
+                        <div className="text-sm text-gray-600 leading-relaxed max-w-xs overflow-hidden mb-3">
+                          <div className="line-clamp-2" style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {course.description}
+                          </div>
                         </div>
-                        <div className="text-xs text-blue-600 font-medium mt-2 bg-blue-50 px-2 py-1 rounded-full inline-block">
+                        <div className="text-xs text-blue-700 font-bold mt-2 bg-gradient-to-r from-blue-100 to-indigo-100 px-3 py-1.5 rounded-full inline-block border border-blue-200 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105">
                           {course.category}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
                       {course.assignedInstructor ? (
                         <div>
                           <div className="font-medium">
@@ -465,32 +461,33 @@ const CourseManagement = () => {
                         <span className="text-sm text-red-600">Not assigned</span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <Badge className={getLevelColor(course.level)}>
+                    <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
+                      <Badge className={`${getLevelColor(course.level)} px-3 py-1.5 font-semibold shadow-sm`}>
                         {course.level || 'Beginner'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <Badge className={getStatusColor(course.isPublished)}>
+                    <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
+                      <Badge className={`${getStatusColor(course.isPublished)} px-3 py-1.5 font-semibold shadow-sm`}>
                         {course.isPublished ? 'Published' : 'Draft'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
                       <div className="flex items-center">
                         <Users className="w-4 h-4 mr-1 text-gray-500" />
                         {course.enrollmentCount || 0}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
                       {formatDate(course.createdAt)}
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell className="px-4 py-3 hover:bg-blue-50 transition-colors">
                       <div className="flex space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => openAssignDialog(course)}
                           data-testid={`button-assign-instructor-${course._id}`}
+                          className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all duration-200"
                         >
                           <UserCheck className="w-3 h-3 mr-1" />
                           {course.assignedInstructor ? 'Reassign' : 'Assign'}
@@ -499,6 +496,7 @@ const CourseManagement = () => {
                           size="sm"
                           variant="outline"
                           data-testid={`button-view-course-${course._id}`}
+                          className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-all duration-200"
                         >
                           <Eye className="w-3 h-3" />
                         </Button>
@@ -507,6 +505,7 @@ const CourseManagement = () => {
                           variant="outline"
                           onClick={() => { setEditCourse(course); setEditOpen(true); setEditCover(null); }}
                           data-testid={`button-edit-course-${course._id}`}
+                          className="hover:bg-yellow-50 hover:border-yellow-300 hover:text-yellow-700 transition-all duration-200"
                         >
                           <Edit className="w-3 h-3 mr-1" />
                           Edit
@@ -516,6 +515,7 @@ const CourseManagement = () => {
                           variant="outline"
                           onClick={() => openStructureDialog(course)}
                           data-testid={`button-structure-${course._id}`}
+                          className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all duration-200"
                         >
                           <ListPlus className="w-3 h-3 mr-1" />
                           Structure
