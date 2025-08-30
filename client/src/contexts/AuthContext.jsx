@@ -70,6 +70,15 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Debug useEffect to monitor state changes
+  useEffect(() => {
+    console.log('=== AUTH STATE CHANGE ===');
+    console.log('accessToken:', state.accessToken ? 'Present' : 'Missing');
+    console.log('isAuthenticated:', state.isAuthenticated);
+    console.log('isLoading:', state.isLoading);
+    console.log('user:', state.user ? 'Present' : 'Missing');
+  }, [state.accessToken, state.isAuthenticated, state.isLoading, state.user]);
+
   const fetchUserData = async () => {
     try {
       const accessToken = localStorage.getItem('accessToken');
@@ -90,10 +99,19 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         const userData = await response.json();
         console.log('User data fetched successfully:', userData);
+        
+        // IMPORTANT: When restoring from localStorage, we need to include the tokens
+        // because the /api/auth/user endpoint only returns user data, not tokens
         dispatch({
           type: 'LOGIN_SUCCESS',
-          payload: userData
+          payload: {
+            user: userData.user,
+            accessToken: accessToken, // Use the token from localStorage
+            refreshToken: localStorage.getItem('refreshToken') // Use the refresh token from localStorage
+          }
         });
+        
+        console.log('State updated after fetchUserData, accessToken:', accessToken ? 'Present' : 'Missing');
       } else if (response.status === 401) {
         // Token expired, try to refresh
         console.log('Token expired, attempting refresh...');
