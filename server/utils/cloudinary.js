@@ -2,20 +2,22 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
 
-// Check if Cloudinary credentials are available
-const hasCloudinaryConfig = process.env.CLOUDINARY_CLOUD_NAME && 
-                           process.env.CLOUDINARY_API_KEY && 
-                           process.env.CLOUDINARY_API_SECRET;
-
-if (hasCloudinaryConfig) {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
-} else {
-  console.warn('Cloudinary credentials not found. File uploads will use local storage.');
-}
+// Function to check if Cloudinary credentials are available
+const getCloudinaryConfig = () => {
+  const hasConfig = process.env.CLOUDINARY_CLOUD_NAME && 
+                   process.env.CLOUDINARY_API_KEY && 
+                   process.env.CLOUDINARY_API_SECRET;
+  
+  if (hasConfig) {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+    return true;
+  }
+  return false;
+};
 
 // Fallback upload function for local storage
 export const uploadToLocal = async (filePath, folder = 'uploads') => {
@@ -40,6 +42,8 @@ export const uploadToLocal = async (filePath, folder = 'uploads') => {
 
 // Enhanced cloudinary with fallback
 export const uploadToCloudinary = async (filePath, options = {}) => {
+  const hasCloudinaryConfig = getCloudinaryConfig();
+  
   if (!hasCloudinaryConfig) {
     // Fallback to local storage
     const localUrl = await uploadToLocal(filePath, options.folder || 'uploads');
