@@ -319,7 +319,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshTokens,
     updateUserProfile,
-    authenticatedFetch
+    authenticatedFetch,
+    authLoading: state.isLoading
   };
 
   return (

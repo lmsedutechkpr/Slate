@@ -22,12 +22,15 @@ const ProtectedRoute = ({ children, requiredRole = null, requireOnboarded = fals
       return;
     }
 
+    // Check onboarding requirement for students
     if (requireOnboarded && user.role === 'student') {
       const onboardedProfile = Boolean(user.studentProfile && user.studentProfile.onboarded);
       const onboardedFlag = localStorage.getItem('onboarded') === 'true';
       const onboarded = onboardedProfile || onboardedFlag;
+      
       if (!onboarded) {
         setLocation('/onboarding');
+        return;
       }
     }
   }, [isLoading, isAuthenticated, user, requiredRole, requireOnboarded, setLocation]);

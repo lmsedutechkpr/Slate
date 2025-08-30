@@ -13,18 +13,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, authenticatedFetch, authLoading } = useAuth();
   
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['/api/dashboard', accessToken],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/dashboard'), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        cache: 'no-store'
-      });
+      const response = await authenticatedFetch(buildApiUrl('/api/dashboard'));
       
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
@@ -32,23 +26,29 @@ const Dashboard = () => {
       
       return response.json();
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: liveData } = useQuery({
     queryKey: ['/api/live-sessions/mine', accessToken],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/live-sessions/mine'), {
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        cache: 'no-store'
-      });
+      const response = await authenticatedFetch(buildApiUrl('/api/live-sessions/mine'));
       if (!response.ok) throw new Error('Failed to fetch live sessions');
       return response.json();
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && !authLoading,
     staleTime: 60 * 1000,
   });
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="xl" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

@@ -21,4 +21,11 @@ export const Domains = [
   'iot',
 ]
 
+// Add UserRoles for consistency
+export const UserRoles = {
+  ADMIN: 'admin',
+  INSTRUCTOR: 'instructor',
+  STUDENT: 'student'
+}
+
 

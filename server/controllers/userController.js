@@ -30,24 +30,33 @@ export const updateStudentProfile = async (req, res) => {
       if (exists) return res.status(400).json({ message: 'Username already taken' });
     }
 
+    // Check if this is a complete onboarding submission
+    const hasRequiredOnboardingData = yearOfStudy && degree && interestType && validDomains.length > 0 && learningPace;
+    
+    const updateData = {
+      'profile.firstName': firstName ?? req.user.profile?.firstName,
+      'profile.lastName': lastName ?? req.user.profile?.lastName,
+      'profile.nickname': nickname ?? req.user.profile?.nickname,
+      'profile.phone': phone ?? req.user.profile?.phone,
+      'username': username ?? req.user.username,
+    };
+
+    // Only add student profile fields if they are provided
+    if (yearOfStudy) updateData['studentProfile.yearOfStudy'] = yearOfStudy;
+    if (degree) updateData['studentProfile.degree'] = degree;
+    if (interestType) updateData['studentProfile.interestType'] = interestType;
+    if (validDomains.length > 0) updateData['studentProfile.domains'] = validDomains;
+    if (careerGoal) updateData['studentProfile.careerGoal'] = careerGoal;
+    if (learningPace) updateData['studentProfile.learningPace'] = learningPace;
+    
+    // Only set onboarded to true if we have complete onboarding data
+    if (hasRequiredOnboardingData) {
+      updateData['studentProfile.onboarded'] = true;
+    }
+
     const user = await User.findByIdAndUpdate(
       userId,
-      {
-        $set: {
-          'profile.firstName': firstName ?? req.user.profile?.firstName,
-          'profile.lastName': lastName ?? req.user.profile?.lastName,
-          'profile.nickname': nickname ?? req.user.profile?.nickname,
-          'profile.phone': phone ?? req.user.profile?.phone,
-          'username': username ?? req.user.username,
-          'studentProfile.yearOfStudy': yearOfStudy,
-          'studentProfile.degree': degree,
-          'studentProfile.interestType': interestType,
-          'studentProfile.domains': validDomains,
-          'studentProfile.careerGoal': careerGoal,
-          'studentProfile.learningPace': learningPace,
-          'studentProfile.onboarded': true
-        }
-      },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
     

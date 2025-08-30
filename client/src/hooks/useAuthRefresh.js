@@ -14,7 +14,6 @@ export const useAuthRefresh = () => {
     // When authentication is no longer loading and we have a token,
     // invalidate all queries to refetch with new token
     if (!authLoading && accessToken) {
-      console.log('Authentication ready, invalidating all queries...');
       queryClient.invalidateQueries();
     }
   }, [authLoading, accessToken, queryClient]);

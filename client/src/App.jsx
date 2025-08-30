@@ -173,7 +173,7 @@ function AppRoutes() {
           </ProtectedRoute>
         </Route>
         
-        <Route path="/admin/logs">
+        <Route path="/admin/audit-logs">
           <ProtectedRoute requiredRole="admin">
             <AdminLayout>
               <AdminAuditLogs />
@@ -202,6 +202,36 @@ function AppRoutes() {
             <InstructorDashboard />
           </ProtectedRoute>
         </Route>
+
+        <Route path="/instructor/courses">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorDashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/assignments">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorDashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/live">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorDashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/students">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorDashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/settings">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorDashboard />
+          </ProtectedRoute>
+        </Route>
         
         {/* Default route: redirect */}
         <Route path="/">
@@ -211,6 +241,8 @@ function AppRoutes() {
             <Redirect to="/admin" />
           ) : user?.role === 'instructor' ? (
             <Redirect to="/instructor" />
+          ) : user?.role === 'student' && !(user?.studentProfile?.onboarded || localStorage.getItem('onboarded') === 'true') ? (
+            <Redirect to="/onboarding" />
           ) : (
             <Redirect to="/dashboard" />
           )}

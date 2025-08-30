@@ -125,12 +125,17 @@ const Onboarding = () => {
       const result = await updateUserProfile(formData);
       
       if (result.success) {
-        try { localStorage.setItem('onboarded', 'true'); } catch {}
+        try { 
+          localStorage.setItem('onboarded', 'true'); 
+        } catch (e) {
+          console.error('Failed to set localStorage:', e);
+        }
         setLocation('/dashboard');
       } else {
         setError(result.message || 'Failed to update profile. Please try again.');
       }
     } catch (err) {
+      console.error('Onboarding error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
