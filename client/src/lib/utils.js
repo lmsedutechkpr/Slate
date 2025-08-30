@@ -77,4 +77,20 @@ export const getInitials = (firstName, lastName) => {
   return first + last;
 };
 
+/**
+ * Build the full API URL for backend requests
+ * @param {string} endpoint - The API endpoint (e.g., '/api/courses')
+ * @returns {string} - The full API URL
+ */
+export const buildApiUrl = (endpoint) => {
+  // Get the backend URL from environment or use a default
+  const backendUrl = import.meta.env.VITE_API_URL || 'https://edutech-84ht.onrender.com';
+  
+  // Remove leading slash if present
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  
+  // Return the full URL
+  return `${backendUrl}/${cleanEndpoint}`;
+};
+
 
