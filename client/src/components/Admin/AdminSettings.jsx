@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
+import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,7 +105,7 @@ const AdminSettings = () => {
   // Save settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async (settings) => {
-      const response = await fetch('/api/admin/settings', {
+      const response = await fetch(buildApiUrl('/api/admin/settings'), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

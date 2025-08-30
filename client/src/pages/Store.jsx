@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +43,7 @@ const Store = () => {
         params.append('sortOrder', order);
       }
       
-      const response = await fetch(`/api/products?${params.toString()}`);
+      const response = await fetch(buildApiUrl(`/api/products?${params.toString()}`));
       
       if (!response.ok) {
         throw new Error('Failed to fetch products');
@@ -58,7 +59,7 @@ const Store = () => {
   const { data: categoriesData } = useQuery({
     queryKey: ['/api/products/categories'],
     queryFn: async () => {
-      const response = await fetch('/api/products/categories');
+      const response = await fetch(buildApiUrl('/api/products/categories'));
       
       if (!response.ok) {
         throw new Error('Failed to fetch categories');
@@ -72,7 +73,7 @@ const Store = () => {
   const { data: recommendationsData } = useQuery({
     queryKey: ['/api/recommendations'],
     queryFn: async () => {
-      const response = await fetch('/api/recommendations', {
+      const response = await fetch(buildApiUrl('/api/recommendations'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'

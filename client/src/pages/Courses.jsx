@@ -8,8 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
-import { getImageUrl } from '@/lib/utils.js';
-import { API_BASE_URL } from '@/config.js';
+import { getImageUrl, buildApiUrl } from '@/lib/utils.js';
 import { Search, BookOpen, Users, Clock, Star, Filter } from 'lucide-react';
 
 const Courses = () => {
@@ -35,7 +34,7 @@ const Courses = () => {
       if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
       if (selectedLevel && selectedLevel !== 'all') params.append('level', selectedLevel);
       
-      const response = await fetch(`/api/courses?${params.toString()}`, {
+      const response = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -58,7 +57,7 @@ const Courses = () => {
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useQuery({
     queryKey: ['/api/enrollments', accessToken],
     queryFn: async () => {
-      const response = await fetch('/api/enrollments', {
+      const response = await fetch(buildApiUrl('/api/enrollments'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -79,7 +78,7 @@ const Courses = () => {
   const { data: recommendationsData } = useQuery({
     queryKey: ['/api/recommendations', accessToken],
     queryFn: async () => {
-      const response = await fetch('/api/recommendations', {
+      const response = await fetch(buildApiUrl('/api/recommendations'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -134,7 +133,7 @@ const Courses = () => {
             </div>
             {course.coverUrl && (
               <img 
-                src={getImageUrl(course.coverUrl, API_BASE_URL)}
+                src={getImageUrl(course.coverUrl, buildApiUrl(''))}
                 alt={course.title}
                 className="w-16 h-12 object-cover rounded-lg ml-4"
               />
@@ -199,7 +198,7 @@ const Courses = () => {
               onClick={async () => {
                 if (isEnrolled) return;
                 try {
-                  const res = await fetch(`/api/courses/${course._id}/enroll`, {
+                  const res = await fetch(buildApiUrl(`/api/courses/${course._id}/enroll`), {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                   })

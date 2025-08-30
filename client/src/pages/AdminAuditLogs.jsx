@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,7 @@ const AdminAuditLogs = () => {
       if (actor) params.append('actor', actor);
       if (targetId) params.append('targetId', targetId);
       if (query) params.append('q', query);
-      const res = await fetch(`/api/admin/audit-logs?${params.toString()}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/admin/audit-logs?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load logs');
       return res.json();
     },

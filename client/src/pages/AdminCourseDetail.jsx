@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { useQuery } from '@tanstack/react-query';
 import { useRoute, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
+import { buildApiUrl } from '../lib/utils.js';
 
 const AdminCourseDetail = () => {
   const { accessToken } = useAuth();
@@ -13,7 +14,7 @@ const AdminCourseDetail = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['/api/courses', courseId],
     queryFn: async () => {
-      const res = await fetch(`/api/courses/${courseId}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/courses/${courseId}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load course');
       return res.json();
     },
@@ -23,7 +24,7 @@ const AdminCourseDetail = () => {
   const { data: analytics } = useQuery({
     queryKey: ['/api/admin/analytics/courses', courseId],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/analytics/courses/${courseId}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/admin/analytics/courses/${courseId}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load course analytics');
       return res.json();
     },

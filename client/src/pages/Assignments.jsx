@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ const Assignments = () => {
   const { data: assignmentsData, isLoading, error } = useQuery({
     queryKey: ['/api/students/assignments', accessToken],
     queryFn: async () => {
-      const response = await fetch('/api/students/assignments', {
+      const response = await fetch(buildApiUrl('/api/students/assignments'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
+import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,7 @@ const MyCourses = ({ courses = [] }) => {
   // Create course mutation
   const createCourseMutation = useMutation({
     mutationFn: async (courseData) => {
-      const response = await fetch('/api/courses', {
+      const response = await fetch(buildApiUrl('/api/courses'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

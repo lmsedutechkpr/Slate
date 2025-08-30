@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { buildApiUrl } from '../lib/utils.js';
 
 const AdminDashboard = () => {
   const [location, setLocation] = useLocation();
@@ -15,7 +16,7 @@ const AdminDashboard = () => {
   const { data: overview, isLoading } = useQuery({
     queryKey: ['/api/admin/analytics/overview'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/analytics/overview', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl('/api/admin/analytics/overview'), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load analytics');
       return res.json();
     },

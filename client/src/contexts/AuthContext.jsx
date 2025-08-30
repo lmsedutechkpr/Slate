@@ -104,6 +104,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      console.log('=== LOGIN ATTEMPT ===');
+      console.log('Login URL:', buildApiUrl('/api/auth/login'));
+      
       const response = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
@@ -112,22 +115,36 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify(credentials)
       });
 
+      console.log('Login response status:', response.status);
       const data = await response.json();
+      console.log('Login response data keys:', Object.keys(data));
 
       if (response.ok) {
+        console.log('=== LOGIN SUCCESS ===');
+        console.log('Access token received:', !!data.accessToken);
+        console.log('Refresh token received:', !!data.refreshToken);
+        console.log('User data received:', !!data.user);
+        
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
+        
+        console.log('Tokens stored in localStorage');
+        console.log('Access token length:', data.accessToken?.length);
+        console.log('Refresh token length:', data.refreshToken?.length);
         
         dispatch({
           type: 'LOGIN_SUCCESS',
           payload: data
         });
         
+        console.log('Login state updated');
         return { success: true, user: data.user };
       } else {
+        console.error('Login failed:', response.status, data);
         return { success: false, message: data.message };
       }
     } catch (error) {
+      console.error('Login error:', error);
       return { success: false, message: 'Login failed. Please try again.' };
     }
   };
@@ -169,14 +186,19 @@ export const AuthProvider = ({ children }) => {
 
   const refreshTokens = async () => {
     try {
+      console.log('=== FRONTEND REFRESH TOKENS ===');
       const refreshToken = localStorage.getItem('refreshToken');
+      console.log('Refresh token from localStorage:', refreshToken ? 'Present' : 'Missing');
+      console.log('Refresh token length:', refreshToken?.length);
       
       if (!refreshToken) {
+        console.log('No refresh token available, logging out');
         logout();
         return false;
       }
 
-      const response = await fetch(buildApiUrl(`/api/auth/refresh?ts=${Date.now()}`), {
+      console.log('Sending refresh request to:', buildApiUrl('/api/auth/refresh'));
+      const response = await fetch(buildApiUrl('/api/auth/refresh'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,8 +207,15 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ refreshToken })
       });
 
+      console.log('Refresh response status:', response.status);
+      console.log('Refresh response headers:', Object.fromEntries(response.headers.entries()));
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Refresh successful, new tokens received');
+        console.log('New access token length:', data.accessToken?.length);
+        console.log('New refresh token length:', data.refreshToken?.length);
+        
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         
@@ -195,8 +224,11 @@ export const AuthProvider = ({ children }) => {
           payload: data
         });
         
+        console.log('Tokens updated in state and localStorage');
         return true;
       } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Refresh failed:', response.status, errorData);
         logout();
         return false;
       }

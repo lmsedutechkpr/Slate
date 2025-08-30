@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
+import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,7 +16,7 @@ const Analytics = () => {
   const { data: overview } = useQuery({
     queryKey: ['/api/admin/analytics/overview'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/analytics/overview', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl('/api/admin/analytics/overview'), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load overview');
       return res.json();
     },
@@ -29,7 +30,7 @@ const Analytics = () => {
       const params = new URLSearchParams();
       params.append('page', '1');
       params.append('limit', '500');
-      const res = await fetch(`/api/admin/analytics/students?${params.toString()}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/admin/analytics/students?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load students');
       return res.json();
     },
@@ -44,7 +45,7 @@ const Analytics = () => {
       params.append('page', '1');
       params.append('limit', '500');
       params.append('isPublished', 'false');
-      const res = await fetch(`/api/courses?${params.toString()}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load courses');
       return res.json();
     },

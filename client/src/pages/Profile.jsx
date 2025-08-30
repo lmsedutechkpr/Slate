@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '@/components/Common/LoadingSpinner.jsx';
-import { getImageUrl } from '@/lib/utils.js';
-import { API_BASE_URL } from '@/config.js';
+import { getImageUrl, buildApiUrl } from '@/lib/utils.js';
 
 export default function Profile() {
   const { accessToken, user, updateUserProfile } = useAuth()
@@ -34,7 +33,7 @@ export default function Profile() {
     let isMounted = true
     async function load() {
       try {
-        const res = await fetch('/api/users/profile', {
+        const res = await fetch(buildApiUrl('/api/users/profile'), {
           headers: { 'Authorization': `Bearer ${accessToken}` },
           cache: 'no-store'
         })
@@ -90,7 +89,7 @@ export default function Profile() {
     try {
       const form = new FormData()
       form.append('avatar', file)
-      const res = await fetch('/api/users/avatar', {
+      const res = await fetch(buildApiUrl('/api/users/avatar'), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}` },
         body: form
@@ -109,7 +108,7 @@ export default function Profile() {
   async function requestEmailCode() {
     setError(''); setSuccess('')
     try {
-      const res = await fetch('/api/users/email/change-request', {
+      const res = await fetch(buildApiUrl('/api/users/email/change-request'), {
         method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ newEmail: emailState.newEmail })
       })
@@ -124,7 +123,7 @@ export default function Profile() {
   async function verifyEmailCode() {
     setError(''); setSuccess('')
     try {
-      const res = await fetch('/api/users/email/verify', {
+      const res = await fetch(buildApiUrl('/api/users/email/verify'), {
         method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: emailState.code })
       })
@@ -140,7 +139,7 @@ export default function Profile() {
     e.preventDefault(); setError(''); setSuccess('')
     if (pwd.newPassword !== pwd.confirm) { setError('New passwords do not match'); return }
     try {
-      const res = await fetch('/api/users/password', {
+      const res = await fetch(buildApiUrl('/api/users/password'), {
         method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword: pwd.currentPassword, newPassword: pwd.newPassword })
       })
@@ -166,7 +165,7 @@ export default function Profile() {
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center">
               {profile.avatar ? (
-                <img src={getImageUrl(profile.avatar, API_BASE_URL)} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={getImageUrl(profile.avatar, buildApiUrl(''))} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-sm text-muted-foreground">No photo</span>
               )}

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { buildApiUrl } from '../lib/utils.js';
 import DashboardWelcome from '../components/Dashboard/DashboardWelcome.jsx';
 import CurrentLearning from '../components/Dashboard/CurrentLearning.jsx';
 import ProgressSummary from '../components/Dashboard/ProgressSummary.jsx';
@@ -17,7 +18,7 @@ const Dashboard = () => {
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['/api/dashboard', accessToken],
     queryFn: async () => {
-      const response = await fetch('/api/dashboard', {
+      const response = await fetch(buildApiUrl('/api/dashboard'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -38,7 +39,7 @@ const Dashboard = () => {
   const { data: liveData } = useQuery({
     queryKey: ['/api/live-sessions/mine', accessToken],
     queryFn: async () => {
-      const response = await fetch('/api/live-sessions/mine', {
+      const response = await fetch(buildApiUrl('/api/live-sessions/mine'), {
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         cache: 'no-store'
       });

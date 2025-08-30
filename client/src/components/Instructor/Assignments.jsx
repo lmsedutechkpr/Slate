@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
+import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,7 @@ const InstructorAssignments = () => {
   const { data: assignmentsData, isLoading } = useQuery({
     queryKey: ['/api/instructor/assignments'],
     queryFn: async () => {
-      const response = await fetch('/api/instructor/assignments', {
+      const response = await fetch(buildApiUrl('/api/instructor/assignments'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -59,7 +60,7 @@ const InstructorAssignments = () => {
   const { data: coursesData } = useQuery({
     queryKey: ['/api/instructor/courses'],
     queryFn: async () => {
-      const response = await fetch('/api/instructor/courses', {
+      const response = await fetch(buildApiUrl('/api/instructor/courses'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -78,7 +79,7 @@ const InstructorAssignments = () => {
   // Create assignment mutation
   const createAssignmentMutation = useMutation({
     mutationFn: async (assignmentData) => {
-      const response = await fetch('/api/instructor/assignments', {
+      const response = await fetch(buildApiUrl('/api/instructor/assignments'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -122,7 +123,7 @@ const InstructorAssignments = () => {
   // Delete assignment mutation
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId) => {
-      const response = await fetch(`/api/instructor/assignments/${assignmentId}`, {
+      const response = await fetch(buildApiUrl(`/api/instructor/assignments/${assignmentId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${accessToken}`

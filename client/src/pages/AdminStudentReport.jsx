@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { useQuery } from '@tanstack/react-query';
 import { useRoute, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
+import { buildApiUrl } from '../lib/utils.js';
 
 const AdminStudentReport = () => {
   const { accessToken } = useAuth();
@@ -13,7 +14,7 @@ const AdminStudentReport = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['/api/admin/users', userId, 'progress'],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/users/${userId}/progress`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/admin/users/${userId}/progress`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to fetch student progress');
       return res.json();
     },

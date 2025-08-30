@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { buildApiUrl } from '../lib/utils.js';
 
 const AdminProfile = () => {
   const { accessToken } = useAuth();
@@ -12,7 +13,7 @@ const AdminProfile = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['/api/users/profile'],
     queryFn: async () => {
-      const res = await fetch('/api/users/profile', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl('/api/users/profile'), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       if (!res.ok) throw new Error('Failed to load profile');
       return res.json();
     },
@@ -37,7 +38,7 @@ const AdminProfile = () => {
 
   const updateProfile = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/users/profile', {
+      const res = await fetch(buildApiUrl('/api/users/profile'), {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName, lastName, phone, nickname, username })
@@ -55,7 +56,7 @@ const AdminProfile = () => {
     const form = new FormData();
     form.append('avatar', file);
     try {
-      const res = await fetch('/api/users/avatar', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
+      const res = await fetch(buildApiUrl('/api/users/avatar'), { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
       if (!res.ok) throw new Error('Failed to upload avatar');
       await res.json();
       await refetch();
@@ -66,7 +67,7 @@ const AdminProfile = () => {
   const [newPassword, setNewPassword] = useState('');
   const changePassword = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/users/password', {
+      const res = await fetch(buildApiUrl('/api/users/password'), {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword })

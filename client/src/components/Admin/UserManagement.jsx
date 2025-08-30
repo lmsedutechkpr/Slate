@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
+import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +56,7 @@ const UserManagement = () => {
       params.append('sortBy', sortBy);
       params.append('sortDir', sortDir);
       
-      const response = await fetch(`/api/admin/users?${params.toString()}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users?${params.toString()}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -104,7 +105,7 @@ const UserManagement = () => {
   // Create instructor mutation
   const createInstructorMutation = useMutation({
     mutationFn: async (instructorData) => {
-      const response = await fetch('/api/admin/instructors', {
+      const response = await fetch(buildApiUrl('/api/admin/instructors'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -148,7 +149,7 @@ const UserManagement = () => {
   // Update user status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ userId, status }) => {
-      const response = await fetch(`/api/admin/users/${userId}/status`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}/status`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -214,7 +215,7 @@ const UserManagement = () => {
     setProgressOpen(true);
     setProgressLoading(true);
     try {
-      const res = await fetch(`/api/admin/users/${user._id}/progress`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      const res = await fetch(buildApiUrl(`/api/admin/users/${user._id}/progress`), { headers: { 'Authorization': `Bearer ${accessToken}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load progress');
       setProgressData(data.progress || []);

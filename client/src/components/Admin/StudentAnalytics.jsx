@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
+import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +45,7 @@ const StudentAnalytics = () => {
       params.append('page', String(page));
       params.append('limit', String(limit));
       
-      const response = await fetch(`/api/admin/analytics/students?${params.toString()}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/analytics/students?${params.toString()}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'

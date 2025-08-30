@@ -82,16 +82,29 @@ export const login = async (req, res) => {
     }
     
     // Generate tokens
+    console.log('=== LOGIN TOKEN GENERATION ===');
     const tokens = generateTokens({ 
       userId: user._id, 
       role: user.role 
     });
     
-    res.json({
+    console.log('Tokens generated:', {
+      accessToken: !!tokens.accessToken,
+      refreshToken: !!tokens.refreshToken,
+      accessTokenLength: tokens.accessToken?.length,
+      refreshTokenLength: tokens.refreshToken?.length
+    });
+    
+    const responseData = {
       message: 'Login successful',
       user,
       ...tokens
-    });
+    };
+    
+    console.log('Response data keys:', Object.keys(responseData));
+    console.log('=== LOGIN SUCCESS ===');
+    
+    res.json(responseData);
   } catch (error) {
     res.status(500).json({
       message: 'Login failed',
@@ -102,28 +115,42 @@ export const login = async (req, res) => {
 
 export const refreshToken = async (req, res) => {
   try {
+    console.log('=== REFRESH TOKEN START ===');
+    console.log('Request body:', req.body);
+    console.log('Refresh token present:', !!req.body.refreshToken);
+    
     const { refreshToken } = req.body;
     
     if (!refreshToken) {
+      console.log('No refresh token provided');
       return res.status(401).json({
         message: 'Refresh token required'
       });
     }
     
+    console.log('Attempting to verify refresh token...');
     const decoded = verifyRefreshToken(refreshToken);
+    console.log('Token decoded successfully:', { userId: decoded.userId, role: decoded.role });
+    
     const user = await User.findById(decoded.userId).select('-password');
+    console.log('User found:', { found: !!user, status: user?.status, role: user?.role });
     
     if (!user || user.status !== 'active') {
+      console.log('User not found or inactive');
       return res.status(401).json({
         message: 'Invalid refresh token'
       });
     }
     
+    console.log('Generating new tokens...');
     // Generate new tokens
     const tokens = generateTokens({ 
       userId: user._id, 
       role: user.role 
     });
+    
+    console.log('New tokens generated successfully');
+    console.log('=== REFRESH TOKEN SUCCESS ===');
     
     res.json({
       message: 'Token refreshed successfully',
@@ -131,6 +158,10 @@ export const refreshToken = async (req, res) => {
       ...tokens
     });
   } catch (error) {
+    console.error('=== REFRESH TOKEN FAILED ===');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    
     res.status(401).json({
       message: 'Invalid refresh token',
       error: error.message

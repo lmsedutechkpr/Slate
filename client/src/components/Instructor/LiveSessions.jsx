@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
+import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ const LiveSessions = () => {
   const { data: coursesData } = useQuery({
     queryKey: ['/api/instructor/courses'],
     queryFn: async () => {
-      const response = await fetch('/api/instructor/courses', {
+      const response = await fetch(buildApiUrl('/api/instructor/courses'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'

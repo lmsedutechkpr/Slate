@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress as ProgressBar } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,7 @@ const Progress = () => {
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useQuery({
     queryKey: ['/api/enrollments'],
     queryFn: async () => {
-      const response = await fetch('/api/enrollments', {
+      const response = await fetch(buildApiUrl('/api/enrollments'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -35,7 +36,7 @@ const Progress = () => {
   const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
     queryKey: ['/api/dashboard'],
     queryFn: async () => {
-      const response = await fetch('/api/dashboard', {
+      const response = await fetch(buildApiUrl('/api/dashboard'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
