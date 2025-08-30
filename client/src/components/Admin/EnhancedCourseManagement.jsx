@@ -526,6 +526,9 @@ function CourseEditor({ open, onOpenChange, form, setForm, onSubmit, saving, cov
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{form?.id ? 'Edit Course' : 'Create Course'}</DialogTitle>
+          <DialogDescription>
+            {form?.id ? 'Update course information and settings' : 'Create a new course with basic information'}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -602,7 +605,12 @@ function StructureEditor({ open, onOpenChange, structure, setStructure, onSave, 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
-        <DialogHeader><DialogTitle>Course Structure</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Course Structure</DialogTitle>
+          <DialogDescription>
+            Manage course sections and lectures. Add, edit, or remove content structure.
+          </DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <Button variant="outline" onClick={addSection}>Add Section</Button>
           <div className="space-y-3">

@@ -569,6 +569,9 @@ const CourseManagement = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Course</DialogTitle>
+            <DialogDescription>
+              Update course information and settings
+            </DialogDescription>
           </DialogHeader>
           {editCourse && (
             <div className="space-y-4">
