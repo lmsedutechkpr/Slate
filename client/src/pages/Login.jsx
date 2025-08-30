@@ -46,9 +46,26 @@ const Login = () => {
       const result = await login(formData);
       
       if (result.success) {
-        const needsOnboarding = result.user.role === 'student' && !(result.user.studentProfile && result.user.studentProfile.onboarded);
-        const redirectPath = needsOnboarding ? '/onboarding' : getRoleRedirectPath(result.user.role);
-        setLocation(redirectPath);
+        const onboardedProfile = result.user?.studentProfile?.onboarded === true;
+        const onboardedFlag = localStorage.getItem('onboarded') === 'true';
+        const isOnboarded = onboardedProfile || onboardedFlag;
+        
+        console.log('Login onboarding check:', {
+          userRole: result.user?.role,
+          studentProfile: result.user?.studentProfile,
+          onboardedProfile,
+          onboardedFlag,
+          isOnboarded
+        });
+        
+        if (result.user.role === 'student' && !isOnboarded) {
+          console.log('Student not onboarded, redirecting to onboarding');
+          setLocation('/onboarding');
+        } else {
+          console.log('User onboarded or not student, redirecting to role path');
+          const redirectPath = getRoleRedirectPath(result.user.role);
+          setLocation(redirectPath);
+        }
       } else {
         setError(result.message || 'Login failed. Please try again.');
       }

@@ -65,37 +65,37 @@ function AppRoutes() {
         </Route>
         
         <Route path="/dashboard">
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Dashboard />
           </ProtectedRoute>
         </Route>
         
         <Route path="/courses">
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Courses />
           </ProtectedRoute>
         </Route>
         
         <Route path="/assignments">
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Assignments />
           </ProtectedRoute>
         </Route>
         
         <Route path="/progress">
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Progress />
           </ProtectedRoute>
         </Route>
         
         <Route path="/store">
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Store />
           </ProtectedRoute>
         </Route>
 
         <Route path="/profile">
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Profile />
           </ProtectedRoute>
         </Route>
@@ -241,8 +241,28 @@ function AppRoutes() {
             <Redirect to="/admin" />
           ) : user?.role === 'instructor' ? (
             <Redirect to="/instructor" />
-          ) : user?.role === 'student' && !(user?.studentProfile?.onboarded || localStorage.getItem('onboarded') === 'true') ? (
-            <Redirect to="/onboarding" />
+          ) : user?.role === 'student' ? (
+            (() => {
+              const onboardedProfile = user?.studentProfile?.onboarded === true;
+              const onboardedFlag = localStorage.getItem('onboarded') === 'true';
+              const isOnboarded = onboardedProfile || onboardedFlag;
+              
+              console.log('Root route onboarding check:', {
+                userRole: user?.role,
+                studentProfile: user?.studentProfile,
+                onboardedProfile,
+                onboardedFlag,
+                isOnboarded
+              });
+              
+              if (!isOnboarded) {
+                console.log('Student not onboarded, redirecting to onboarding');
+                return <Redirect to="/onboarding" />;
+              } else {
+                console.log('Student onboarded, redirecting to dashboard');
+                return <Redirect to="/dashboard" />;
+              }
+            })()
           ) : (
             <Redirect to="/dashboard" />
           )}

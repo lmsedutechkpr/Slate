@@ -42,7 +42,15 @@ const ProtectedRoute = ({ children, requiredRole = null, requireOnboarded = fals
   if (!isAuthenticated) return null;
   if (!user) return null;
   if (requiredRole && user.role !== requiredRole) return null;
-  if (requireOnboarded && user.role === 'student' && !(user.studentProfile && user.studentProfile.onboarded)) return null;
+  
+  // Final onboarding check before rendering
+  if (requireOnboarded && user.role === 'student') {
+    const onboardedProfile = user?.studentProfile?.onboarded === true;
+    const onboardedFlag = localStorage.getItem('onboarded') === 'true';
+    const isOnboarded = onboardedProfile || onboardedFlag;
+    
+    if (!isOnboarded) return null;
+  }
 
   return children;
 };

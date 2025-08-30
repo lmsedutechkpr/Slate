@@ -26,10 +26,20 @@ export const registerStudent = async (req, res) => {
       profile: {
         firstName,
         lastName
+      },
+      studentProfile: {
+        onboarded: false
       }
     });
     
     await user.save();
+    
+    console.log('Student user created:', {
+      id: user._id,
+      role: user.role,
+      studentProfile: user.studentProfile,
+      onboarded: user.studentProfile?.onboarded
+    });
     
     // Generate tokens
     const tokens = generateTokens({ 
@@ -86,7 +96,14 @@ export const login = async (req, res) => {
       userId: user._id, 
       role: user.role 
     });
-    
+
+    console.log('Login successful, user data:', {
+      id: user._id,
+      role: user.role,
+      studentProfile: user.studentProfile,
+      onboarded: user.studentProfile?.onboarded
+    });
+
     const responseData = {
       message: 'Login successful',
       user,

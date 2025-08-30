@@ -46,9 +46,20 @@ const Onboarding = () => {
 
   // If already onboarded, never show this page again
   useEffect(() => {
+    const onboardedProfile = user?.studentProfile?.onboarded === true;
     const onboardedFlag = localStorage.getItem('onboarded') === 'true';
-    const onboardedProfile = Boolean(user && user.studentProfile && user.studentProfile.onboarded);
-    if (onboardedFlag || onboardedProfile) {
+    const isOnboarded = onboardedProfile || onboardedFlag;
+    
+    console.log('Onboarding component check:', {
+      userRole: user?.role,
+      studentProfile: user?.studentProfile,
+      onboardedProfile,
+      onboardedFlag,
+      isOnboarded
+    });
+    
+    if (isOnboarded) {
+      console.log('User already onboarded, redirecting to dashboard');
       setLocation('/dashboard');
     }
   }, [user, setLocation]);
