@@ -11,25 +11,17 @@ export const uploadCourseCoverMiddleware = multer({ dest: uploadsDir + '/' }).si
 
 export const createCourse = async (req, res) => {
   try {
-    console.log('=== COURSE CREATION START ===');
-    console.log('Method:', req.method);
-    console.log('Path:', req.path);
-    console.log('User:', req.user ? { id: req.user._id, role: req.user.role, username: req.user.username } : 'No user');
-    console.log('Body:', req.body);
-    console.log('File:', req.file ? { filename: req.file.filename, path: req.file.path, size: req.file.size } : 'No file');
     
     // Validate required fields
     const { title, description, category, tags, level, language, price, isPublished } = req.body;
     
     if (!title || !description) {
-      console.log('Validation failed: Missing title or description');
       return res.status(400).json({
         message: 'Title and description are required',
         received: { title: !!title, description: !!description }
       });
     }
     
-    console.log('Creating course object...');
     const course = new Course({
       title,
       description,
@@ -44,44 +36,28 @@ export const createCourse = async (req, res) => {
       status: (isPublished === 'true' || isPublished === true) ? 'published' : 'draft'
     });
 
-    console.log('Course object created:', {
-      title: course.title,
-      description: course.description,
-      category: course.category,
-      level: course.level,
-      createdBy: course.createdBy,
-      assignedInstructor: course.assignedInstructor
-    });
-
     // Optional cover upload
     if (req.file) {
-      console.log('Processing cover upload...');
       try {
         const uploadRes = await uploadToCloudinary(req.file.path, {
           folder: 'course-covers',
           transformation: [{ width: 800, height: 450, crop: 'fill' }]
         });
-        console.log('Cover uploaded successfully:', uploadRes.secure_url);
         course.coverUrl = uploadRes.secure_url;
         
         // Clean up temp file
         try { 
           fs.unlinkSync(req.file.path); 
-          console.log('Temp file cleaned up');
         } catch (cleanupError) {
-          console.log('Temp file cleanup failed:', cleanupError.message);
+          // Ignore cleanup errors
         }
       } catch (uploadError) {
         console.error('Cover upload failed:', uploadError.message);
         // Continue without cover - don't fail the entire course creation
       }
-    } else {
-      console.log('No cover file provided');
     }
     
-    console.log('Saving course to database...');
     await course.save();
-    console.log('Course saved successfully with ID:', course._id);
     
     // Try to create audit log (don't fail if this fails)
     try { 
@@ -97,26 +73,17 @@ export const createCourse = async (req, res) => {
         targetId: String(course._id), 
         meta: { title } 
       }); 
-      console.log('Audit log created');
     } catch (auditError) {
-      console.log('Audit log creation failed (non-critical):', auditError.message);
+      // Ignore audit log creation errors
     }
-    
-    console.log('=== COURSE CREATION SUCCESS ===');
     res.status(201).json({
       message: 'Course created successfully',
       course
     });
   } catch (error) {
-    console.error('=== COURSE CREATION FAILED ===');
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    
     // Check if it's a validation error
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
-      console.error('Validation errors:', validationErrors);
       return res.status(400).json({
         message: 'Course validation failed',
         errors: validationErrors

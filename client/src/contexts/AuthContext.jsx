@@ -56,28 +56,13 @@ export const AuthProvider = ({ children }) => {
     const accessToken = localStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken');
     
-    console.log('=== APP STARTUP ===');
-    console.log('Stored accessToken:', accessToken ? 'Present' : 'Missing');
-    console.log('Stored refreshToken:', refreshToken ? 'Present' : 'Missing');
-    
     if (accessToken && refreshToken) {
       // Verify token and get user data
-      console.log('Tokens found, fetching user data...');
       fetchUserData();
     } else {
-      console.log('No tokens found, setting loading to false');
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
-
-  // Debug useEffect to monitor state changes
-  useEffect(() => {
-    console.log('=== AUTH STATE CHANGE ===');
-    console.log('accessToken:', state.accessToken ? 'Present' : 'Missing');
-    console.log('isAuthenticated:', state.isAuthenticated);
-    console.log('isLoading:', state.isLoading);
-    console.log('user:', state.user ? 'Present' : 'Missing');
-  }, [state.accessToken, state.isAuthenticated, state.isLoading, state.user]);
 
   const fetchUserData = async () => {
     try {
@@ -88,8 +73,6 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      console.log('Fetching user data with token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'None');
-
       const response = await fetch(buildApiUrl('/api/auth/user'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`
@@ -98,7 +81,6 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         const userData = await response.json();
-        console.log('User data fetched successfully:', userData);
         
         // IMPORTANT: When restoring from localStorage, we need to include the tokens
         // because the /api/auth/user endpoint only returns user data, not tokens
@@ -110,18 +92,13 @@ export const AuthProvider = ({ children }) => {
             refreshToken: localStorage.getItem('refreshToken') // Use the refresh token from localStorage
           }
         });
-        
-        console.log('State updated after fetchUserData, accessToken:', accessToken ? 'Present' : 'Missing');
       } else if (response.status === 401) {
         // Token expired, try to refresh
-        console.log('Token expired, attempting refresh...');
         const refreshSuccess = await refreshTokens();
         if (refreshSuccess) {
           // Retry fetching user data with new token
-          console.log('Retrying user data fetch after token refresh...');
           await fetchUserData();
         } else {
-          console.log('Token refresh failed, logging out');
           logout();
         }
       } else {
@@ -136,9 +113,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      console.log('=== LOGIN ATTEMPT ===');
-      console.log('Login URL:', buildApiUrl('/api/auth/login'));
-      
       const response = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
@@ -147,29 +121,17 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify(credentials)
       });
 
-      console.log('Login response status:', response.status);
       const data = await response.json();
-      console.log('Login response data keys:', Object.keys(data));
 
       if (response.ok) {
-        console.log('=== LOGIN SUCCESS ===');
-        console.log('Access token received:', !!data.accessToken);
-        console.log('Refresh token received:', !!data.refreshToken);
-        console.log('User data received:', !!data.user);
-        
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
-        
-        console.log('Tokens stored in localStorage');
-        console.log('Access token length:', data.accessToken?.length);
-        console.log('Refresh token length:', data.refreshToken?.length);
         
         dispatch({
           type: 'LOGIN_SUCCESS',
           payload: data
         });
         
-        console.log('Login state updated');
         return { success: true, user: data.user };
       } else {
         console.error('Login failed:', response.status, data);
@@ -218,18 +180,13 @@ export const AuthProvider = ({ children }) => {
 
   const refreshTokens = async () => {
     try {
-      console.log('=== FRONTEND REFRESH TOKENS ===');
       const refreshToken = localStorage.getItem('refreshToken');
-      console.log('Refresh token from localStorage:', refreshToken ? 'Present' : 'Missing');
-      console.log('Refresh token length:', refreshToken?.length);
       
       if (!refreshToken) {
-        console.log('No refresh token available, logging out');
         logout();
         return false;
       }
 
-      console.log('Sending refresh request to:', buildApiUrl('/api/auth/refresh'));
       const response = await fetch(buildApiUrl('/api/auth/refresh'), {
         method: 'POST',
         headers: {
@@ -239,14 +196,8 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ refreshToken })
       });
 
-      console.log('Refresh response status:', response.status);
-      console.log('Refresh response headers:', Object.fromEntries(response.headers.entries()));
-
       if (response.ok) {
         const data = await response.json();
-        console.log('Refresh successful, new tokens received');
-        console.log('New access token length:', data.accessToken?.length);
-        console.log('New refresh token length:', data.refreshToken?.length);
         
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
@@ -264,9 +215,6 @@ export const AuthProvider = ({ children }) => {
             payload: data.user
           });
         }
-        
-        console.log('Tokens updated in state and localStorage');
-        console.log('State updated, new accessToken:', data.accessToken ? 'Present' : 'Missing');
         
         return true;
       } else {
@@ -331,16 +279,10 @@ export const AuthProvider = ({ children }) => {
     };
     
     try {
-      console.log('Making authenticated request to:', url);
-      console.log('Using token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'None');
-      
       const response = await fetch(url, { ...options, headers });
-      
-      console.log('Response status:', response.status);
       
       // If token expired, try to refresh and retry
       if (response.status === 401) {
-        console.log('Token expired during request, attempting refresh...');
         const refreshSuccess = await refreshTokens();
         
         if (refreshSuccess) {
@@ -353,10 +295,7 @@ export const AuthProvider = ({ children }) => {
           
           headers.Authorization = `Bearer ${newToken}`;
           
-          console.log('Retrying request with new token:', newToken ? `${newToken.substring(0, 20)}...` : 'None');
-          
           const retryResponse = await fetch(url, { ...options, headers });
-          console.log('Retry response status:', retryResponse.status);
           return retryResponse;
         } else {
           // Refresh failed, logout
@@ -373,33 +312,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Test function to debug authentication
-  const testAuth = async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      console.log('=== AUTH TEST ===');
-      console.log('Current token:', token ? `${token.substring(0, 20)}...` : 'None');
-      console.log('State token:', state.accessToken ? `${state.accessToken.substring(0, 20)}...` : 'None');
-      
-      const response = await fetch(buildApiUrl('/api/auth/user'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('Test response status:', response.status);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Test response data:', data);
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.log('Test error:', errorData);
-      }
-    } catch (error) {
-      console.error('Test error:', error);
-    }
-  };
-
   const value = {
     ...state,
     login,
@@ -407,8 +319,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshTokens,
     updateUserProfile,
-    authenticatedFetch,
-    testAuth
+    authenticatedFetch
   };
 
   return (
