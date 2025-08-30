@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
+import { buildApiUrl } from "../config.js"
 
 async function throwIfResNotOk(res) {
   if (!res.ok) {
@@ -8,7 +9,10 @@ async function throwIfResNotOk(res) {
 }
 
 export async function apiRequest(method, url, data) {
-  const res = await fetch(url, {
+  // If url starts with /api, build the full URL
+  const fullUrl = url.startsWith('/api') ? buildApiUrl(url) : url;
+  
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -20,7 +24,11 @@ export async function apiRequest(method, url, data) {
 }
 
 export const getQueryFn = ({ on401 }) => async ({ queryKey }) => {
-  const res = await fetch(queryKey.join("/"), {
+  // Build the full API URL from queryKey
+  const endpoint = queryKey.join("/");
+  const fullUrl = endpoint.startsWith('/api') ? buildApiUrl(endpoint) : endpoint;
+  
+  const res = await fetch(fullUrl, {
     credentials: "include",
   })
 
