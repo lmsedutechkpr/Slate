@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ import {
 
 const CourseManagement = () => {
   const { accessToken, user, isAuthenticated, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -29,7 +31,22 @@ const CourseManagement = () => {
   console.log('accessToken:', accessToken ? 'Present' : 'Missing');
   console.log('user:', user);
   console.log('isAuthenticated:', isAuthenticated);
+  console.log('authLoading:', authLoading);
   console.log('localStorage accessToken:', localStorage.getItem('accessToken'));
+  
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -84,7 +101,7 @@ const CourseManagement = () => {
       
       return response.json();
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && !authLoading,
   });
 
   // Fetch instructors for assignment
@@ -103,7 +120,7 @@ const CourseManagement = () => {
       
       return response.json();
     },
-    enabled: !!accessToken && assignDialogOpen,
+    enabled: !!accessToken && !authLoading && assignDialogOpen,
   });
 
   // Assign instructor mutation
@@ -149,6 +166,8 @@ const CourseManagement = () => {
   // Debug: Log course data to see coverUrl values
   console.log('=== COURSES DEBUG ===');
   console.log('Courses data:', courses);
+  console.log('Courses loading:', coursesLoading);
+  console.log('Query enabled:', !!accessToken && !authLoading);
   courses.forEach((course, index) => {
     console.log(`Course ${index + 1}:`, {
       title: course.title,

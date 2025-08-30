@@ -7,23 +7,54 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 import { buildApiUrl } from '../lib/utils.js';
 
 const AdminDashboard = () => {
   const [location, setLocation] = useLocation();
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
+  const { authLoading } = useAuthRefresh();
 
   const { data: overview, isLoading } = useQuery({
     queryKey: ['/api/admin/analytics/overview'],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/admin/analytics/overview'), { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      console.log('=== DASHBOARD API CALL ===');
+      console.log('Making analytics request...');
+      const res = await authenticatedFetch(buildApiUrl('/api/admin/analytics/overview'));
+      console.log('Analytics response status:', res.status);
       if (!res.ok) throw new Error('Failed to load analytics');
-      return res.json();
+      const data = await res.json();
+      console.log('Analytics data received:', data);
+      return data;
     },
-    enabled: !!accessToken
+    enabled: !!accessToken && !authLoading,
+    retry: 3,
+    retryDelay: 1000
   });
 
+  // Debug: Log query state
+  console.log('=== DASHBOARD QUERY STATE ===');
+  console.log('accessToken:', !!accessToken);
+  console.log('authLoading:', authLoading);
+  console.log('query enabled:', !!accessToken && !authLoading);
+  console.log('isLoading:', isLoading);
+  console.log('overview data:', overview);
+
   const stats = overview || { totalUsers: 0, totalStudents: 0, totalInstructors: 0, totalCourses: 0, totalEnrollments: 0, totalRevenue: 0, monthlyGrowth: 0 };
+
+  // Show loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

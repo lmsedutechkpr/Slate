@@ -56,10 +56,16 @@ export const AuthProvider = ({ children }) => {
     const accessToken = localStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken');
     
+    console.log('=== APP STARTUP ===');
+    console.log('Stored accessToken:', accessToken ? 'Present' : 'Missing');
+    console.log('Stored refreshToken:', refreshToken ? 'Present' : 'Missing');
+    
     if (accessToken && refreshToken) {
       // Verify token and get user data
+      console.log('Tokens found, fetching user data...');
       fetchUserData();
     } else {
+      console.log('No tokens found, setting loading to false');
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
@@ -73,6 +79,8 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      console.log('Fetching user data with token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'None');
+
       const response = await fetch(buildApiUrl('/api/auth/user'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`
@@ -81,6 +89,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         const userData = await response.json();
+        console.log('User data fetched successfully:', userData);
         dispatch({
           type: 'LOGIN_SUCCESS',
           payload: userData
@@ -90,10 +99,15 @@ export const AuthProvider = ({ children }) => {
         console.log('Token expired, attempting refresh...');
         const refreshSuccess = await refreshTokens();
         if (refreshSuccess) {
-          // Retry fetching user data
+          // Retry fetching user data with new token
+          console.log('Retrying user data fetch after token refresh...');
           await fetchUserData();
+        } else {
+          console.log('Token refresh failed, logging out');
+          logout();
         }
       } else {
+        console.error('Failed to fetch user data:', response.status);
         logout();
       }
     } catch (error) {
@@ -219,12 +233,23 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         
+        // Update the state immediately
         dispatch({
           type: 'TOKEN_REFRESH',
           payload: data
         });
         
+        // Also update the user data to ensure consistency
+        if (data.user) {
+          dispatch({
+            type: 'UPDATE_USER',
+            payload: data.user
+          });
+        }
+        
         console.log('Tokens updated in state and localStorage');
+        console.log('State updated, new accessToken:', data.accessToken ? 'Present' : 'Missing');
+        
         return true;
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -277,6 +302,7 @@ export const AuthProvider = ({ children }) => {
     let accessToken = localStorage.getItem('accessToken');
     
     if (!accessToken) {
+      console.error('No access token available for request to:', url);
       throw new Error('No access token available');
     }
     
@@ -302,6 +328,11 @@ export const AuthProvider = ({ children }) => {
         if (refreshSuccess) {
           // Get new token and retry
           const newToken = localStorage.getItem('accessToken');
+          if (!newToken) {
+            console.error('No new token after refresh');
+            throw new Error('Token refresh failed');
+          }
+          
           headers.Authorization = `Bearer ${newToken}`;
           
           console.log('Retrying request with new token:', newToken ? `${newToken.substring(0, 20)}...` : 'None');
@@ -311,6 +342,8 @@ export const AuthProvider = ({ children }) => {
           return retryResponse;
         } else {
           // Refresh failed, logout
+          console.error('Token refresh failed, logging out');
+          logout();
           throw new Error('Authentication failed');
         }
       }
