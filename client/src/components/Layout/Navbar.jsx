@@ -76,10 +76,7 @@ const Navbar = () => {
               <div className="flex-shrink-0">
                 <Link href="/dashboard">
                   <div className="flex items-center space-x-2 cursor-pointer group">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-200">
-                      <BookOpen className="w-6 h-6 text-white" />
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent" data-testid="logo">
+                    <h1 className="text-xl sm:text-2xl font-bold text-primary-700 group-hover:text-primary-800 transition-colors" data-testid="logo">
                       EduTech
                     </h1>
                   </div>

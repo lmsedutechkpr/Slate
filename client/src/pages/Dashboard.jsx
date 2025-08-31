@@ -144,18 +144,13 @@ const Dashboard = () => {
           <CardContent className="p-8 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">👋</span>
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold">
-                      {getGreeting()}, {userName}!
-                    </h2>
-                    <p className="text-primary-100 text-lg">
-                      Ready to continue your learning journey?
-                    </p>
-                  </div>
+                <div className="mb-4">
+                  <h2 className="text-3xl font-bold mb-2">
+                    {getGreeting()}, {userName}!
+                  </h2>
+                  <p className="text-primary-100 text-lg">
+                    Ready to continue your learning journey?
+                  </p>
                 </div>
                 
                 <p className="text-primary-100 mb-6 text-lg">
@@ -182,7 +177,7 @@ const Dashboard = () => {
                 <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
                   <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
                     <div className="w-16 h-16 bg-white/30 rounded-full flex items-center justify-center">
-                      <BookOpen className="w-8 h-8 text-white" />
+                      <TrendingUp className="w-8 h-8 text-white" />
                     </div>
                   </div>
                 </div>
