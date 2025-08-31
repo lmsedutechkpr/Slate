@@ -36,6 +36,7 @@ import MobileBottomNav from "@/components/Layout/MobileBottomNav.jsx";
 import { useAuth } from "./hooks/useAuth.js";
 import CourseDetail from './pages/CourseDetail.jsx';
 import AssignmentDetail from './pages/AssignmentDetail.jsx';
+import Settings from './pages/Settings.jsx';
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -109,6 +110,12 @@ function AppRoutes() {
         <Route path="/profile">
           <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Profile />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/settings">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+            <Settings />
           </ProtectedRoute>
         </Route>
         
