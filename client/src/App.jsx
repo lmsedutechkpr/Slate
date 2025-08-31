@@ -34,6 +34,8 @@ import AdminLayout from "@/components/Admin/AdminLayout.jsx";
 import Navbar from "@/components/Layout/Navbar.jsx";
 import MobileBottomNav from "@/components/Layout/MobileBottomNav.jsx";
 import { useAuth } from "./hooks/useAuth.js";
+import CourseDetail from './pages/CourseDetail.jsx';
+import AssignmentDetail from './pages/AssignmentDetail.jsx';
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -75,10 +77,20 @@ function AppRoutes() {
             <Courses />
           </ProtectedRoute>
         </Route>
+        <Route path="/courses/:courseId">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+            <CourseDetail />
+          </ProtectedRoute>
+        </Route>
         
         <Route path="/assignments">
           <ProtectedRoute requiredRole="student" requireOnboarded={true}>
             <Assignments />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/assignments/:assignmentId">
+          <ProtectedRoute requiredRole="student" requireOnboarded={true}>
+            <AssignmentDetail />
           </ProtectedRoute>
         </Route>
         

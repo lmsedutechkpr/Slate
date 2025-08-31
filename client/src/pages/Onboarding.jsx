@@ -151,9 +151,16 @@ const Onboarding = () => {
     setError('');
     try {
       // Mark onboarded without collecting details
-      const result = await updateUserProfile({});
+      const result = await updateUserProfile({
+        firstName: user?.profile?.firstName || 'Student',
+        lastName: user?.profile?.lastName || 'User',
+        yearOfStudy: '1',
+        degree: 'General Studies',
+        interestType: 'Core Engineering',
+        domains: ['Web Development'],
+        learningPace: 'Medium'
+      });
       if (result.success) {
-        try { localStorage.setItem('onboarded', 'true'); } catch {}
         setLocation('/dashboard');
       } else {
         setLocation('/dashboard');

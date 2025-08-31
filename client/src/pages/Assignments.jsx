@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { useLocation } from 'wouter';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Calendar, Clock, FileText, CheckCircle, AlertCircle, XCircle } from 'lu
 
 const Assignments = () => {
   const { accessToken } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('all');
 
   const { data: assignmentsData, isLoading, error } = useQuery({
@@ -115,7 +117,11 @@ const Assignments = () => {
     const StatusIcon = statusInfo.icon;
     
     return (
-      <Card className="card-hover" data-testid={`assignment-card-${assignment._id}`}>
+      <Card 
+        className="card-hover cursor-pointer" 
+        data-testid={`assignment-card-${assignment._id}`}
+        onClick={() => setLocation(`/assignments/${assignment._id}`)}
+      >
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -181,6 +187,10 @@ const Assignments = () => {
               size="sm"
               variant={assignment.submissionStatus === 'pending' ? 'default' : 'outline'}
               data-testid={`button-view-assignment-${assignment._id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLocation(`/assignments/${assignment._id}`);
+              }}
             >
               {assignment.submissionStatus === 'pending' ? 'Submit' : 'View Details'}
             </Button>

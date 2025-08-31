@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { Search, BookOpen, Users, Clock, Star, Filter } from 'lucide-react';
 
 const Courses = () => {
   const { accessToken } = useAuth();
+  const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -120,7 +122,11 @@ const Courses = () => {
       total + (section.lectures?.length || 0), 0) || 0;
 
     return (
-      <Card className="card-hover" data-testid={`course-card-${course._id}`}>
+      <Card 
+        className="card-hover cursor-pointer" 
+        data-testid={`course-card-${course._id}`}
+        onClick={() => setLocation(`/courses/${course._id}`)}
+      >
         <CardHeader className="p-4">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
@@ -195,18 +201,25 @@ const Courses = () => {
               size="sm"
               variant={isEnrolled ? "outline" : "default"}
               data-testid={`button-${isEnrolled ? 'continue' : 'enroll'}-${course._id}`}
-              onClick={async () => {
-                if (isEnrolled) return;
-                try {
-                  const res = await fetch(buildApiUrl(`/api/courses/${course._id}/enroll`), {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                  })
-                  if (!res.ok) throw new Error('Enroll failed')
-                  window.location.reload()
-                } catch (e) {
-                  console.error(e)
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isEnrolled) {
+                  setLocation(`/courses/${course._id}`);
+                  return;
                 }
+                // Enroll logic
+                (async () => {
+                  try {
+                    const res = await fetch(buildApiUrl(`/api/courses/${course._id}/enroll`), {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    })
+                    if (!res.ok) throw new Error('Enroll failed')
+                    window.location.reload()
+                  } catch (e) {
+                    console.error(e)
+                  }
+                })();
               }}
             >
               {isEnrolled ? 'Continue Learning' : 'Enroll Now'}
