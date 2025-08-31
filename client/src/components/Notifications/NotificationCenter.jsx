@@ -16,10 +16,12 @@ import {
   Award,
   AlertCircle,
   Info,
-  Star
+  Star,
+  Zap,
+  Clock
 } from 'lucide-react';
 
-const NotificationCenter = ({ isOpen, onClose }) => {
+const NotificationCenter = ({ isOpen, onClose, onNotificationClick }) => {
   const { user, accessToken, authenticatedFetch } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -34,7 +36,8 @@ const NotificationCenter = ({ isOpen, onClose }) => {
       if (!response.ok) return { notifications: [] };
       return response.json();
     },
-    enabled: !!accessToken,
+    enabled: !!accessToken && isOpen,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Mark as read mutation
@@ -48,6 +51,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
     },
     onSuccess: () => {
       refetch();
+      if (onNotificationClick) onNotificationClick();
     },
   });
 
@@ -62,18 +66,19 @@ const NotificationCenter = ({ isOpen, onClose }) => {
     },
     onSuccess: () => {
       refetch();
+      if (onNotificationClick) onNotificationClick();
     },
   });
 
-  // Initialize WebSocket connection
+  // Initialize WebSocket connection for real-time notifications
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken || !isOpen) return;
 
     const wsUrl = buildApiUrl('/ws/notifications').replace('http', 'ws');
     wsRef.current = new WebSocket(`${wsUrl}?token=${accessToken}`);
 
     wsRef.current.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('WebSocket connected for notifications');
     };
 
     wsRef.current.onmessage = (event) => {
@@ -89,6 +94,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
             new Notification(data.notification.title, {
               body: data.notification.message,
               icon: '/favicon.ico',
+              tag: 'edutech-notification',
             });
           }
         }
@@ -110,7 +116,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
         wsRef.current.close();
       }
     };
-  }, [accessToken]);
+  }, [accessToken, isOpen]);
 
   // Update notifications when data changes
   useEffect(() => {
@@ -136,11 +142,13 @@ const NotificationCenter = ({ isOpen, onClose }) => {
       case 'achievement':
         return <Award className="w-4 h-4" />;
       case 'reminder':
-        return <Calendar className="w-4 h-4" />;
+        return <Clock className="w-4 h-4" />;
       case 'message':
         return <MessageSquare className="w-4 h-4" />;
       case 'alert':
         return <AlertCircle className="w-4 h-4" />;
+      case 'live':
+        return <Zap className="w-4 h-4" />;
       default:
         return <Info className="w-4 h-4" />;
     }
@@ -149,19 +157,21 @@ const NotificationCenter = ({ isOpen, onClose }) => {
   const getNotificationColor = (type) => {
     switch (type) {
       case 'assignment':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-50 text-blue-600 border-blue-200';
       case 'course':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-50 text-green-600 border-green-200';
       case 'achievement':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-yellow-50 text-yellow-600 border-yellow-200';
       case 'reminder':
-        return 'bg-purple-100 text-purple-700';
+        return 'bg-purple-50 text-purple-600 border-purple-200';
       case 'message':
-        return 'bg-indigo-100 text-indigo-700';
+        return 'bg-indigo-50 text-indigo-600 border-indigo-200';
       case 'alert':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-50 text-red-600 border-red-200';
+      case 'live':
+        return 'bg-orange-50 text-orange-600 border-orange-200';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-50 text-gray-600 border-gray-200';
     }
   };
 
@@ -184,16 +194,28 @@ const NotificationCenter = ({ isOpen, onClose }) => {
     markAllAsReadMutation.mutate();
   };
 
+  const handleNotificationAction = (notification) => {
+    if (!notification.read) {
+      handleMarkAsRead(notification._id);
+    }
+    
+    if (notification.actionUrl) {
+      window.location.href = notification.actionUrl;
+    }
+    
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end p-4">
       <div className="fixed inset-0 bg-black bg-opacity-25" onClick={onClose} />
-      <Card className="w-96 max-h-[80vh] shadow-xl">
-        <CardHeader className="pb-3">
+      <Card className="w-96 max-h-[80vh] shadow-xl border-0">
+        <CardHeader className="pb-3 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Bell className="w-5 h-5" />
+              <Bell className="w-5 h-5 text-primary-600" />
               <CardTitle className="text-lg">Notifications</CardTitle>
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="ml-2">
@@ -208,11 +230,12 @@ const NotificationCenter = ({ isOpen, onClose }) => {
                   size="sm"
                   onClick={handleMarkAllAsRead}
                   disabled={markAllAsReadMutation.isLoading}
+                  className="h-8 w-8 p-0"
                 >
                   <Check className="w-4 h-4" />
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -225,19 +248,20 @@ const NotificationCenter = ({ isOpen, onClose }) => {
               <div className="p-6 text-center">
                 <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <p className="text-gray-600">No notifications yet</p>
+                <p className="text-sm text-gray-500 mt-1">We'll notify you when something important happens</p>
               </div>
             ) : (
               <div className="space-y-1">
                 {notifications.map((notification) => (
                   <div
                     key={notification._id}
-                    className={`p-4 border-b last:border-b-0 cursor-pointer transition-colors ${
-                      notification.read ? 'bg-white' : 'bg-blue-50'
-                    } hover:bg-gray-50`}
-                    onClick={() => !notification.read && handleMarkAsRead(notification._id)}
+                    className={`p-4 border-b border-gray-50 cursor-pointer transition-all duration-200 hover:bg-gray-50 ${
+                      notification.read ? 'bg-white' : 'bg-blue-50/50'
+                    }`}
+                    onClick={() => handleNotificationAction(notification)}
                   >
                     <div className="flex items-start space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getNotificationColor(notification.type)}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${getNotificationColor(notification.type)}`}>
                         {getNotificationIcon(notification.type)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -247,7 +271,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
                           </h4>
                           <div className="flex items-center space-x-2 ml-2">
                             {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                             )}
                             <span className="text-xs text-gray-500">
                               {formatTime(notification.createdAt)}
@@ -261,7 +285,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-2 p-0 h-auto text-blue-600 hover:text-blue-700"
+                            className="mt-2 p-0 h-auto text-primary-600 hover:text-primary-700"
                             onClick={(e) => {
                               e.stopPropagation();
                               window.location.href = notification.actionUrl;

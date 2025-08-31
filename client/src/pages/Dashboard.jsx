@@ -136,34 +136,55 @@ const Dashboard = () => {
         </div>
 
         {/* Welcome Card */}
-        <Card className="border-0 shadow-sm bg-gradient-to-r from-primary-600 to-primary-700 text-white mb-8">
-          <CardContent className="p-8">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white mb-8 overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-600/90 to-primary-800/90"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+          
+          <CardContent className="p-8 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-2">
-                  {getGreeting()}, {userName}! 👋
-                </h2>
-                <p className="text-primary-100 mb-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <span className="text-2xl">👋</span>
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold">
+                      {getGreeting()}, {userName}!
+                    </h2>
+                    <p className="text-primary-100 text-lg">
+                      Ready to continue your learning journey?
+                    </p>
+                  </div>
+                </div>
+                
+                <p className="text-primary-100 mb-6 text-lg">
                   You're making great progress. Keep up the momentum!
                 </p>
+                
                 <div className="grid grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">{stats.currentStreak || 0}</div>
+                  <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                    <div className="text-3xl font-bold mb-1">{stats.currentStreak || 0}</div>
                     <div className="text-sm text-primary-200">Day Streak</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">{stats.totalXP?.toLocaleString() || 0}</div>
+                  <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                    <div className="text-3xl font-bold mb-1">{stats.totalXP?.toLocaleString() || 0}</div>
                     <div className="text-sm text-primary-200">XP Points</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">{stats.completedCourses || 0}</div>
+                  <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                    <div className="text-3xl font-bold mb-1">{stats.completedCourses || 0}</div>
                     <div className="text-sm text-primary-200">Completed</div>
                   </div>
                 </div>
               </div>
-              <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-white bg-opacity-10 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-12 h-12 text-white" />
+              
+              <div className="hidden lg:flex items-center justify-center">
+                <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 bg-white/30 rounded-full flex items-center justify-center">
+                      <BookOpen className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
