@@ -8,31 +8,35 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
-import { Calendar, Clock, FileText, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { 
+  Calendar, 
+  Clock, 
+  FileText, 
+  CheckCircle, 
+  AlertCircle, 
+  XCircle,
+  BookOpen,
+  Star,
+  Eye,
+  Send,
+  Award
+} from 'lucide-react';
 
 const Assignments = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, authenticatedFetch } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('all');
 
+  // Fetch assignments with real-time updates
   const { data: assignmentsData, isLoading, error } = useQuery({
     queryKey: ['/api/students/assignments', accessToken],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/students/assignments'), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        cache: 'no-store'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch assignments');
-      }
-      
+      const response = await authenticatedFetch(buildApiUrl('/api/students/assignments'));
+      if (!response.ok) throw new Error('Failed to fetch assignments');
       return response.json();
     },
     enabled: !!accessToken,
+    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
 
   const assignments = assignmentsData?.assignments || [];
@@ -47,14 +51,14 @@ const Assignments = () => {
       case 'submitted':
         return {
           label: 'Submitted',
-          color: 'bg-blue-100 text-blue-700',
+          color: 'bg-blue-50 text-blue-600 border-blue-200',
           icon: CheckCircle,
           textColor: 'text-blue-600'
         };
       case 'graded':
         return {
           label: 'Graded',
-          color: 'bg-green-100 text-green-700',
+          color: 'bg-green-50 text-green-600 border-green-200',
           icon: CheckCircle,
           textColor: 'text-green-600'
         };
@@ -63,14 +67,14 @@ const Assignments = () => {
         if (isOverdue) {
           return {
             label: 'Overdue',
-            color: 'bg-red-100 text-red-700',
+            color: 'bg-red-50 text-red-600 border-red-200',
             icon: XCircle,
             textColor: 'text-red-600'
           };
         }
         return {
           label: 'Pending',
-          color: 'bg-yellow-100 text-yellow-700',
+          color: 'bg-yellow-50 text-yellow-600 border-yellow-200',
           icon: AlertCircle,
           textColor: 'text-yellow-600'
         };
@@ -92,6 +96,15 @@ const Assignments = () => {
     } else {
       return `Due in ${diffInDays} days`;
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   const filterAssignments = (status) => {
@@ -118,56 +131,61 @@ const Assignments = () => {
     
     return (
       <Card 
-        className="card-hover cursor-pointer" 
+        className="border-0 shadow-sm bg-white hover:shadow-md transition-all duration-200 cursor-pointer group" 
         data-testid={`assignment-card-${assignment._id}`}
         onClick={() => setLocation(`/assignments/${assignment._id}`)}
       >
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
+        <CardHeader className="p-6 pb-4">
+          <div className="flex justify-between items-start mb-4">
             <div className="flex-1">
-              <CardTitle className="text-lg font-semibold">
+              <CardTitle className="text-lg font-semibold group-hover:text-primary-600 transition-colors">
                 {assignment.title}
               </CardTitle>
               <CardDescription className="mt-1">
                 {assignment.courseId?.title}
               </CardDescription>
             </div>
-            <Badge className={statusInfo.color}>
+            <Badge className={`border ${statusInfo.color}`}>
               <StatusIcon className="w-3 h-3 mr-1" />
               {statusInfo.label}
             </Badge>
           </div>
-        </CardHeader>
-        
-        <CardContent className="pt-0">
+          
           <p className="text-sm text-gray-600 mb-4 line-clamp-2">
             {assignment.description}
           </p>
           
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-4 text-sm text-gray-500">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-1" />
-                {new Date(assignment.dueAt).toLocaleDateString()}
-              </div>
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-1" />
-                {formatDueDate(assignment.dueAt)}
-              </div>
-              <div className="flex items-center">
-                <FileText className="w-4 h-4 mr-1" />
-                {assignment.maxScore} points
-              </div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center">
+              <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+              <span className="text-gray-600">{formatDate(assignment.dueAt)}</span>
+            </div>
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-2 text-gray-400" />
+              <span className="text-gray-600">{formatDueDate(assignment.dueAt)}</span>
+            </div>
+            <div className="flex items-center">
+              <FileText className="w-4 h-4 mr-2 text-gray-400" />
+              <span className="text-gray-600">{assignment.maxScore || 0} points</span>
+            </div>
+            <div className="flex items-center">
+              <BookOpen className="w-4 h-4 mr-2 text-gray-400" />
+              <span className="text-gray-600">{assignment.courseId?.instructor || 'Instructor'}</span>
             </div>
           </div>
-          
+        </CardHeader>
+        
+        <CardContent className="p-6 pt-0">
           {assignment.submission && assignment.submissionStatus === 'graded' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-green-800">
-                  Grade: {assignment.submission.score}/{assignment.submission.maxScore}
-                </span>
-                <span className="text-sm text-green-600">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Star className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">
+                    Grade: {assignment.submission.score}/{assignment.submission.maxScore}
+                  </span>
+                </div>
+                <span className="text-sm font-semibold text-green-600">
                   {Math.round((assignment.submission.score / assignment.submission.maxScore) * 100)}%
                 </span>
               </div>
@@ -186,13 +204,24 @@ const Assignments = () => {
             <Button 
               size="sm"
               variant={assignment.submissionStatus === 'pending' ? 'default' : 'outline'}
+              className="flex-shrink-0"
               data-testid={`button-view-assignment-${assignment._id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setLocation(`/assignments/${assignment._id}`);
               }}
             >
-              {assignment.submissionStatus === 'pending' ? 'Submit' : 'View Details'}
+              {assignment.submissionStatus === 'pending' ? (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Submit
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Details
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
@@ -202,7 +231,7 @@ const Assignments = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner size="xl" />
       </div>
     );
@@ -210,11 +239,15 @@ const Assignments = () => {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center py-12">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load assignments</h3>
-          <p className="text-gray-600">Please refresh the page or try again later</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-12 text-center">
+              <AlertCircle className="mx-auto h-16 w-16 text-red-500 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Failed to load assignments</h3>
+              <p className="text-gray-600">Please refresh the page or try again later</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -226,94 +259,143 @@ const Assignments = () => {
   const overdueCount = filterAssignments('overdue').length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Assignments</h1>
-        <p className="text-gray-600">Track and submit your course assignments</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Assignments</h1>
+              <p className="text-gray-600 mt-1">Track and submit your course assignments</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Live updates</span>
+            </div>
+          </div>
+        </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
-            <div className="text-sm text-gray-600">Pending</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{submittedCount}</div>
-            <div className="text-sm text-gray-600">Submitted</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">{gradedCount}</div>
-            <div className="text-sm text-gray-600">Graded</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-600">{overdueCount}</div>
-            <div className="text-sm text-gray-600">Overdue</div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Pending</p>
+                  <p className="text-3xl font-bold text-yellow-600 mt-1">{pendingCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-yellow-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Assignment Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-fit">
-          <TabsTrigger value="all" data-testid="tab-all-assignments">
-            All ({assignments.length})
-          </TabsTrigger>
-          <TabsTrigger value="pending" data-testid="tab-pending-assignments">
-            Pending ({pendingCount})
-          </TabsTrigger>
-          <TabsTrigger value="submitted" data-testid="tab-submitted-assignments">
-            Submitted ({submittedCount})
-          </TabsTrigger>
-          <TabsTrigger value="graded" data-testid="tab-graded-assignments">
-            Graded ({gradedCount})
-          </TabsTrigger>
-          <TabsTrigger value="overdue" data-testid="tab-overdue-assignments">
-            Overdue ({overdueCount})
-          </TabsTrigger>
-        </TabsList>
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Submitted</p>
+                  <p className="text-3xl font-bold text-blue-600 mt-1">{submittedCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <Send className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {['all', 'pending', 'submitted', 'graded', 'overdue'].map((tabValue) => (
-          <TabsContent key={tabValue} value={tabValue} className="space-y-6">
-            {(() => {
-              const filteredAssignments = filterAssignments(tabValue);
-              
-              if (filteredAssignments.length === 0) {
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Graded</p>
+                  <p className="text-3xl font-bold text-green-600 mt-1">{gradedCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                  <Award className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Overdue</p>
+                  <p className="text-3xl font-bold text-red-600 mt-1">{overdueCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Assignment Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid grid-cols-5 w-fit bg-white shadow-sm">
+            <TabsTrigger value="all" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+              All ({assignments.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+              Pending ({pendingCount})
+            </TabsTrigger>
+            <TabsTrigger value="submitted" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+              Submitted ({submittedCount})
+            </TabsTrigger>
+            <TabsTrigger value="graded" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+              Graded ({gradedCount})
+            </TabsTrigger>
+            <TabsTrigger value="overdue" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+              Overdue ({overdueCount})
+            </TabsTrigger>
+          </TabsList>
+
+          {['all', 'pending', 'submitted', 'graded', 'overdue'].map((tabValue) => (
+            <TabsContent key={tabValue} value={tabValue} className="space-y-6">
+              {(() => {
+                const filteredAssignments = filterAssignments(tabValue);
+                
+                if (filteredAssignments.length === 0) {
+                  return (
+                    <Card className="border-0 shadow-sm bg-white">
+                      <CardContent className="p-12 text-center">
+                        <FileText className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          No {tabValue === 'all' ? '' : tabValue} assignments
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {tabValue === 'all' 
+                            ? 'No assignments found. Enroll in courses to see assignments.'
+                            : `No ${tabValue} assignments at the moment.`
+                          }
+                        </p>
+                        {tabValue === 'all' && (
+                          <Button onClick={() => window.location.href = '/courses'}>
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Browse Courses
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+                
                 return (
-                  <div className="text-center py-12">
-                    <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      No {tabValue === 'all' ? '' : tabValue} assignments
-                    </h3>
-                    <p className="text-gray-600">
-                      {tabValue === 'all' 
-                        ? 'No assignments found. Enroll in courses to see assignments.'
-                        : `No ${tabValue} assignments at the moment.`
-                      }
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredAssignments.map((assignment) => (
+                      <AssignmentCard key={assignment._id} assignment={assignment} />
+                    ))}
                   </div>
                 );
-              }
-              
-              return (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAssignments.map((assignment) => (
-                    <AssignmentCard key={assignment._id} assignment={assignment} />
-                  ))}
-                </div>
-              );
-            })()}
-          </TabsContent>
-        ))}
-      </Tabs>
+              })()}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
     </div>
   );
 };
