@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { Progress as ProgressBar } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 import { 
@@ -190,7 +190,7 @@ const Progress = () => {
                     <span>Course Completion</span>
                     <span>{Math.round(progress.overallProgress || 0)}%</span>
                   </div>
-                  <Progress value={progress.overallProgress || 0} className="h-3" />
+                  <ProgressBar value={progress.overallProgress || 0} className="h-3" />
                 </div>
 
                 <div>
@@ -198,7 +198,7 @@ const Progress = () => {
                     <span>Assignment Completion</span>
                     <span>{Math.round(progress.assignmentProgress || 0)}%</span>
                   </div>
-                  <Progress value={progress.assignmentProgress || 0} className="h-3" />
+                  <ProgressBar value={progress.assignmentProgress || 0} className="h-3" />
                 </div>
 
                 <div>
@@ -206,7 +206,7 @@ const Progress = () => {
                     <span>Study Consistency</span>
                     <span>{Math.round(progress.studyConsistency || 0)}%</span>
                   </div>
-                  <Progress value={progress.studyConsistency || 0} className="h-3" />
+                  <ProgressBar value={progress.studyConsistency || 0} className="h-3" />
                 </div>
               </CardContent>
             </Card>
@@ -294,7 +294,7 @@ const Progress = () => {
                       <span>Progress</span>
                       <span>{Math.round(course.progress || 0)}%</span>
                     </div>
-                    <Progress value={course.progress || 0} className="h-2" />
+                                         <ProgressBar value={course.progress || 0} className="h-2" />
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -428,7 +428,7 @@ const Progress = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium">{goal.progress}%</p>
-                      <Progress value={goal.progress} className="w-20 h-2" />
+                                             <ProgressBar value={goal.progress} className="w-20 h-2" />
                     </div>
                   </div>
                 )) || (
