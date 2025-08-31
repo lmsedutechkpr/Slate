@@ -5,7 +5,6 @@ import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Bell, 
   Check, 
@@ -243,7 +242,7 @@ const NotificationCenter = ({ isOpen, onClose, onNotificationClick }) => {
         </CardHeader>
         
         <CardContent className="p-0">
-          <ScrollArea className="h-[60vh]">
+          <div className="h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {notifications.length === 0 ? (
               <div className="p-6 text-center">
                 <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -300,7 +299,7 @@ const NotificationCenter = ({ isOpen, onClose, onNotificationClick }) => {
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>

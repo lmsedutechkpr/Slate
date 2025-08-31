@@ -17,7 +17,7 @@ import {
   BookOpen, Search, Users, UserCheck, Plus, Eye, Edit, 
   Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload, ListPlus
 } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter, TablePagination } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 
 const EnhancedCourseManagement = () => {
   const { accessToken, authenticatedFetch } = useAuth();
