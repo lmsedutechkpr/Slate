@@ -5,6 +5,7 @@ import { Bell, ChevronDown, User, LogOut, Settings, Menu, X, BookOpen, Home, Fil
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import NotificationCenter from '../Notifications/NotificationCenter.jsx';
+import { getImageUrl, buildApiUrl } from '@/lib/utils.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,12 +15,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, accessToken } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [showNotificationBadge, setShowNotificationBadge] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', role: 'student', icon: Home },
@@ -49,6 +52,24 @@ const Navbar = () => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'U';
   };
 
+  const getUserDisplayName = () => {
+    if (userProfile?.profile?.firstName && userProfile?.profile?.lastName) {
+      return `${userProfile.profile.firstName} ${userProfile.profile.lastName}`;
+    }
+    if (user?.profile?.firstName && user?.profile?.lastName) {
+      return `${user.profile.firstName} ${user.profile.lastName}`;
+    }
+    return user?.username || 'User';
+  };
+
+  const getUserAvatar = () => {
+    return userProfile?.profile?.avatar || user?.profile?.avatar;
+  };
+
+  const getUserRole = () => {
+    return userProfile?.role || user?.role || 'User';
+  };
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
@@ -65,6 +86,50 @@ const Navbar = () => {
     setNotificationCount(count);
     setShowNotificationBadge(count > 0);
   };
+
+  // Fetch user profile data
+  useEffect(() => {
+    let isMounted = true;
+    
+    async function fetchUserProfile() {
+      if (!accessToken || !user) return;
+      
+      setProfileLoading(true);
+      try {
+        const res = await fetch(buildApiUrl('/api/users/profile'), {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+          cache: 'no-store'
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setUserProfile(data.user);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      } finally {
+        if (isMounted) {
+          setProfileLoading(false);
+        }
+      }
+    }
+
+    fetchUserProfile();
+    
+    // Listen for profile updates from other components
+    const handleProfileUpdate = () => {
+      fetchUserProfile();
+    };
+
+    window.addEventListener('profile-updated', handleProfileUpdate);
+    
+    return () => {
+      isMounted = false;
+      window.removeEventListener('profile-updated', handleProfileUpdate);
+    };
+  }, [accessToken, user]);
 
   return (
     <>
@@ -140,17 +205,25 @@ const Navbar = () => {
                       className="flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-primary-50 transition-all duration-200"
                       data-testid="user-menu-trigger"
                     >
-                      <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-sm">
-                        <span className="text-white text-sm font-medium">
-                          {getInitials(user?.profile?.firstName, user?.profile?.lastName)}
-                        </span>
+                      <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+                        {getUserAvatar() ? (
+                          <img 
+                            src={getImageUrl(getUserAvatar(), buildApiUrl(''))} 
+                            alt="Avatar" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white text-sm font-medium">
+                            {getInitials(userProfile?.profile?.firstName, userProfile?.profile?.lastName)}
+                          </span>
+                        )}
                       </div>
                       <div className="text-left">
                         <div className="text-sm font-medium text-gray-900">
-                          {user?.profile?.firstName || user?.username || 'User'}
+                          {getUserDisplayName()}
                         </div>
                         <div className="text-xs text-gray-500 capitalize">
-                          {user?.role || 'User'}
+                          {getUserRole()}
                         </div>
                       </div>
                       <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -159,13 +232,10 @@ const Navbar = () => {
                   <DropdownMenuContent align="end" className="w-64 p-2">
                     <div className="px-2 py-1.5">
                       <div className="text-sm font-medium text-gray-900">
-                        {user?.profile?.firstName && user?.profile?.lastName
-                          ? `${user?.profile?.firstName} ${user?.profile?.lastName}`
-                          : user?.username || 'User'
-                        }
+                        {getUserDisplayName()}
                       </div>
                       <div className="text-xs text-gray-500 capitalize">
-                        {user?.role || 'User'}
+                        {getUserRole()}
                       </div>
                     </div>
                     <DropdownMenuSeparator />
@@ -249,20 +319,25 @@ const Navbar = () => {
                 {/* Mobile User Info and Actions */}
                 <div className="pt-4 pb-3 border-t border-gray-100">
                   <div className="flex items-center px-3 py-3 bg-gray-50 rounded-xl">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-sm">
-                      <span className="text-white text-sm font-medium">
-                        {getInitials(user?.profile?.firstName, user?.profile?.lastName)}
-                      </span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+                      {getUserAvatar() ? (
+                        <img 
+                          src={getImageUrl(getUserAvatar(), buildApiUrl(''))} 
+                          alt="Avatar" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white text-sm font-medium">
+                          {getInitials(userProfile?.profile?.firstName, userProfile?.profile?.lastName)}
+                        </span>
+                      )}
                     </div>
                     <div className="ml-3">
                       <div className="text-base font-medium text-gray-900">
-                        {user?.profile?.firstName && user?.profile?.lastName
-                          ? `${user?.profile?.firstName} ${user?.profile?.lastName}`
-                          : user?.username || 'User'
-                        }
+                        {getUserDisplayName()}
                       </div>
                       <div className="text-sm text-gray-500 capitalize">
-                        {user?.role || 'User'}
+                        {getUserRole()}
                       </div>
                     </div>
                   </div>

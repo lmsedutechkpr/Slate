@@ -164,6 +164,8 @@ export default function Profile() {
       if (result.success) {
         setSuccess('Profile updated successfully!');
         setTimeout(() => setSuccess(''), 3000);
+        // Dispatch event to update navbar
+        window.dispatchEvent(new Event('profile-updated'));
       } else {
         setError(result.message || 'Update failed');
       }
@@ -192,6 +194,8 @@ export default function Profile() {
       setProfile(p => ({ ...p, avatar: data.avatar }));
       setSuccess('Profile photo updated successfully!');
       setTimeout(() => setSuccess(''), 3000);
+      // Dispatch event to update navbar
+      window.dispatchEvent(new Event('profile-updated'));
     } catch (e) {
       setError(e.message);
     } finally {
