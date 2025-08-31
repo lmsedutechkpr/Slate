@@ -142,44 +142,32 @@ const Dashboard = () => {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
           
           <CardContent className="p-8 relative z-10">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="mb-4">
-                  <h2 className="text-3xl font-bold mb-2">
-                    {getGreeting()}, {userName}!
-                  </h2>
-                  <p className="text-primary-100 text-lg">
-                    Ready to continue your learning journey?
-                  </p>
-                </div>
-                
-                <p className="text-primary-100 mb-6 text-lg">
-                  You're making great progress. Keep up the momentum!
+            <div className="flex-1">
+              <div className="mb-4">
+                <h2 className="text-3xl font-bold mb-2">
+                  {getGreeting()}, {userName}!
+                </h2>
+                <p className="text-primary-100 text-lg">
+                  Ready to continue your learning journey?
                 </p>
-                
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                    <div className="text-3xl font-bold mb-1">{stats.currentStreak || 0}</div>
-                    <div className="text-sm text-primary-200">Day Streak</div>
-                  </div>
-                  <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                    <div className="text-3xl font-bold mb-1">{stats.totalXP?.toLocaleString() || 0}</div>
-                    <div className="text-sm text-primary-200">XP Points</div>
-                  </div>
-                  <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                    <div className="text-3xl font-bold mb-1">{stats.completedCourses || 0}</div>
-                    <div className="text-sm text-primary-200">Completed</div>
-                  </div>
-                </div>
               </div>
               
-              <div className="hidden lg:flex items-center justify-center">
-                <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
-                    <div className="w-16 h-16 bg-white/30 rounded-full flex items-center justify-center">
-                      <TrendingUp className="w-8 h-8 text-white" />
-                    </div>
-                  </div>
+              <p className="text-primary-100 mb-6 text-lg">
+                You're making great progress. Keep up the momentum!
+              </p>
+              
+              <div className="grid grid-cols-3 gap-6">
+                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                  <div className="text-3xl font-bold mb-1">{stats.currentStreak || 0}</div>
+                  <div className="text-sm text-primary-200">Day Streak</div>
+                </div>
+                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                  <div className="text-3xl font-bold mb-1">{stats.totalXP?.toLocaleString() || 0}</div>
+                  <div className="text-sm text-primary-200">XP Points</div>
+                </div>
+                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                  <div className="text-3xl font-bold mb-1">{stats.completedCourses || 0}</div>
+                  <div className="text-sm text-primary-200">Completed</div>
                 </div>
               </div>
             </div>
