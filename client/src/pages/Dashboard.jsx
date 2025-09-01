@@ -74,12 +74,12 @@ const Dashboard = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert variant="destructive">
-            <AlertDescription>
-              Failed to load dashboard data. Please refresh the page or try again later.
-            </AlertDescription>
-          </Alert>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Alert variant="destructive">
+          <AlertDescription>
+            Failed to load dashboard data. Please refresh the page or try again later.
+          </AlertDescription>
+        </Alert>
         </div>
       </div>
     );
@@ -120,7 +120,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -150,8 +150,8 @@ const Dashboard = () => {
                 <p className="text-primary-100 text-lg">
                   Ready to continue your learning journey?
                 </p>
-              </div>
-              
+      </div>
+
               <p className="text-primary-100 mb-6 text-lg">
                 You're making great progress. Keep up the momentum!
               </p>
@@ -330,7 +330,7 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+      </div>
 
         {/* Bottom Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

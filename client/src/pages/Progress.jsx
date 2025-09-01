@@ -115,9 +115,9 @@ const Progress = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">My Progress</h1>
@@ -145,8 +145,8 @@ const Progress = () => {
                   <BookOpen className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
           <Card className="border-0 shadow-sm bg-white">
             <CardContent className="p-6">
@@ -160,9 +160,9 @@ const Progress = () => {
                 <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
                   <CheckCircle className="w-6 h-6 text-green-600" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
           <Card className="border-0 shadow-sm bg-white">
             <CardContent className="p-6">
@@ -176,9 +176,9 @@ const Progress = () => {
                 <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
                   <Clock className="w-6 h-6 text-purple-600" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
           <Card className="border-0 shadow-sm bg-white">
             <CardContent className="p-6">
@@ -192,13 +192,13 @@ const Progress = () => {
                 <div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center">
                   <Trophy className="w-6 h-6 text-yellow-600" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid grid-cols-3 w-fit bg-white shadow-sm">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
               Overview
@@ -209,17 +209,17 @@ const Progress = () => {
             <TabsTrigger value="achievements" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
               Achievements
             </TabsTrigger>
-          </TabsList>
+        </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Overall Progress */}
               <Card className="border-0 shadow-sm bg-white lg:col-span-2">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-xl">Learning Progress</CardTitle>
                   <CardDescription>Your overall learning metrics</CardDescription>
-                </CardHeader>
+              </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
                     <div className="flex justify-between items-center mb-3">
@@ -259,24 +259,24 @@ const Progress = () => {
                       className="h-3 bg-gray-100"
                     />
                   </div>
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
 
               {/* Learning Streak */}
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-xl">Learning Streak</CardTitle>
                   <CardDescription>Keep the momentum going</CardDescription>
-                </CardHeader>
-                <CardContent>
+              </CardHeader>
+              <CardContent>
                   <div className="text-center space-y-4">
                     <div className="flex justify-center space-x-6">
-                      <div>
+                        <div>
                         <div className="text-2xl font-bold text-primary-600">
                           {progress.currentStreak || 0}
                         </div>
                         <div className="text-xs text-gray-600">Current</div>
-                      </div>
+                          </div>
                       <div>
                         <div className="text-2xl font-bold text-yellow-600">
                           {progress.longestStreak || 0}
@@ -299,8 +299,8 @@ const Progress = () => {
                     </div>
                     <p className="text-xs text-gray-500">Last 7 days</p>
                   </div>
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
             </div>
 
             {/* Recent Activity */}
@@ -336,7 +336,7 @@ const Progress = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+        </TabsContent>
 
           {/* Courses Tab */}
           <TabsContent value="courses" className="space-y-6">
@@ -357,7 +357,7 @@ const Progress = () => {
                           {course.status === 'completed' ? 'Completed' : 'In Progress'}
                         </Badge>
                       </div>
-                    </CardHeader>
+              </CardHeader>
                     <CardContent className="space-y-4">
                       <div>
                         <div className="flex justify-between items-center mb-2">
@@ -378,25 +378,25 @@ const Progress = () => {
                           <p className="font-semibold text-gray-900">
                             {course.completedLessons || 0}/{course.totalLessons || 0}
                           </p>
-                        </div>
+                    </div>
                         <div className="bg-gray-50 p-3 rounded-lg">
                           <p className="text-gray-600 text-xs">Time Spent</p>
                           <p className="font-semibold text-gray-900">
                             {formatTime(course.timeSpent || 0)}
                           </p>
-                        </div>
-                      </div>
-
+                    </div>
+                  </div>
+                  
                       {course.grade && (
                         <div className="flex items-center space-x-2">
                           <Star className="w-4 h-4 text-yellow-500" />
                           <span className="text-sm font-medium">Grade: {course.grade}</span>
-                        </div>
+                    </div>
                       )}
                     </CardContent>
                   </Card>
                 ))}
-              </div>
+                    </div>
             ) : (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
@@ -421,7 +421,7 @@ const Progress = () => {
                     <CardContent className="p-6 text-center">
                       <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center border-2 ${getAchievementColor(achievement.type)}`}>
                         {getAchievementIcon(achievement.type)}
-                      </div>
+                    </div>
                       <h3 className="font-semibold text-gray-900 mb-2">{achievement.title}</h3>
                       <p className="text-sm text-gray-600 mb-4 line-clamp-2">{achievement.description}</p>
                       <div className="flex items-center justify-center space-x-2">
@@ -429,11 +429,11 @@ const Progress = () => {
                         <span className="text-xs text-gray-500">
                           {formatDate(achievement.earnedAt)}
                         </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                </div>
+              </CardContent>
+            </Card>
                 ))}
-              </div>
+                  </div>
             ) : (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
@@ -444,21 +444,21 @@ const Progress = () => {
                     <div className="flex items-center">
                       <TargetIcon className="w-4 h-4 mr-1" />
                       Set goals
-                    </div>
+                </div>
                     <div className="flex items-center">
                       <CheckCircle className="w-4 h-4 mr-1" />
                       Complete courses
-                    </div>
+                  </div>
                     <div className="flex items-center">
                       <Star className="w-4 h-4 mr-1" />
                       Earn badges
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
             )}
-          </TabsContent>
-        </Tabs>
+        </TabsContent>
+      </Tabs>
       </div>
     </div>
   );
