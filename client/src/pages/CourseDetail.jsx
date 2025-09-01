@@ -39,7 +39,8 @@ import {
   Pause,
   Volume2,
   Maximize,
-  Settings
+  Settings,
+  BarChart3
 } from 'lucide-react';
 
 const CourseDetail = () => {

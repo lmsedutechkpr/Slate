@@ -93,6 +93,11 @@ export async function registerRoutes(app) {
   app.post('/api/admin/courses/bulk/publish', authenticateToken, requireAdmin, courseController.bulkPublishCourses);
   app.post('/api/admin/courses/bulk/archive', authenticateToken, requireAdmin, courseController.bulkArchiveCourses);
   app.get('/api/enrollments', authenticateToken, requireStudent, courseController.getMyEnrollments);
+  app.get('/api/enrollments/:courseId', authenticateToken, requireStudent, courseController.getEnrollmentByCourse);
+  
+  // Course Reviews
+  app.get('/api/courses/:courseId/reviews', optionalAuth, courseController.getCourseReviews);
+  app.post('/api/courses/:courseId/reviews', authenticateToken, requireStudent, courseController.createCourseReview);
   
   // Assignment routes
   app.post('/api/assignments', authenticateToken, requireInstructorOrAdmin, assignmentController.createAssignment);

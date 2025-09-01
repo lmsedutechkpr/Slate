@@ -525,3 +525,78 @@ export const assignInstructor = async (req, res) => {
     });
   }
 };
+
+// Get enrollment by course ID
+export const getEnrollmentByCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const userId = req.user._id;
+
+    const enrollment = await Enrollment.findOne({ 
+      courseId, 
+      studentId: userId 
+    }).populate('courseId', 'title coverUrl');
+
+    if (!enrollment) {
+      return res.status(404).json({ message: 'Enrollment not found' });
+    }
+
+    res.json({ enrollment });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to get enrollment',
+      error: error.message
+    });
+  }
+};
+
+// Get course reviews
+export const getCourseReviews = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    // For now, return empty reviews array since we don't have a Review model yet
+    // This prevents 404 errors in the frontend
+    res.json({ 
+      reviews: [],
+      message: 'Reviews feature coming soon'
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to get course reviews',
+      error: error.message
+    });
+  }
+};
+
+// Create course review
+export const createCourseReview = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { rating, review } = req.body;
+    const userId = req.user._id;
+
+    // Check if user is enrolled in the course
+    const enrollment = await Enrollment.findOne({ 
+      courseId, 
+      studentId: userId 
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({ 
+        message: 'You must be enrolled in this course to write a review' 
+      });
+    }
+
+    // For now, return success message since we don't have a Review model yet
+    res.json({ 
+      message: 'Review submitted successfully (feature coming soon)',
+      review: { rating, review, userId, courseId }
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to create course review',
+      error: error.message
+    });
+  }
+};

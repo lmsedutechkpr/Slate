@@ -7,16 +7,37 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: [
-    'http://localhost:5173', // Development
-    'http://localhost:3000', // Alternative dev port
-    'https://edu-tech-rosy.vercel.app', // Your Vercel domain
-    'https://*.vercel.app',  // Vercel preview deployments
-    process.env.FRONTEND_URL // Custom frontend URL if set
-  ].filter(Boolean),
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:5173', // Development
+      'http://localhost:3000', // Alternative dev port
+      'https://edu-tech-rosy.vercel.app', // Your Vercel domain
+      process.env.FRONTEND_URL // Custom frontend URL if set
+    ].filter(Boolean);
+    
+    // Check if origin is allowed
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow Vercel preview deployments
+    if (origin && origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Allow any localhost in development
+    if (process.env.NODE_ENV === 'development' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-Requested-With'],
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
