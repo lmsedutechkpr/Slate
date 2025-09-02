@@ -121,7 +121,7 @@ const InstructorLayout = ({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="flex-1 px-6 lg:px-8 pb-6 lg:pb-8 pt-0">
+        <main className="flex-1 px-6 lg:px-8 pb-6 lg:pb-8 pt-6">
           {children}
         </main>
       </div>
