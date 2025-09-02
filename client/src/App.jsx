@@ -37,6 +37,7 @@ import { useAuth } from "./hooks/useAuth.js";
 import CourseDetail from './pages/CourseDetail.jsx';
 import AssignmentDetail from './pages/AssignmentDetail.jsx';
 import Settings from './pages/Settings.jsx';
+import InstructorAnalytics from './pages/InstructorAnalytics.jsx';
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -249,6 +250,12 @@ function AppRoutes() {
         <Route path="/instructor/settings">
           <ProtectedRoute requiredRole="instructor">
             <InstructorDashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/analytics">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorAnalytics />
           </ProtectedRoute>
         </Route>
         

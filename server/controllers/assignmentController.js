@@ -245,3 +245,65 @@ export const getStudentAssignments = async (req, res) => {
     });
   }
 };
+
+// List assignments created by the authenticated instructor
+export const getInstructorAssignments = async (req, res) => {
+  try {
+    const instructorId = req.user._id;
+    const courses = await Course.find({ assignedInstructor: instructorId }).select('_id');
+    const courseIds = courses.map(c => c._id);
+    const assignments = await Assignment.find({ courseId: { $in: courseIds } })
+      .populate('courseId', 'title')
+      .sort({ createdAt: -1 })
+      .limit(100);
+    res.json({ assignments });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch instructor assignments', error: error.message });
+  }
+};
+
+// Create assignment with instructor-friendly payload
+export const createInstructorAssignment = async (req, res) => {
+  try {
+    const { courseId, title, description, dueDate, dueAt, maxGrade, maxScore, instructions } = req.body;
+    const due = dueAt || dueDate;
+    const max = maxScore || maxGrade || 100;
+    if (!courseId || !title || !due) {
+      return res.status(400).json({ message: 'courseId, title and due date are required' });
+    }
+    // Verify course belongs to instructor
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    if (req.user.role === UserRoles.INSTRUCTOR && course.assignedInstructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized for this course' });
+    }
+    const assignment = new Assignment({
+      courseId,
+      title,
+      description: description || '',
+      dueAt: new Date(due),
+      maxScore: Number(max),
+      instructions: instructions || ''
+    });
+    await assignment.save();
+    res.status(201).json({ message: 'Assignment created successfully', assignment });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to create assignment', error: error.message });
+  }
+};
+
+export const deleteInstructorAssignment = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    const course = await Course.findById(assignment.courseId);
+    if (req.user.role === UserRoles.INSTRUCTOR && course.assignedInstructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this assignment' });
+    }
+    await Assignment.findByIdAndDelete(assignmentId);
+    res.json({ message: 'Assignment deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete assignment', error: error.message });
+  }
+};

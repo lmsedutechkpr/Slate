@@ -106,6 +106,16 @@ export async function registerRoutes(app) {
   app.put('/api/assignments/:assignmentId/submissions/:submissionId/grade', authenticateToken, requireInstructorOrAdmin, assignmentController.gradeSubmission);
   app.get('/api/students/assignments', authenticateToken, requireStudent, assignmentController.getStudentAssignments);
   app.get('/api/live-sessions/mine', authenticateToken, requireStudent, liveSessionController.getMyLiveSessions);
+
+  // Instructor routes
+  app.get('/api/instructor/courses', authenticateToken, requireInstructorOrAdmin, courseController.getInstructorCourses);
+  app.get('/api/instructor/assignments', authenticateToken, requireInstructorOrAdmin, assignmentController.getInstructorAssignments);
+  app.post('/api/instructor/assignments', authenticateToken, requireInstructorOrAdmin, assignmentController.createInstructorAssignment);
+  app.delete('/api/instructor/assignments/:assignmentId', authenticateToken, requireInstructorOrAdmin, assignmentController.deleteInstructorAssignment);
+  app.get('/api/instructor/live-sessions', authenticateToken, requireInstructorOrAdmin, liveSessionController.getInstructorLiveSessions);
+  app.post('/api/instructor/live-sessions', authenticateToken, requireInstructorOrAdmin, liveSessionController.createInstructorLiveSession);
+  app.put('/api/instructor/live-sessions/:sessionId', authenticateToken, requireInstructorOrAdmin, liveSessionController.updateInstructorLiveSession);
+  app.delete('/api/instructor/live-sessions/:sessionId', authenticateToken, requireInstructorOrAdmin, liveSessionController.deleteInstructorLiveSession);
   
   // Product routes
   app.post('/api/products', authenticateToken, requireAdmin, productController.createProduct);

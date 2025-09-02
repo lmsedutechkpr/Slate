@@ -1,3 +1,4 @@
+import InstructorHeader from './InstructorHeader.jsx';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -50,53 +51,53 @@ const LiveSessions = () => {
     enabled: !!accessToken,
   });
 
-  // Mock live sessions data (in a real app, this would come from the API)
-  const mockSessions = [
-    {
-      _id: '1',
-      title: 'JavaScript Advanced Concepts',
-      description: 'Deep dive into closures, prototypes, and async programming',
-      courseId: { title: 'JavaScript Fundamentals' },
-      startAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
-      endAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
-      hostType: 'gmeet',
-      status: 'scheduled',
-      attendance: []
+  // Fetch instructor live sessions
+  const { data: sessionsData, isLoading } = useQuery({
+    queryKey: ['/api/instructor/live-sessions', accessToken],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl('/api/instructor/live-sessions'), {
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) return { sessions: [] };
+      return res.json();
     },
-    {
-      _id: '2',
-      title: 'React Hooks Deep Dive',
-      description: 'Understanding useState, useEffect, and custom hooks',
-      courseId: { title: 'React Development' },
-      startAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-      endAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
-      hostType: 'internal',
-      status: 'live',
-      attendance: [
-        { studentId: '1', status: 'present' },
-        { studentId: '2', status: 'present' },
-        { studentId: '3', status: 'late' }
-      ]
-    },
-    {
-      _id: '3',
-      title: 'Node.js Project Q&A',
-      description: 'Question and answer session for the final project',
-      courseId: { title: 'Node.js Backend' },
-      startAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-      endAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 90 * 60 * 1000).toISOString(), // 2 days ago + 90 minutes
-      hostType: 'youtube',
-      status: 'completed',
-      attendance: [
-        { studentId: '1', status: 'present' },
-        { studentId: '2', status: 'absent' },
-        { studentId: '3', status: 'present' },
-        { studentId: '4', status: 'present' }
-      ]
-    }
-  ];
+    enabled: !!accessToken,
+    refetchInterval: 15000,
+  });
 
   const courses = coursesData?.courses || [];
+  const sessions = sessionsData?.sessions || [];
+
+  // Create session
+  const createMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await fetch(buildApiUrl('/api/instructor/live-sessions'), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Failed to create session');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['/api/instructor/live-sessions', accessToken]);
+      setIsCreateDialogOpen(false);
+      setNewSession({ title: '', description: '', courseId: '', startAt: '', endAt: '', hostType: 'internal', joinLink: '', maxParticipants: '' });
+    }
+  });
+
+  // Delete session
+  const deleteMutation = useMutation({
+    mutationFn: async (sessionId) => {
+      const res = await fetch(buildApiUrl(`/api/instructor/live-sessions/${sessionId}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete session');
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries(['/api/instructor/live-sessions', accessToken])
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -237,13 +238,12 @@ const LiveSessions = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Live Sessions</h2>
-          <p className="text-gray-600">Schedule and manage live classes for your students</p>
-        </div>
-        
+      <InstructorHeader
+        title="Live Sessions"
+        subtitle="Schedule and manage live classes for your students"
+        breadcrumbs={[{ href: '/instructor', label: 'Instructor' }, { label: 'Live Sessions' }]}
+      />
+
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-session">
@@ -370,6 +370,7 @@ const LiveSessions = () => {
                 <Button 
                   disabled={!newSession.title || !newSession.courseId || !newSession.startAt || !newSession.endAt}
                   data-testid="button-save-session"
+                  onClick={() => createMutation.mutate(newSession)}
                 >
                   Schedule Session
                 </Button>
@@ -377,14 +378,13 @@ const LiveSessions = () => {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">
-              {mockSessions.filter(s => s.status === 'scheduled').length}
+              {sessions.filter(s => s.status === 'scheduled').length}
             </div>
             <div className="text-sm text-gray-600">Scheduled</div>
           </CardContent>
@@ -392,7 +392,7 @@ const LiveSessions = () => {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-red-600">
-              {mockSessions.filter(s => s.status === 'live').length}
+              {sessions.filter(s => s.status === 'live').length}
             </div>
             <div className="text-sm text-gray-600">Live Now</div>
           </CardContent>
@@ -400,7 +400,7 @@ const LiveSessions = () => {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">
-              {mockSessions.filter(s => s.status === 'completed').length}
+              {sessions.filter(s => s.status === 'completed').length}
             </div>
             <div className="text-sm text-gray-600">Completed</div>
           </CardContent>
@@ -408,7 +408,7 @@ const LiveSessions = () => {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-purple-600">
-              {mockSessions.reduce((total, session) => 
+              {sessions.reduce((total, session) => 
                 total + (session.attendance?.filter(a => a.status === 'present').length || 0), 0
               )}
             </div>
@@ -418,7 +418,7 @@ const LiveSessions = () => {
       </div>
 
       {/* Sessions List */}
-      {mockSessions.length === 0 ? (
+      {sessions.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Video className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -434,8 +434,15 @@ const LiveSessions = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {mockSessions.map((session) => (
-            <LiveSessionCard key={session._id} session={session} />
+          {sessions.map((session) => (
+            <div key={session._id}>
+              <LiveSessionCard session={session} />
+              <div className="flex justify-end gap-2 mt-2">
+                <Button variant="destructive" size="sm" onClick={() => deleteMutation.mutate(session._id)}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Delete
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}

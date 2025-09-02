@@ -600,3 +600,15 @@ export const createCourseReview = async (req, res) => {
     });
   }
 };
+
+// List courses for the authenticated instructor
+export const getInstructorCourses = async (req, res) => {
+  try {
+    const instructorId = req.user._id;
+    const courses = await Course.find({ assignedInstructor: instructorId })
+      .select('title category level price updatedAt rating enrollmentCount avgProgressPct isPublished coverUrl');
+    res.json({ courses });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch instructor courses', error: error.message });
+  }
+};

@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from '../Common/LoadingSpinner.jsx';
-import { Plus, Edit, Trash2, Clock, CheckCircle, Calendar, Users, Eye, Download } from 'lucide-react';
+import InstructorHeader from './InstructorHeader.jsx';
+import { Plus, Edit, Trash2, Clock, CheckCircle, Calendar, Users, Eye, Download, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
 const InstructorAssignments = () => {
@@ -36,9 +37,9 @@ const InstructorAssignments = () => {
     type: 'practice'
   });
 
-  // Fetch assignments
+  // Fetch assignments (realtime)
   const { data: assignmentsData, isLoading } = useQuery({
-    queryKey: ['/api/instructor/assignments'],
+    queryKey: ['/api/instructor/assignments', accessToken],
     queryFn: async () => {
       const response = await fetch(buildApiUrl('/api/instructor/assignments'), {
         headers: {
@@ -46,14 +47,11 @@ const InstructorAssignments = () => {
           'Content-Type': 'application/json'
         }
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch assignments');
-      }
-      
+      if (!response.ok) return { assignments: [] };
       return response.json();
     },
-    enabled: !!accessToken
+    enabled: !!accessToken,
+    refetchInterval: 15000
   });
 
   // Fetch instructor courses for assignment creation
@@ -179,35 +177,7 @@ const InstructorAssignments = () => {
     return { totalSubmissions, gradedSubmissions, pendingGrading };
   };
 
-  // Mock data for demonstration - in real app this would come from API
-  const mockAssignments = [
-    {
-      id: 1,
-      title: 'React Components Exercise',
-      description: 'Build a functional React component with props and state',
-      courseTitle: 'Frontend Development',
-      dueDate: '2024-02-15',
-      maxGrade: 100,
-      status: 'active',
-      submissions: [
-        { id: 1, studentName: 'John Doe', grade: 85 },
-        { id: 2, studentName: 'Jane Smith', grade: null },
-        { id: 3, studentName: 'Mike Johnson', grade: 92 }
-      ]
-    },
-    {
-      id: 2,
-      title: 'Database Design Project',
-      description: 'Design and implement a normalized database schema',
-      courseTitle: 'Backend Development',
-      dueDate: '2024-02-20',
-      maxGrade: 100,
-      status: 'upcoming',
-      submissions: []
-    }
-  ];
-
-  const assignments = assignmentsData?.assignments || mockAssignments;
+  const assignments = assignmentsData?.assignments || [];
   const courses = coursesData?.courses || [];
 
   const filterAssignments = (status) => {
@@ -234,12 +204,12 @@ const InstructorAssignments = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Assignments</h2>
-          <p className="text-gray-600 mt-1">Manage and track your course assignments</p>
-        </div>
-        
+      <InstructorHeader
+        title="Assignments"
+        subtitle="Manage and track your course assignments"
+        breadcrumbs={[{ href: '/instructor', label: 'Instructor' }, { label: 'Assignments' }]}
+      />
+
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
@@ -274,7 +244,7 @@ const InstructorAssignments = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {courses.map(course => (
-                      <SelectItem key={course.id} value={course.id.toString()}>
+                      <SelectItem key={course._id} value={course._id}>
                         {course.title}
                       </SelectItem>
                     ))}
@@ -358,7 +328,6 @@ const InstructorAssignments = () => {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">

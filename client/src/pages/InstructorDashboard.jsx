@@ -12,6 +12,7 @@ import MyCourses from '../components/Instructor/MyCourses.jsx';
 import LiveSessions from '../components/Instructor/LiveSessions.jsx';
 import InstructorAssignments from '../components/Instructor/Assignments.jsx';
 import { BookOpen, Users, Calendar, TrendingUp, Plus, Video, FileText, Award } from 'lucide-react';
+import InstructorHeader from '../components/Instructor/InstructorHeader.jsx';
 
 const InstructorDashboard = () => {
   const { accessToken, user } = useAuth();
@@ -145,13 +146,14 @@ const InstructorDashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back, {user?.profile?.firstName || user?.username}!
-        </h1>
-        <p className="text-gray-600">Manage your courses and track student progress</p>
-      </div>
+      <InstructorHeader
+        title={`Welcome back, ${user?.profile?.firstName || user?.username}!`}
+        subtitle="Manage your courses and track student progress"
+        breadcrumbs={[{ href: '/instructor', label: 'Instructor' }, { label: 'Dashboard' }]}
+        actions={[
+          { label: 'Create Course', onClick: () => setLocation('/instructor/courses'), icon: null, props: { className: 'hidden sm:inline-flex' } },
+        ]}
+      />
 
       {/* Instructor Tabs */}
       <Tabs
