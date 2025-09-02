@@ -38,6 +38,12 @@ import CourseDetail from './pages/CourseDetail.jsx';
 import AssignmentDetail from './pages/AssignmentDetail.jsx';
 import Settings from './pages/Settings.jsx';
 import InstructorAnalytics from './pages/InstructorAnalytics.jsx';
+import InstructorLayout from "@/components/Instructor/InstructorLayout.jsx";
+import InstructorCourses from "@/pages/InstructorCourses.jsx";
+import InstructorStudents from "@/pages/InstructorStudents.jsx";
+import InstructorSettings from "@/pages/InstructorSettings.jsx";
+import LiveSessions from './components/Instructor/LiveSessions.jsx';
+import InstructorAssignments from './components/Instructor/Assignments.jsx';
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -219,43 +225,57 @@ function AppRoutes() {
         
         <Route path="/instructor">
           <ProtectedRoute requiredRole="instructor">
-            <InstructorDashboard />
+            <InstructorLayout>
+              <InstructorDashboard />
+            </InstructorLayout>
           </ProtectedRoute>
         </Route>
 
         <Route path="/instructor/courses">
           <ProtectedRoute requiredRole="instructor">
-            <InstructorDashboard />
+            <InstructorLayout>
+              <InstructorCourses />
+            </InstructorLayout>
           </ProtectedRoute>
         </Route>
 
         <Route path="/instructor/assignments">
           <ProtectedRoute requiredRole="instructor">
-            <InstructorDashboard />
+            <InstructorLayout>
+              <InstructorAssignments />
+            </InstructorLayout>
           </ProtectedRoute>
         </Route>
 
         <Route path="/instructor/live">
           <ProtectedRoute requiredRole="instructor">
-            <InstructorDashboard />
+            <InstructorLayout>
+              <LiveSessions />
+            </InstructorLayout>
           </ProtectedRoute>
         </Route>
 
         <Route path="/instructor/students">
           <ProtectedRoute requiredRole="instructor">
-            <InstructorDashboard />
+            <InstructorLayout>
+              <InstructorStudents />
+            </InstructorLayout>
           </ProtectedRoute>
         </Route>
 
         <Route path="/instructor/settings">
           <ProtectedRoute requiredRole="instructor">
-            <InstructorDashboard />
+            <InstructorLayout>
+              <InstructorSettings />
+            </InstructorLayout>
           </ProtectedRoute>
         </Route>
 
         <Route path="/instructor/analytics">
           <ProtectedRoute requiredRole="instructor">
-            <InstructorAnalytics />
+            <InstructorLayout>
+              <InstructorAnalytics />
+            </InstructorLayout>
           </ProtectedRoute>
         </Route>
         

@@ -1,379 +1,239 @@
-import { useState, useMemo } from 'react';
-import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { 
+  BookOpen, 
+  Users, 
+  Calendar, 
+  TrendingUp, 
+  Plus, 
+  Video, 
+  FileText, 
+  Award,
+  BarChart3,
+  Clock
+} from 'lucide-react';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
-import MyCourses from '../components/Instructor/MyCourses.jsx';
-import LiveSessions from '../components/Instructor/LiveSessions.jsx';
-import InstructorAssignments from '../components/Instructor/Assignments.jsx';
-import { BookOpen, Users, Calendar, TrendingUp, Plus, Video, FileText, Award } from 'lucide-react';
-import InstructorHeader from '../components/Instructor/InstructorHeader.jsx';
 
 const InstructorDashboard = () => {
-  const { accessToken, user } = useAuth();
   const [location, setLocation] = useLocation();
-
-  const getTabFromPath = (path) => {
-    if (path.startsWith('/instructor/courses')) return 'courses';
-    if (path.startsWith('/instructor/live')) return 'live';
-    if (path.startsWith('/instructor/assignments')) return 'assignments';
-    return 'overview';
-  };
-
-  const [activeTab, setActiveTab] = useState(getTabFromPath(location));
+  const { accessToken, user } = useAuth();
 
   // Fetch instructor's courses
-  const { data: coursesData, isLoading: coursesLoading } = useQuery({
-    queryKey: ['/api/instructor/courses', accessToken],
+  const { data: courses, isLoading: coursesLoading } = useQuery({
+    queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch courses');
-      }
-      
-      return response.json();
+      if (!res.ok) return [];
+      return res.json();
     },
-    enabled: !!accessToken,
-    refetchInterval: 15000,
+    enabled: !!accessToken && !!user?._id,
+    refetchInterval: 15000
   });
 
-  // Fetch instructor assignments (for counts and realtime updates)
-  const { data: assignmentsData } = useQuery({
-    queryKey: ['/api/instructor/assignments', accessToken],
+  // Fetch instructor's assignments
+  const { data: assignments, isLoading: assignmentsLoading } = useQuery({
+    queryKey: ['instructor-assignments', user?._id, accessToken],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/instructor/assignments'), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+      const res = await fetch(buildApiUrl('/api/instructor/assignments'), {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!response.ok) {
-        return { assignments: [] };
-      }
-      return response.json();
+      if (!res.ok) return [];
+      return res.json();
     },
-    enabled: !!accessToken,
-    refetchInterval: 15000,
+    enabled: !!accessToken && !!user?._id,
+    refetchInterval: 15000
   });
 
-  const courses = coursesData?.courses || [];
-  const assignments = assignmentsData?.assignments || [];
+  // Fetch instructor's live sessions
+  const { data: sessions, isLoading: sessionsLoading } = useQuery({
+    queryKey: ['instructor-live-sessions', user?._id, accessToken],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl('/api/instructor/live-sessions'), {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!accessToken && !!user?._id,
+    refetchInterval: 15000
+  });
 
-  // Compute live stats from DB-backed data
-  const stats = useMemo(() => {
-    const totalCourses = courses.length;
-    const totalStudents = courses.reduce((sum, c) => sum + (c.enrollmentCount || 0), 0);
-    const totalAssignments = assignments.length;
-    const ratings = courses
-      .map(c => (c?.rating?.average ? Number(c.rating.average) : null))
-      .filter(v => typeof v === 'number');
-    const avgRating = ratings.length > 0
-      ? (ratings.reduce((a, b) => a + b, 0) / ratings.length)
-      : 0;
-    // If courses expose average progress, compute mean completion; otherwise default 0
-    const completionSamples = courses
-      .map(c => (typeof c.avgProgressPct === 'number' ? c.avgProgressPct : null))
-      .filter(v => typeof v === 'number');
-    const completionRate = completionSamples.length > 0
-      ? Math.round(completionSamples.reduce((a, b) => a + b, 0) / completionSamples.length)
-      : 0;
-    const pendingGradings = assignments.reduce((sum, a) => {
-      const subs = a.submissions || [];
-      const ungraded = subs.filter(s => s.grade == null).length;
-      return sum + ungraded;
-    }, 0);
-    return {
-      totalCourses,
-      totalStudents,
-      totalAssignments,
-      avgRating: Number(avgRating.toFixed(1)),
-      completionRate,
-      pendingGradings
-    };
-  }, [courses, assignments]);
-
-  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
-    <Card className="card-hover">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900" data-testid={`stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-              {value}
-            </p>
-            {subtitle && (
-              <p className="text-sm text-gray-500">{subtitle}</p>
-            )}
-          </div>
-          <div className={`p-3 rounded-full ${color}`}>
-            <Icon className="w-6 h-6 text-white" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const QuickActionButton = ({ icon: Icon, label, onClick, variant = "outline" }) => (
-    <Button 
-      variant={variant}
-      className="flex items-center space-x-2 h-auto p-4"
-      onClick={onClick}
-      data-testid={`button-${label.toLowerCase().replace(/\s+/g, '-')}`}
-    >
-      <Icon className="w-5 h-5" />
-      <span>{label}</span>
-    </Button>
-  );
-
-  if (coursesLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="xl" />
-      </div>
-    );
+  if (coursesLoading || assignmentsLoading || sessionsLoading) {
+    return <LoadingSpinner />;
   }
 
+  // Compute statistics
+  const totalCourses = courses?.length || 0;
+  const publishedCourses = courses?.filter(course => course.status === 'published').length || 0;
+  const totalStudents = courses?.reduce((total, course) => total + (course.enrolledStudents || 0), 0) || 0;
+  const totalAssignments = assignments?.length || 0;
+  const activeSessions = sessions?.filter(session => session.status === 'live').length || 0;
+  const upcomingSessions = sessions?.filter(session => session.status === 'scheduled').length || 0;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <InstructorHeader
-        title={`Welcome back, ${user?.profile?.firstName || user?.username}!`}
-        subtitle="Manage your courses and track student progress"
-        breadcrumbs={[{ href: '/instructor', label: 'Instructor' }, { label: 'Dashboard' }]}
-        actions={[
-          { label: 'Create Course', onClick: () => setLocation('/instructor/courses'), icon: null, props: { className: 'hidden sm:inline-flex' } },
-        ]}
-      />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {user?.profile?.firstName || user?.username}!
+          </h1>
+          <p className="text-gray-600">Here's what's happening with your courses today</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setLocation('/instructor/courses')}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Course
+          </Button>
+        </div>
+      </div>
 
-      {/* Instructor Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(val) => {
-          setActiveTab(val);
-          if (val === 'overview') setLocation('/instructor');
-          if (val === 'courses') setLocation('/instructor/courses');
-          if (val === 'live') setLocation('/instructor/live');
-          if (val === 'assignments') setLocation('/instructor/assignments');
-        }}
-        className="space-y-6"
-      >
-        <TabsList className="grid grid-cols-4 w-fit">
-          <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-          <TabsTrigger value="courses" data-testid="tab-courses">My Courses</TabsTrigger>
-          <TabsTrigger value="live" data-testid="tab-live">Live Sessions</TabsTrigger>
-          <TabsTrigger value="assignments" data-testid="tab-assignments">Assignments</TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              title="Total Courses"
-              value={stats.totalCourses}
-              icon={BookOpen}
-              color="bg-blue-500"
-              subtitle="Active courses"
-            />
-            <StatCard
-              title="Total Students"
-              value={stats.totalStudents}
-              icon={Users}
-              color="bg-green-500"
-              subtitle="Across all courses"
-            />
-            <StatCard
-              title="Average Rating"
-              value={`${stats.avgRating}/5.0`}
-              icon={Award}
-              color="bg-yellow-500"
-              subtitle="Student feedback"
-            />
-            <StatCard
-              title="Completion Rate"
-              value={`${stats.completionRate}%`}
-              icon={TrendingUp}
-              color="bg-purple-500"
-              subtitle="Course completion"
-            />
-          </div>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>
-                Common tasks and shortcuts for course management
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <QuickActionButton
-                  icon={Plus}
-                  label="Create Course"
-                  variant="default"
-                  onClick={() => setLocation('/instructor/courses')}
-                />
-                <QuickActionButton
-                  icon={Video}
-                  label="Schedule Live Session"
-                  onClick={() => setLocation('/instructor/live')}
-                />
-                <QuickActionButton
-                  icon={FileText}
-                  label="Create Assignment"
-                  onClick={() => setLocation('/instructor/assignments')}
-                />
-                <QuickActionButton
-                  icon={TrendingUp}
-                  label="View Analytics"
-                  onClick={() => console.log('Navigate to analytics')}
-                />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-sm text-gray-600">Total Courses</p>
+                <p className="text-2xl font-bold">{totalCourses}</p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity & Pending Tasks */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Latest updates from your courses
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Users className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">5 new enrollments</p>
-                      <p className="text-xs text-gray-500">JavaScript Fundamentals - 2 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Assignment submitted</p>
-                      <p className="text-xs text-gray-500">React Project - Sarah Chen - 4 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Award className="w-4 h-4 text-yellow-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Course rating received</p>
-                      <p className="text-xs text-gray-500">5 stars on "Advanced React" - 6 hours ago</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <span>Pending Tasks</span>
-                  <Badge variant="destructive">{stats.pendingGradings}</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Items requiring your attention
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Assignments to grade</p>
-                      <p className="text-xs text-gray-500">React Development Course</p>
-                    </div>
-                    <Badge variant="secondary">{stats.pendingGradings}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Course content to review</p>
-                      <p className="text-xs text-gray-500">JavaScript Fundamentals</p>
-                    </div>
-                    <Badge variant="secondary">2</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Student questions</p>
-                      <p className="text-xs text-gray-500">Course Q&A forums</p>
-                    </div>
-                    <Badge variant="secondary">3</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Course Performance Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Performance</CardTitle>
-              <CardDescription>
-                Overview of your course statistics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {courses.slice(0, 3).map((course) => (
-                  <div key={course._id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-primary-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{course.title}</h4>
-                        <p className="text-sm text-gray-500">
-                          {course.enrollmentCount || 0} students enrolled
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">{course.rating?.average?.toFixed(1) || 'No ratings'}</p>
-                      <p className="text-xs text-gray-500">
-                        {course.rating?.count || 0} reviews
-                      </p>
-                    </div>
-                  </div>
-                ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Users className="w-5 h-5 text-green-600" />
+              <div>
+                <p className="text-sm text-gray-600">Total Students</p>
+                <p className="text-2xl font-bold">{totalStudents}</p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-5 h-5 text-purple-600" />
+              <div>
+                <p className="text-sm text-gray-600">Assignments</p>
+                <p className="text-2xl font-bold">{totalAssignments}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Video className="w-5 h-5 text-orange-600" />
+              <div>
+                <p className="text-sm text-gray-600">Live Sessions</p>
+                <p className="text-2xl font-bold">{activeSessions + upcomingSessions}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Courses Tab */}
-        <TabsContent value="courses">
-          <MyCourses courses={courses} />
-        </TabsContent>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => setLocation('/instructor/courses')}
+            >
+              <BookOpen className="w-6 h-6 mb-2" />
+              Manage Courses
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => setLocation('/instructor/assignments')}
+            >
+              <FileText className="w-6 h-6 mb-2" />
+              View Assignments
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => setLocation('/instructor/live')}
+            >
+              <Video className="w-6 h-6 mb-2" />
+              Live Sessions
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center"
+              onClick={() => setLocation('/instructor/analytics')}
+            >
+              <BarChart3 className="w-6 h-6 mb-2" />
+              Analytics
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Live Sessions Tab */}
-        <TabsContent value="live">
-          <LiveSessions />
-        </TabsContent>
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Courses */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Courses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {courses?.slice(0, 3).map((course) => (
+              <div key={course._id} className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-medium">{course.title}</p>
+                  <p className="text-sm text-gray-600">{course.enrolledStudents || 0} students</p>
+                </div>
+                <Badge variant={course.status === 'published' ? 'default' : 'secondary'}>
+                  {course.status}
+                </Badge>
+              </div>
+            ))}
+            {courses?.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No courses yet</p>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Assignments Tab */}
-        <TabsContent value="assignments">
-          <InstructorAssignments />
-        </TabsContent>
-      </Tabs>
+        {/* Upcoming Sessions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Upcoming Sessions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sessions?.filter(s => s.status === 'scheduled').slice(0, 3).map((session) => (
+              <div key={session._id} className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-medium">{session.title}</p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(session.startAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <Clock className="w-4 h-4 text-gray-400" />
+              </div>
+            ))}
+            {sessions?.filter(s => s.status === 'scheduled').length === 0 && (
+              <p className="text-gray-500 text-center py-4">No upcoming sessions</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
