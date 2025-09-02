@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
@@ -14,11 +15,20 @@ import { BookOpen, Users, Calendar, TrendingUp, Plus, Video, FileText, Award } f
 
 const InstructorDashboard = () => {
   const { accessToken, user } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [location, setLocation] = useLocation();
+
+  const getTabFromPath = (path) => {
+    if (path.startsWith('/instructor/courses')) return 'courses';
+    if (path.startsWith('/instructor/live')) return 'live';
+    if (path.startsWith('/instructor/assignments')) return 'assignments';
+    return 'overview';
+  };
+
+  const [activeTab, setActiveTab] = useState(getTabFromPath(location));
 
   // Fetch instructor's courses
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
-    queryKey: ['/api/instructor/courses'],
+    queryKey: ['/api/instructor/courses', accessToken],
     queryFn: async () => {
       const response = await fetch(buildApiUrl('/api/instructor/courses'), {
         headers: {
@@ -34,22 +44,63 @@ const InstructorDashboard = () => {
       return response.json();
     },
     enabled: !!accessToken,
+    refetchInterval: 15000,
   });
 
-  // Mock instructor statistics (in a real app, this would come from the API)
-  const mockStats = {
-    totalCourses: 3,
-    totalStudents: 145,
-    totalLectures: 28,
-    totalAssignments: 12,
-    avgRating: 4.7,
-    completionRate: 78,
-    thisMonthEnrollments: 23,
-    pendingGradings: 8
-  };
+  // Fetch instructor assignments (for counts and realtime updates)
+  const { data: assignmentsData } = useQuery({
+    queryKey: ['/api/instructor/assignments', accessToken],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl('/api/instructor/assignments'), {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        return { assignments: [] };
+      }
+      return response.json();
+    },
+    enabled: !!accessToken,
+    refetchInterval: 15000,
+  });
 
   const courses = coursesData?.courses || [];
-  const stats = mockStats;
+  const assignments = assignmentsData?.assignments || [];
+
+  // Compute live stats from DB-backed data
+  const stats = useMemo(() => {
+    const totalCourses = courses.length;
+    const totalStudents = courses.reduce((sum, c) => sum + (c.enrollmentCount || 0), 0);
+    const totalAssignments = assignments.length;
+    const ratings = courses
+      .map(c => (c?.rating?.average ? Number(c.rating.average) : null))
+      .filter(v => typeof v === 'number');
+    const avgRating = ratings.length > 0
+      ? (ratings.reduce((a, b) => a + b, 0) / ratings.length)
+      : 0;
+    // If courses expose average progress, compute mean completion; otherwise default 0
+    const completionSamples = courses
+      .map(c => (typeof c.avgProgressPct === 'number' ? c.avgProgressPct : null))
+      .filter(v => typeof v === 'number');
+    const completionRate = completionSamples.length > 0
+      ? Math.round(completionSamples.reduce((a, b) => a + b, 0) / completionSamples.length)
+      : 0;
+    const pendingGradings = assignments.reduce((sum, a) => {
+      const subs = a.submissions || [];
+      const ungraded = subs.filter(s => s.grade == null).length;
+      return sum + ungraded;
+    }, 0);
+    return {
+      totalCourses,
+      totalStudents,
+      totalAssignments,
+      avgRating: Number(avgRating.toFixed(1)),
+      completionRate,
+      pendingGradings
+    };
+  }, [courses, assignments]);
 
   const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
     <Card className="card-hover">
@@ -103,7 +154,17 @@ const InstructorDashboard = () => {
       </div>
 
       {/* Instructor Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={(val) => {
+          setActiveTab(val);
+          if (val === 'overview') setLocation('/instructor');
+          if (val === 'courses') setLocation('/instructor/courses');
+          if (val === 'live') setLocation('/instructor/live');
+          if (val === 'assignments') setLocation('/instructor/assignments');
+        }}
+        className="space-y-6"
+      >
         <TabsList className="grid grid-cols-4 w-fit">
           <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
           <TabsTrigger value="courses" data-testid="tab-courses">My Courses</TabsTrigger>
@@ -159,17 +220,17 @@ const InstructorDashboard = () => {
                   icon={Plus}
                   label="Create Course"
                   variant="default"
-                  onClick={() => setActiveTab('courses')}
+                  onClick={() => setLocation('/instructor/courses')}
                 />
                 <QuickActionButton
                   icon={Video}
                   label="Schedule Live Session"
-                  onClick={() => setActiveTab('live')}
+                  onClick={() => setLocation('/instructor/live')}
                 />
                 <QuickActionButton
                   icon={FileText}
                   label="Create Assignment"
-                  onClick={() => setActiveTab('assignments')}
+                  onClick={() => setLocation('/instructor/assignments')}
                 />
                 <QuickActionButton
                   icon={TrendingUp}
