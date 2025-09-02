@@ -24,13 +24,13 @@ const InstructorDashboard = () => {
   const { accessToken, user } = useAuth();
 
   // Fetch instructor's courses
-  const { data: courses, isLoading: coursesLoading } = useQuery({
+  const { data: coursesData, isLoading: coursesLoading } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
       const res = await fetch(buildApiUrl('/api/instructor/courses'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!res.ok) return [];
+      if (!res.ok) return { courses: [] };
       return res.json();
     },
     enabled: !!accessToken && !!user?._id,
@@ -38,13 +38,13 @@ const InstructorDashboard = () => {
   });
 
   // Fetch instructor's assignments
-  const { data: assignments, isLoading: assignmentsLoading } = useQuery({
+  const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
     queryKey: ['instructor-assignments', user?._id, accessToken],
     queryFn: async () => {
       const res = await fetch(buildApiUrl('/api/instructor/assignments'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!res.ok) return [];
+      if (!res.ok) return { assignments: [] };
       return res.json();
     },
     enabled: !!accessToken && !!user?._id,
@@ -52,13 +52,13 @@ const InstructorDashboard = () => {
   });
 
   // Fetch instructor's live sessions
-  const { data: sessions, isLoading: sessionsLoading } = useQuery({
+  const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
     queryKey: ['instructor-live-sessions', user?._id, accessToken],
     queryFn: async () => {
       const res = await fetch(buildApiUrl('/api/instructor/live-sessions'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!res.ok) return [];
+      if (!res.ok) return { sessions: [] };
       return res.json();
     },
     enabled: !!accessToken && !!user?._id,
@@ -68,6 +68,11 @@ const InstructorDashboard = () => {
   if (coursesLoading || assignmentsLoading || sessionsLoading) {
     return <LoadingSpinner />;
   }
+
+  // Extract data from API responses
+  const courses = coursesData?.courses || [];
+  const assignments = assignmentsData?.assignments || [];
+  const sessions = sessionsData?.sessions || [];
 
   // Compute statistics
   const totalCourses = courses?.length || 0;

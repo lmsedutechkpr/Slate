@@ -10,13 +10,13 @@ import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 const InstructorCourses = () => {
   const { accessToken, user } = useAuth();
   
-  const { data: courses, isLoading } = useQuery({
+  const { data: coursesData, isLoading } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
       const res = await fetch(buildApiUrl('/api/instructor/courses'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!res.ok) return [];
+      if (!res.ok) return { courses: [] };
       return res.json();
     },
     enabled: !!accessToken && !!user?._id,
@@ -24,6 +24,8 @@ const InstructorCourses = () => {
   });
 
   if (isLoading) return <LoadingSpinner />;
+
+  const courses = coursesData?.courses || [];
 
   return (
     <div className="space-y-6">

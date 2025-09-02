@@ -1,4 +1,4 @@
-import { User, AuditLog } from '../models/index.js';
+import { User, AuditLog, Course, Enrollment } from '../models/index.js';
 import { UserRoles, InterestTypes, LearningPace, Domains } from '../constants.js';
 import multer from 'multer';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
@@ -371,6 +371,72 @@ export const getUserProgress = async (req, res) => {
     res.json({ progress });
   } catch (error) {
     res.status(500).json({ message: 'Failed to get user progress', error: error.message });
+  }
+};
+
+export const getInstructorStudents = async (req, res) => {
+  try {
+    const instructorId = req.user._id;
+    
+    // Get all courses assigned to this instructor
+    const courses = await Course.find({ assignedInstructor: instructorId }).select('_id');
+    const courseIds = courses.map(c => c._id);
+    
+    if (courseIds.length === 0) {
+      return res.json({ students: [] });
+    }
+    
+    // Get all enrollments for these courses
+    const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
+      .populate('studentId', 'username email profile status')
+      .populate('courseId', 'title')
+      .sort({ createdAt: -1 });
+    
+    // Group students by their ID and aggregate their data
+    const studentMap = new Map();
+    
+    enrollments.forEach(enrollment => {
+      const studentId = enrollment.studentId._id.toString();
+      
+      if (!studentMap.has(studentId)) {
+        studentMap.set(studentId, {
+          _id: enrollment.studentId._id,
+          username: enrollment.studentId.username,
+          email: enrollment.studentId.email,
+          profile: enrollment.studentId.profile,
+          status: enrollment.studentId.status,
+          enrolledCourses: [],
+          totalProgress: 0,
+          courseCount: 0
+        });
+      }
+      
+      const student = studentMap.get(studentId);
+      student.enrolledCourses.push({
+        courseId: enrollment.courseId._id,
+        courseTitle: enrollment.courseId.title,
+        progress: enrollment.progressPct || 0,
+        enrolledAt: enrollment.createdAt
+      });
+      student.totalProgress += enrollment.progressPct || 0;
+      student.courseCount += 1;
+    });
+    
+    // Convert map to array and calculate average progress
+    const students = Array.from(studentMap.values()).map(student => ({
+      ...student,
+      progress: student.courseCount > 0 ? Math.round(student.totalProgress / student.courseCount) : 0,
+      enrolledAt: student.enrolledCourses.length > 0 
+        ? student.enrolledCourses[0].enrolledAt 
+        : new Date()
+    }));
+    
+    res.json({ students });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to fetch instructor students',
+      error: error.message
+    });
   }
 };
 
