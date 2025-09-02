@@ -83,7 +83,7 @@ const InstructorDashboard = () => {
   const upcomingSessions = sessions?.filter(session => session.status === 'scheduled').length || 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -101,7 +101,7 @@ const InstructorDashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="shadow-sm border-0">
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">

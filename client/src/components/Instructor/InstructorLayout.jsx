@@ -104,7 +104,7 @@ const InstructorLayout = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64">
+      <div className="lg:ml-64 flex flex-col">
         {/* Mobile header */}
         <div className="lg:hidden bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-4">
@@ -121,7 +121,7 @@ const InstructorLayout = ({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="p-6 lg:p-8">
+        <main className="flex-1 px-6 lg:px-8 pb-6 lg:pb-8 pt-0">
           {children}
         </main>
       </div>
