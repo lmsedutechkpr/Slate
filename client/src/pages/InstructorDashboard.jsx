@@ -83,17 +83,17 @@ const InstructorDashboard = () => {
   const upcomingSessions = sessions?.filter(session => session.status === 'scheduled').length || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900">
             Welcome back, {user?.profile?.firstName || user?.username}!
           </h1>
-          <p className="text-gray-600">Here's what's happening with your courses today</p>
+          <p className="text-gray-600 mt-2">Here's what's happening with your courses today</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setLocation('/instructor/courses')}>
+        <div className="flex gap-3">
+          <Button onClick={() => setLocation('/instructor/courses')} className="shadow-sm">
             <Plus className="w-4 h-4 mr-2" />
             Create Course
           </Button>
@@ -101,47 +101,55 @@ const InstructorDashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <BookOpen className="w-5 h-5 text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="shadow-sm border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-blue-600" />
+              </div>
               <div>
-                <p className="text-sm text-gray-600">Total Courses</p>
-                <p className="text-2xl font-bold">{totalCourses}</p>
+                <p className="text-sm font-medium text-gray-600">Total Courses</p>
+                <p className="text-2xl font-bold text-gray-900">{totalCourses}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-green-600" />
+        <Card className="shadow-sm border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-green-600" />
+              </div>
               <div>
-                <p className="text-sm text-gray-600">Total Students</p>
-                <p className="text-2xl font-bold">{totalStudents}</p>
+                <p className="text-sm font-medium text-gray-600">Total Students</p>
+                <p className="text-2xl font-bold text-gray-900">{totalStudents}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-purple-600" />
+        <Card className="shadow-sm border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-purple-600" />
+              </div>
               <div>
-                <p className="text-sm text-gray-600">Assignments</p>
-                <p className="text-2xl font-bold">{totalAssignments}</p>
+                <p className="text-sm font-medium text-gray-600">Assignments</p>
+                <p className="text-2xl font-bold text-gray-900">{totalAssignments}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Video className="w-5 h-5 text-orange-600" />
+        <Card className="shadow-sm border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Video className="w-6 h-6 text-orange-600" />
+              </div>
               <div>
-                <p className="text-sm text-gray-600">Live Sessions</p>
-                <p className="text-2xl font-bold">{activeSessions + upcomingSessions}</p>
+                <p className="text-sm font-medium text-gray-600">Live Sessions</p>
+                <p className="text-2xl font-bold text-gray-900">{activeSessions + upcomingSessions}</p>
               </div>
             </div>
           </CardContent>
@@ -149,43 +157,43 @@ const InstructorDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="shadow-sm border-0">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle className="text-xl">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-blue-50 hover:border-blue-200 transition-colors"
               onClick={() => setLocation('/instructor/courses')}
             >
-              <BookOpen className="w-6 h-6 mb-2" />
-              Manage Courses
+              <BookOpen className="w-7 h-7 text-blue-600" />
+              <span className="font-medium">Manage Courses</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-purple-50 hover:border-purple-200 transition-colors"
               onClick={() => setLocation('/instructor/assignments')}
             >
-              <FileText className="w-6 h-6 mb-2" />
-              View Assignments
+              <FileText className="w-7 h-7 text-purple-600" />
+              <span className="font-medium">Assignments</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-orange-50 hover:border-orange-200 transition-colors"
               onClick={() => setLocation('/instructor/live')}
             >
-              <Video className="w-6 h-6 mb-2" />
-              Live Sessions
+              <Video className="w-7 h-7 text-orange-600" />
+              <span className="font-medium">Live Sessions</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center"
-              onClick={() => setLocation('/instructor/analytics')}
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-green-50 hover:border-green-200 transition-colors"
+              onClick={() => setLocation('/instructor/students')}
             >
-              <BarChart3 className="w-6 h-6 mb-2" />
-              Analytics
+              <Users className="w-7 h-7 text-green-600" />
+              <span className="font-medium">My Students</span>
             </Button>
           </div>
         </CardContent>

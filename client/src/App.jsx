@@ -49,6 +49,7 @@ function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
   const isAdminRoute = location.startsWith('/admin');
+  const isInstructorRoute = location.startsWith('/instructor');
 
   if (isLoading) {
     return (
@@ -60,7 +61,7 @@ function AppRoutes() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {isAuthenticated && !isAdminRoute && <Navbar />}
+      {isAuthenticated && !isAdminRoute && !isInstructorRoute && <Navbar />}
       
       <Switch>
         {/* Public Routes */}
@@ -298,7 +299,7 @@ function AppRoutes() {
         <Route component={NotFound} />
       </Switch>
       
-      {isAuthenticated && !isAdminRoute && <MobileBottomNav />}
+      {isAuthenticated && !isAdminRoute && !isInstructorRoute && <MobileBottomNav />}
     </div>
   );
 }

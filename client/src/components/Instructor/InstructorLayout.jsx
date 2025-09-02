@@ -49,10 +49,10 @@ const InstructorLayout = ({ children }) => {
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
+        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex items-center justify-between h-16 px-6 border-b">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-900">Instructor Portal</h1>
           <Button
             variant="ghost"
@@ -65,15 +65,15 @@ const InstructorLayout = ({ children }) => {
         </div>
 
         <div className="px-4 py-6">
-          <div className="mb-6">
+          <div className="mb-8">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <span className="text-white font-semibold text-lg">
                   {user?.profile?.firstName?.[0] || user?.username?.[0] || 'I'}
                 </span>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-semibold text-gray-900">
                   {user?.profile?.firstName} {user?.profile?.lastName}
                 </p>
                 <p className="text-xs text-gray-500">Instructor</p>
@@ -81,14 +81,14 @@ const InstructorLayout = ({ children }) => {
             </div>
           </div>
 
-          <nav className="space-y-2">
+          <nav className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
                 <Button
                   key={item.name}
                   variant={isActive(item.href) ? "default" : "ghost"}
-                  className={`w-full justify-start ${isActive(item.href) ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                  className={`w-full justify-start h-11 ${isActive(item.href) ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'}`}
                   onClick={() => {
                     setLocation(item.href);
                     setSidebarOpen(false);
@@ -106,7 +106,7 @@ const InstructorLayout = ({ children }) => {
       {/* Main content */}
       <div className="lg:ml-64">
         {/* Mobile header */}
-        <div className="lg:hidden bg-white shadow-sm border-b">
+        <div className="lg:hidden bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-4">
             <Button
               variant="ghost"
@@ -121,7 +121,7 @@ const InstructorLayout = ({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-6 lg:p-8">
           {children}
         </main>
       </div>
