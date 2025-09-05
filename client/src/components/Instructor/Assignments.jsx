@@ -14,7 +14,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from '../Common/LoadingSpinner.jsx';
-import InstructorHeader from './InstructorHeader.jsx';
 import { Plus, Edit, Trash2, Clock, CheckCircle, Calendar, Users, Eye, Download, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -204,11 +203,12 @@ const InstructorAssignments = () => {
 
   return (
     <div className="space-y-6">
-      <InstructorHeader
-        title="Assignments"
-        subtitle="Manage and track your course assignments"
-        breadcrumbs={[{ href: '/instructor', label: 'Instructor' }, { label: 'Assignments' }]}
-      />
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Assignments</h1>
+          <p className="text-gray-600 mt-2">Manage and track your course assignments</p>
+        </div>
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -328,6 +328,7 @@ const InstructorAssignments = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">

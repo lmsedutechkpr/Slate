@@ -1,4 +1,3 @@
-import InstructorHeader from './InstructorHeader.jsx';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -238,11 +237,12 @@ const LiveSessions = () => {
 
   return (
     <div className="space-y-6">
-      <InstructorHeader
-        title="Live Sessions"
-        subtitle="Schedule and manage live classes for your students"
-        breadcrumbs={[{ href: '/instructor', label: 'Instructor' }, { label: 'Live Sessions' }]}
-      />
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Live Sessions</h1>
+          <p className="text-gray-600 mt-2">Schedule and manage live classes for your students</p>
+        </div>
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -378,6 +378,7 @@ const LiveSessions = () => {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

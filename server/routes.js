@@ -117,8 +117,7 @@ export async function registerRoutes(app) {
   app.put('/api/instructor/live-sessions/:sessionId', authenticateToken, requireInstructorOrAdmin, liveSessionController.updateInstructorLiveSession);
   app.delete('/api/instructor/live-sessions/:sessionId', authenticateToken, requireInstructorOrAdmin, liveSessionController.deleteInstructorLiveSession);
   app.get('/api/instructor/students', authenticateToken, requireInstructorOrAdmin, userController.getInstructorStudents);
-  app.put('/api/instructor/live-sessions/:sessionId', authenticateToken, requireInstructorOrAdmin, liveSessionController.updateInstructorLiveSession);
-  app.delete('/api/instructor/live-sessions/:sessionId', authenticateToken, requireInstructorOrAdmin, liveSessionController.deleteInstructorLiveSession);
+  app.get('/api/instructor/analytics', authenticateToken, requireInstructorOrAdmin, analyticsController.getInstructorAnalytics);
   
   // Product routes
   app.post('/api/products', authenticateToken, requireAdmin, productController.createProduct);

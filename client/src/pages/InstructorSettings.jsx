@@ -1,14 +1,73 @@
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Bell, Shield, Palette } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Settings, Bell, Shield, Palette, Save } from 'lucide-react';
 
 const InstructorSettings = () => {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [profileData, setProfileData] = useState({
+    firstName: user?.profile?.firstName || '',
+    lastName: user?.profile?.lastName || '',
+    email: user?.email || '',
+    bio: user?.profile?.bio || '',
+    phone: user?.profile?.phone || '',
+    website: user?.profile?.website || ''
+  });
+
+  const [notifications, setNotifications] = useState({
+    emailNotifications: true,
+    pushNotifications: true,
+    assignmentReminders: true,
+    liveSessionReminders: true
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data) => {
+      const response = await fetch(buildApiUrl('/api/users/profile'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+      queryClient.invalidateQueries(['user']);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSaveProfile = () => {
+    updateProfileMutation.mutate(profileData);
+  };
 
   return (
     <div className="space-y-6">
@@ -33,7 +92,8 @@ const InstructorSettings = () => {
                   <Label htmlFor="firstName">First Name</Label>
                   <Input 
                     id="firstName" 
-                    defaultValue={user?.profile?.firstName || ''} 
+                    value={profileData.firstName}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
                     placeholder="Enter your first name"
                   />
                 </div>
@@ -41,7 +101,8 @@ const InstructorSettings = () => {
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input 
                     id="lastName" 
-                    defaultValue={user?.profile?.lastName || ''} 
+                    value={profileData.lastName}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
                     placeholder="Enter your last name"
                   />
                 </div>
@@ -51,7 +112,8 @@ const InstructorSettings = () => {
                 <Input 
                   id="email" 
                   type="email" 
-                  defaultValue={user?.email || ''} 
+                  value={profileData.email}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Enter your email"
                 />
               </div>
@@ -59,11 +121,19 @@ const InstructorSettings = () => {
                 <Label htmlFor="bio">Bio</Label>
                 <Input 
                   id="bio" 
-                  defaultValue={user?.profile?.bio || ''} 
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
                   placeholder="Tell students about yourself"
                 />
               </div>
-              <Button>Save Changes</Button>
+              <Button 
+                onClick={handleSaveProfile}
+                disabled={updateProfileMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
             </CardContent>
           </Card>
 

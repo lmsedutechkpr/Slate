@@ -1,4 +1,3 @@
-import InstructorHeader from '../components/Instructor/InstructorHeader.jsx';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
@@ -8,9 +7,9 @@ import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 const InstructorAnalytics = () => {
   const { accessToken, user } = useAuth();
   const { data, isLoading } = useQuery({
-    queryKey: ['/api/admin/analytics/instructors', user?._id, accessToken],
+    queryKey: ['/api/instructor/analytics', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/admin/analytics/instructors/${user._id}`), {
+      const res = await fetch(buildApiUrl('/api/instructor/analytics'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       if (!res.ok) return { instructor: null, stats: {}, coursePerformance: [] };
@@ -26,12 +25,14 @@ const InstructorAnalytics = () => {
   const perf = data?.coursePerformance || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <InstructorHeader
-        title="Instructor Analytics"
-        subtitle="Overview of your performance"
-        breadcrumbs={[{ href: '/instructor', label: 'Instructor' }, { label: 'Analytics' }]}
-      />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Instructor Analytics</h1>
+          <p className="text-gray-600 mt-2">Overview of your performance</p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4"><div className="text-sm text-gray-600">Total Courses</div><div className="text-2xl font-bold">{stats.totalCourses || 0}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-sm text-gray-600">Published</div><div className="text-2xl font-bold">{stats.publishedCourses || 0}</div></CardContent></Card>

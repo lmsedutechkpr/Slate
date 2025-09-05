@@ -1,177 +1,181 @@
-import { useLocation } from 'wouter';
+import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'wouter';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Button } from '@/components/ui/button';
-import { 
-  BookOpen, 
-  FileText, 
-  Video, 
-  Users, 
-  Settings, 
-  BarChart3, 
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  BookOpen,
+  Users,
+  FileText,
+  Video,
+  BarChart3,
+  Settings,
+  LogOut,
+  Bell,
   Home,
   Menu,
   X
 } from 'lucide-react';
-import { useState } from 'react';
 
 const InstructorLayout = ({ children }) => {
+  const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
-  const { user } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  const navigation = [
-    { 
-      name: 'Dashboard', 
-      href: '/instructor', 
-      icon: Home,
-      description: 'Dashboard overview'
-    },
-    { 
-      name: 'Courses', 
-      href: '/instructor/courses', 
-      icon: BookOpen,
-      description: 'Manage courses'
-    },
-    { 
-      name: 'Assignments', 
-      href: '/instructor/assignments', 
-      icon: FileText,
-      description: 'Manage assignments'
-    },
-    { 
-      name: 'Live Sessions', 
-      href: '/instructor/live', 
-      icon: Video,
-      description: 'Live streaming'
-    },
-    { 
-      name: 'Students', 
-      href: '/instructor/students', 
-      icon: Users,
-      description: 'Student management'
-    },
-    { 
-      name: 'Analytics', 
-      href: '/instructor/analytics', 
-      icon: BarChart3,
-      description: 'Reports & insights'
-    },
-    { 
-      name: 'Settings', 
-      href: '/instructor/settings', 
-      icon: Settings,
-      description: 'Account settings'
-    },
+  const navigationItems = [
+    { title: 'Dashboard', href: '/instructor', icon: Home, description: 'Dashboard overview' },
+    { title: 'Courses', href: '/instructor/courses', icon: BookOpen, description: 'Manage courses' },
+    { title: 'Assignments', href: '/instructor/assignments', icon: FileText, description: 'Manage assignments' },
+    { title: 'Live Sessions', href: '/instructor/live', icon: Video, description: 'Live streaming' },
+    { title: 'Students', href: '/instructor/students', icon: Users, description: 'Student management' },
+    { title: 'Analytics', href: '/instructor/analytics', icon: BarChart3, description: 'Reports & insights' },
+    { title: 'Settings', href: '/instructor/settings', icon: Settings, description: 'Account settings' }
   ];
 
-  const isActive = (href) => {
-    if (href === '/instructor') {
-      return location === '/instructor';
-    }
-    return location.startsWith(href);
+  const currentPath = location;
+
+  const handleLogout = () => {
+    logout();
+    setLocation('/login');
+  };
+
+  const toggleMobileSidebar = () => {
+    setMobileSidebarOpen(!mobileSidebarOpen);
+  };
+
+  const closeMobileSidebar = () => {
+    setMobileSidebarOpen(false);
+  };
+
+  const handleNavigation = (href) => {
+    setLocation(href);
+    closeMobileSidebar();
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
+      {/* Mobile Sidebar Overlay */}
+      {mobileSidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={closeMobileSidebar}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-blue-900 shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
+        ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
       `}>
         {/* Sidebar Header */}
-        <div className="flex items-center h-16 px-6 border-b border-blue-800">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mr-3">
-            <span className="text-blue-900 font-bold text-lg">I</span>
+        <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">I</span>
+            </div>
+            <span className="text-lg font-semibold text-gray-900">Instructor Portal</span>
           </div>
-          <h1 className="text-xl font-bold text-white">Instructor Portal</h1>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden ml-auto text-white hover:bg-blue-800"
+            onClick={closeMobileSidebar}
+            className="lg:hidden"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* User Profile */}
-        <div className="px-6 py-6 border-b border-blue-800">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <span className="text-blue-900 font-bold text-sm">
-                {user?.profile?.firstName?.[0] || user?.username?.[0] || 'I'}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">
-                {user?.profile?.firstName} {user?.profile?.lastName}
-              </p>
-              <p className="text-xs text-blue-200">Instructor</p>
-            </div>
-          </div>
+        {/* User Profile Section */}
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center space-x-3 w-full text-left">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-semibold text-sm">{(user?.profile?.firstName || user?.username || 'I').charAt(0).toUpperCase()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{user?.profile?.firstName || user?.username || 'Instructor'}</p>
+                  <Badge variant="secondary" className="text-xs">Instructor</Badge>
+                </div>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56">
+              <div className="text-sm">
+                <div className="font-medium">{user?.profile?.firstName || user?.username || 'Instructor'}</div>
+                <div className="text-gray-500 mb-3">{user?.email || ''}</div>
+                <Button variant="outline" size="sm" className="w-full rounded-md text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300" onClick={handleLogout}><LogOut className="w-4 h-4 mr-2" /> Logout</Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          {navigation.map((item) => {
+        {/* Navigation Menu */}
+        <nav className="flex-1 px-3 lg:px-4 py-4 space-y-1 overflow-y-auto">
+          {navigationItems.map((item) => {
+            const isActive = currentPath === item.href;
             const Icon = item.icon;
+            
             return (
               <Button
-                key={item.name}
-                variant={isActive(item.href) ? "default" : "ghost"}
-                className={`w-full justify-start h-12 px-4 ${
-                  isActive(item.href) 
-                    ? 'bg-blue-700 text-white shadow-sm' 
-                    : 'text-blue-100 hover:bg-blue-800 hover:text-white'
-                }`}
-                onClick={() => {
-                  setLocation(item.href);
-                  setSidebarOpen(false);
-                }}
+                key={item.href}
+                variant={isActive ? "default" : "ghost"}
+                className={`
+                  w-full justify-start h-auto py-3 px-3 text-left
+                  ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
+                `}
+                onClick={() => handleNavigation(item.href)}
               >
-                <Icon className="w-5 h-5 mr-3" />
-                <div className="text-left">
-                  <div className="font-medium">{item.name}</div>
-                  <div className="text-xs opacity-75">{item.description}</div>
+                <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{item.title}</div>
+                  <div className={`text-xs truncate ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {item.description}
+                  </div>
                 </div>
               </Button>
             );
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-blue-800">
-          <p className="text-xs text-blue-300 text-center">© EduTech</p>
-        </div>
+        {/* Sidebar Footer */}
+        <div className="px-3 lg:px-4 py-4 border-t border-gray-200 text-xs text-gray-500">© EduTech</div>
       </div>
 
-      {/* Main content */}
-      <div className="lg:ml-64 flex flex-col min-h-screen">
-        {/* Mobile header */}
-        <div className="lg:hidden bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between h-16 px-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-            <h1 className="text-lg font-semibold text-gray-900">Instructor Portal</h1>
-            <div className="w-10" />
+      {/* Main Content */}
+      <div className="lg:ml-64">
+        {/* Top Bar */}
+        <div className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200 px-3 py-3 lg:px-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 lg:space-x-4 flex-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleMobileSidebar}
+                className="lg:hidden"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              
+              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-700">
+                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                <span className="font-medium text-gray-900">Instructor Portal</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 lg:space-x-3 flex-shrink-0">
+              <Bell className="w-5 h-5 text-gray-600" />
+              <div className="hidden md:flex items-center space-x-2 text-xs lg:text-sm text-gray-600">
+                <span>Last login:</span>
+                <span>{new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Page content */}
-        <main className="flex-1 pt-6 pr-6 pb-6 pl-6 lg:pt-8 lg:pr-8 lg:pb-8 lg:pl-8">
+        {/* Page Content */}
+        <main className="p-3 lg:p-6">
           {children}
         </main>
       </div>

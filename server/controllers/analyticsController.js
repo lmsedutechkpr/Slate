@@ -173,7 +173,9 @@ export const getCourseAnalytics = async (req, res) => {
 
 export const getInstructorAnalytics = async (req, res) => {
   try {
-    const { instructorId } = req.params;
+    // For admin routes, instructorId comes from params
+    // For instructor routes, use the authenticated user's ID
+    const instructorId = req.params.instructorId || req.user._id;
     
     if (!instructorId) {
       return res.status(400).json({ message: 'Instructor ID is required' });
