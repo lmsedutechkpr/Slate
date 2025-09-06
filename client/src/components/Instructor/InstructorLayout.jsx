@@ -24,12 +24,12 @@ const InstructorLayout = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const navigationItems = [
-    { title: 'Dashboard', href: '/instructor', icon: Home, description: 'Dashboard overview' },
-    { title: 'Courses', href: '/instructor/courses', icon: BookOpen, description: 'Manage courses' },
-    { title: 'Assignments', href: '/instructor/assignments', icon: FileText, description: 'Manage assignments' },
-    { title: 'Live Sessions', href: '/instructor/live', icon: Video, description: 'Live streaming' },
-    { title: 'Students', href: '/instructor/students', icon: Users, description: 'Student management' },
-    { title: 'Analytics', href: '/instructor/analytics', icon: BarChart3, description: 'Reports & insights' },
+    { title: 'Dashboard', href: '/instructor', icon: Home, description: 'Teaching overview' },
+    { title: 'Course Content', href: '/instructor/courses', icon: BookOpen, description: 'Manage course materials' },
+    { title: 'Grade Assignments', href: '/instructor/assignments', icon: FileText, description: 'Grade & evaluate' },
+    { title: 'Live Sessions', href: '/instructor/live-sessions', icon: Video, description: 'Conduct live classes' },
+    { title: 'Track Students', href: '/instructor/students', icon: Users, description: 'Monitor progress' },
+    { title: 'Analytics', href: '/instructor/analytics', icon: BarChart3, description: 'Teaching insights' },
     { title: 'Settings', href: '/instructor/settings', icon: Settings, description: 'Account settings' }
   ];
 

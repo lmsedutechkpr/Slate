@@ -40,6 +40,7 @@ import Settings from './pages/Settings.jsx';
 import InstructorAnalytics from './pages/InstructorAnalytics.jsx';
 import InstructorLayout from "@/components/Instructor/InstructorLayout.jsx";
 import InstructorCourses from "@/pages/InstructorCourses.jsx";
+import InstructorCourseContent from "@/pages/InstructorCourseContent.jsx";
 import InstructorStudents from "@/pages/InstructorStudents.jsx";
 import InstructorSettings from "@/pages/InstructorSettings.jsx";
 import LiveSessions from './components/Instructor/LiveSessions.jsx';
@@ -236,6 +237,13 @@ function AppRoutes() {
           <ProtectedRoute requiredRole="instructor">
             <InstructorLayout>
               <InstructorCourses />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+        <Route path="/instructor/courses/:courseId">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <InstructorCourseContent />
             </InstructorLayout>
           </ProtectedRoute>
         </Route>

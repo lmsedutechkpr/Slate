@@ -1,14 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Users, Calendar, TrendingUp, Plus, Video, FileText } from 'lucide-react';
+import { BookOpen, Users, Calendar, TrendingUp, Video, FileText, BookMarked, Upload, Edit3, Eye } from 'lucide-react';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 
 const InstructorCourses = () => {
   const { accessToken, user } = useAuth();
+  const [location, setLocation] = useLocation();
   
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
@@ -31,23 +33,25 @@ const InstructorCourses = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Courses</h1>
-          <p className="text-gray-600">Manage and track your course offerings</p>
+          <h1 className="text-2xl font-bold text-gray-900">Course Content Management</h1>
+          <p className="text-gray-600">Manage course materials, lectures, and content for your assigned courses</p>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Course
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Materials
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Content Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <BookOpen className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="text-sm text-gray-600">Total Courses</p>
+                <p className="text-sm text-gray-600">Assigned Courses</p>
                 <p className="text-2xl font-bold">{courses?.length || 0}</p>
               </div>
             </div>
@@ -69,11 +73,11 @@ const InstructorCourses = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-purple-600" />
+              <FileText className="w-5 h-5 text-purple-600" />
               <div>
-                <p className="text-sm text-gray-600">Published</p>
+                <p className="text-sm text-gray-600">Materials Uploaded</p>
                 <p className="text-2xl font-bold">
-                  {courses?.filter(course => course.status === 'published').length || 0}
+                  {courses?.reduce((total, course) => total + (course.materials?.length || 0), 0) || 0}
                 </p>
               </div>
             </div>
@@ -82,11 +86,11 @@ const InstructorCourses = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-orange-600" />
+              <Video className="w-5 h-5 text-orange-600" />
               <div>
-                <p className="text-sm text-gray-600">Draft</p>
+                <p className="text-sm text-gray-600">Live Sessions</p>
                 <p className="text-2xl font-bold">
-                  {courses?.filter(course => course.status === 'draft').length || 0}
+                  {courses?.reduce((total, course) => total + (course.liveSessions?.length || 0), 0) || 0}
                 </p>
               </div>
             </div>
@@ -94,19 +98,15 @@ const InstructorCourses = () => {
         </Card>
       </div>
 
-      {/* Courses List */}
+      {/* Assigned Courses */}
       {courses?.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No courses yet</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No courses assigned</h3>
             <p className="text-gray-600 mb-6">
-              Create your first course to start teaching
+              Contact admin to get assigned to courses for content management
             </p>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Course
-            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -123,9 +123,27 @@ const InstructorCourses = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-sm mb-4">{course.description}</p>
-                <div className="flex justify-between items-center text-sm text-gray-500">
+                <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
                   <span>{course.enrolledStudents || 0} students</span>
                   <span>{course.lessons?.length || 0} lessons</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setLocation(`/instructor/courses/${course._id}`)}
+                  >
+                    <BookMarked className="w-4 h-4 mr-1" />
+                    Manage Content
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setLocation(`/instructor/courses/${course._id}/materials`)}
+                  >
+                    <Upload className="w-4 h-4 mr-1" />
+                    Upload Materials
+                  </Button>
                 </div>
               </CardContent>
             </Card>

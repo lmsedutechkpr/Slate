@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from '../Common/LoadingSpinner.jsx';
-import { Plus, Edit, Trash2, Clock, CheckCircle, Calendar, Users, Eye, Download, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, CheckCircle, Calendar, Users, Eye, Download, FileText, ClipboardList, Star, MessageSquare, Award } from 'lucide-react';
 import { format } from 'date-fns';
 
 const InstructorAssignments = () => {
@@ -206,8 +206,8 @@ const InstructorAssignments = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Assignments</h1>
-          <p className="text-gray-600 mt-2">Manage and track your course assignments</p>
+          <h1 className="text-3xl font-bold text-gray-900">Assignment Grading</h1>
+          <p className="text-gray-600 mt-2">Grade assignments, provide feedback, and track student progress</p>
         </div>
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -332,10 +332,22 @@ const InstructorAssignments = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="active">Active ({filterAssignments('active').length})</TabsTrigger>
-          <TabsTrigger value="grading">Need Grading ({filterAssignments('grading').length})</TabsTrigger>
-          <TabsTrigger value="upcoming">Upcoming ({filterAssignments('upcoming').length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({filterAssignments('completed').length})</TabsTrigger>
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4" />
+            Active ({filterAssignments('active').length})
+          </TabsTrigger>
+          <TabsTrigger value="grading" className="flex items-center gap-2">
+            <Star className="w-4 h-4" />
+            Need Grading ({filterAssignments('grading').length})
+          </TabsTrigger>
+          <TabsTrigger value="upcoming" className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Upcoming ({filterAssignments('upcoming').length})
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" />
+            Completed ({filterAssignments('completed').length})
+          </TabsTrigger>
         </TabsList>
 
         {['active', 'grading', 'upcoming', 'completed'].map((tab) => (
@@ -369,11 +381,19 @@ const InstructorAssignments = () => {
                           </div>
                           
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
                               <Eye className="w-4 h-4" />
+                              View
                             </Button>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="w-4 h-4" />
+                            {tab === 'grading' && (
+                              <Button size="sm" className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700">
+                                <Star className="w-4 h-4" />
+                                Grade Now
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                              <MessageSquare className="w-4 h-4" />
+                              Feedback
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
