@@ -47,6 +47,9 @@ import LiveSessions from './components/Instructor/LiveSessions.jsx';
 import InstructorAssignments from './components/Instructor/Assignments.jsx';
 import CommunicationCenter from './components/Instructor/CommunicationCenter.jsx';
 import AdvancedAnalytics from './components/Instructor/AdvancedAnalytics.jsx';
+import ContentManagement from './components/Instructor/ContentManagement.jsx';
+import AttendanceTracker from './components/Instructor/AttendanceTracker.jsx';
+import Gradebook from './components/Instructor/Gradebook.jsx';
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -278,6 +281,30 @@ function AppRoutes() {
           <ProtectedRoute requiredRole="instructor">
             <InstructorLayout>
               <InstructorSettings />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/content">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <ContentManagement />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/gradebook">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <Gradebook />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/attendance">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <AttendanceTracker />
             </InstructorLayout>
           </ProtectedRoute>
         </Route>

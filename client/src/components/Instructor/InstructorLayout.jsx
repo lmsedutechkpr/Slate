@@ -16,7 +16,9 @@ import {
   Home,
   Menu,
   X,
-  MessageSquare
+  MessageSquare,
+  Folder,
+  Award
 } from 'lucide-react';
 
 const InstructorLayout = ({ children }) => {
@@ -27,7 +29,10 @@ const InstructorLayout = ({ children }) => {
   const navigationItems = [
     { title: 'Dashboard', href: '/instructor', icon: Home, description: 'Teaching overview' },
     { title: 'Course Content', href: '/instructor/courses', icon: BookOpen, description: 'Manage course materials' },
+    { title: 'Content Management', href: '/instructor/content', icon: Folder, description: 'Upload & organize files' },
     { title: 'Grade Assignments', href: '/instructor/assignments', icon: FileText, description: 'Grade & evaluate' },
+    { title: 'Gradebook', href: '/instructor/gradebook', icon: Award, description: 'Student grades & progress' },
+    { title: 'Attendance', href: '/instructor/attendance', icon: Users, description: 'Track student attendance' },
     { title: 'Live Sessions', href: '/instructor/live-sessions', icon: Video, description: 'Conduct live classes' },
     { title: 'Track Students', href: '/instructor/students', icon: Users, description: 'Monitor progress' },
     { title: 'Communication', href: '/instructor/communication', icon: MessageSquare, description: 'Messages & announcements' },
