@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from '../Common/LoadingSpinner.jsx';
 import { Plus, Edit, Trash2, Clock, CheckCircle, Calendar, Users, Eye, Download, FileText, ClipboardList, Star, MessageSquare, Award } from 'lucide-react';
+import GradingInterface from './GradingInterface.jsx';
 import { format } from 'date-fns';
 
 const InstructorAssignments = () => {
@@ -25,6 +26,7 @@ const InstructorAssignments = () => {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
+  const [selectedAssignmentForGrading, setSelectedAssignmentForGrading] = useState(null);
 
   const [newAssignment, setNewAssignment] = useState({
     title: '',
@@ -386,7 +388,11 @@ const InstructorAssignments = () => {
                               View
                             </Button>
                             {tab === 'grading' && (
-                              <Button size="sm" className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700">
+                              <Button 
+                                size="sm" 
+                                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
+                                onClick={() => setSelectedAssignmentForGrading(assignment)}
+                              >
                                 <Star className="w-4 h-4" />
                                 Grade Now
                               </Button>
@@ -470,6 +476,24 @@ const InstructorAssignments = () => {
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Grading Interface Dialog */}
+      <Dialog open={!!selectedAssignmentForGrading} onOpenChange={() => setSelectedAssignmentForGrading(null)}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Assignment Grading Interface</DialogTitle>
+            <DialogDescription>
+              Grade student submissions with detailed feedback and rubric-based scoring
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAssignmentForGrading && (
+            <GradingInterface 
+              assignment={selectedAssignmentForGrading} 
+              onClose={() => setSelectedAssignmentForGrading(null)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

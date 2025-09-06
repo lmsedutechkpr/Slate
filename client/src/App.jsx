@@ -45,6 +45,8 @@ import InstructorStudents from "@/pages/InstructorStudents.jsx";
 import InstructorSettings from "@/pages/InstructorSettings.jsx";
 import LiveSessions from './components/Instructor/LiveSessions.jsx';
 import InstructorAssignments from './components/Instructor/Assignments.jsx';
+import CommunicationCenter from './components/Instructor/CommunicationCenter.jsx';
+import AdvancedAnalytics from './components/Instructor/AdvancedAnalytics.jsx';
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -280,10 +282,18 @@ function AppRoutes() {
           </ProtectedRoute>
         </Route>
 
+        <Route path="/instructor/communication">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <CommunicationCenter />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
         <Route path="/instructor/analytics">
           <ProtectedRoute requiredRole="instructor">
             <InstructorLayout>
-              <InstructorAnalytics />
+              <AdvancedAnalytics />
             </InstructorLayout>
           </ProtectedRoute>
         </Route>

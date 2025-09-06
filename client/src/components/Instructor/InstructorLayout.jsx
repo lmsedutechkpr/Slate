@@ -15,7 +15,8 @@ import {
   Bell,
   Home,
   Menu,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react';
 
 const InstructorLayout = ({ children }) => {
@@ -29,6 +30,7 @@ const InstructorLayout = ({ children }) => {
     { title: 'Grade Assignments', href: '/instructor/assignments', icon: FileText, description: 'Grade & evaluate' },
     { title: 'Live Sessions', href: '/instructor/live-sessions', icon: Video, description: 'Conduct live classes' },
     { title: 'Track Students', href: '/instructor/students', icon: Users, description: 'Monitor progress' },
+    { title: 'Communication', href: '/instructor/communication', icon: MessageSquare, description: 'Messages & announcements' },
     { title: 'Analytics', href: '/instructor/analytics', icon: BarChart3, description: 'Teaching insights' },
     { title: 'Settings', href: '/instructor/settings', icon: Settings, description: 'Account settings' }
   ];
