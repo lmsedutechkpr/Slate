@@ -18,7 +18,12 @@ import {
   X,
   MessageSquare,
   Folder,
-  Award
+  Award,
+  Target,
+  Activity,
+  Calendar,
+  Bot,
+  Shield
 } from 'lucide-react';
 
 const InstructorLayout = ({ children }) => {
@@ -34,9 +39,15 @@ const InstructorLayout = ({ children }) => {
     { title: 'Gradebook', href: '/instructor/gradebook', icon: Award, description: 'Student grades & progress' },
     { title: 'Attendance', href: '/instructor/attendance', icon: Users, description: 'Track student attendance' },
     { title: 'Live Sessions', href: '/instructor/live-sessions', icon: Video, description: 'Conduct live classes' },
+    { title: 'Quiz Builder', href: '/instructor/quizzes', icon: Target, description: 'Create interactive quizzes' },
+    { title: 'Calendar', href: '/instructor/calendar', icon: Calendar, description: 'Schedule & manage events' },
+    { title: 'AI Assistant', href: '/instructor/ai-assistant', icon: Bot, description: 'AI-powered teaching help' },
+    { title: 'Plagiarism Check', href: '/instructor/plagiarism', icon: Shield, description: 'Detect academic dishonesty' },
     { title: 'Track Students', href: '/instructor/students', icon: Users, description: 'Monitor progress' },
     { title: 'Communication', href: '/instructor/communication', icon: MessageSquare, description: 'Messages & announcements' },
-    { title: 'Analytics', href: '/instructor/analytics', icon: BarChart3, description: 'Teaching insights' },
+    { title: 'Notifications', href: '/instructor/notifications', icon: Bell, description: 'Manage alerts & notifications' },
+    { title: 'Reports', href: '/instructor/reports', icon: BarChart3, description: 'Generate reports & analytics' },
+    { title: 'Analytics', href: '/instructor/analytics', icon: Activity, description: 'Teaching insights' },
     { title: 'Settings', href: '/instructor/settings', icon: Settings, description: 'Account settings' }
   ];
 

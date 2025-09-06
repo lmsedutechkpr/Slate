@@ -50,6 +50,13 @@ import AdvancedAnalytics from './components/Instructor/AdvancedAnalytics.jsx';
 import ContentManagement from './components/Instructor/ContentManagement.jsx';
 import AttendanceTracker from './components/Instructor/AttendanceTracker.jsx';
 import Gradebook from './components/Instructor/Gradebook.jsx';
+import LiveSessionManager from './components/Instructor/LiveSessionManager.jsx';
+import QuizBuilder from './components/Instructor/QuizBuilder.jsx';
+import NotificationCenter from './components/Instructor/NotificationCenter.jsx';
+import ReportingSystem from './components/Instructor/ReportingSystem.jsx';
+import CalendarScheduler from './components/Instructor/CalendarScheduler.jsx';
+import AITeachingAssistant from './components/Instructor/AITeachingAssistant.jsx';
+import PlagiarismChecker from './components/Instructor/PlagiarismChecker.jsx';
 
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -313,6 +320,54 @@ function AppRoutes() {
           <ProtectedRoute requiredRole="instructor">
             <InstructorLayout>
               <CommunicationCenter />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/quizzes">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <QuizBuilder />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/notifications">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <NotificationCenter />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/reports">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <ReportingSystem />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/calendar">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <CalendarScheduler />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/ai-assistant">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <AITeachingAssistant />
+            </InstructorLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/instructor/plagiarism">
+          <ProtectedRoute requiredRole="instructor">
+            <InstructorLayout>
+              <PlagiarismChecker />
             </InstructorLayout>
           </ProtectedRoute>
         </Route>
