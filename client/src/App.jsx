@@ -55,7 +55,6 @@ import QuizBuilder from './components/Instructor/QuizBuilder.jsx';
 import NotificationCenter from './components/Instructor/NotificationCenter.jsx';
 import ReportingSystem from './components/Instructor/ReportingSystem.jsx';
 import CalendarScheduler from './components/Instructor/CalendarScheduler.jsx';
-import AITeachingAssistant from './components/Instructor/AITeachingAssistant.jsx';
 import PlagiarismChecker from './components/Instructor/PlagiarismChecker.jsx';
 
 function AppRoutes() {
@@ -356,13 +355,7 @@ function AppRoutes() {
           </ProtectedRoute>
         </Route>
 
-        <Route path="/instructor/ai-assistant">
-          <ProtectedRoute requiredRole="instructor">
-            <InstructorLayout>
-              <AITeachingAssistant />
-            </InstructorLayout>
-          </ProtectedRoute>
-        </Route>
+        
 
         <Route path="/instructor/plagiarism">
           <ProtectedRoute requiredRole="instructor">

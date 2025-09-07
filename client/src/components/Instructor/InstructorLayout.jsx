@@ -22,7 +22,6 @@ import {
   Target,
   Activity,
   Calendar,
-  Bot,
   Shield
 } from 'lucide-react';
 
@@ -41,7 +40,6 @@ const InstructorLayout = ({ children }) => {
     { title: 'Live Sessions', href: '/instructor/live-sessions', icon: Video, description: 'Conduct live classes' },
     { title: 'Quiz Builder', href: '/instructor/quizzes', icon: Target, description: 'Create interactive quizzes' },
     { title: 'Calendar', href: '/instructor/calendar', icon: Calendar, description: 'Schedule & manage events' },
-    { title: 'AI Assistant', href: '/instructor/ai-assistant', icon: Bot, description: 'AI-powered teaching help' },
     { title: 'Plagiarism Check', href: '/instructor/plagiarism', icon: Shield, description: 'Detect academic dishonesty' },
     { title: 'Track Students', href: '/instructor/students', icon: Users, description: 'Monitor progress' },
     { title: 'Communication', href: '/instructor/communication', icon: MessageSquare, description: 'Messages & announcements' },
@@ -85,7 +83,7 @@ const InstructorLayout = ({ children }) => {
       <div className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
         ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0
+        lg:translate-x-0 flex flex-col
       `}>
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
