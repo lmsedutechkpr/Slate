@@ -4,6 +4,7 @@ import Enrollment from './Enrollment.js';
 import Assignment from './Assignment.js';
 import Product from './Product.js';
 import LiveSession from './LiveSession.js';
+import Review from './Review.js';
 import AuditLog from './AuditLog.js';
 
 export {
@@ -12,6 +13,7 @@ export {
   Enrollment,
   Assignment,
   Product,
-  LiveSession
+  LiveSession,
+  Review
   , AuditLog
 };

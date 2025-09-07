@@ -1,4 +1,4 @@
-import { Course, Enrollment, User, AuditLog } from '../models/index.js';
+import { Course, Enrollment, User, AuditLog, Review } from '../models/index.js';
 import multer from 'multer';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
 import fs from 'fs';
@@ -554,13 +554,10 @@ export const getEnrollmentByCourse = async (req, res) => {
 export const getCourseReviews = async (req, res) => {
   try {
     const { courseId } = req.params;
-
-    // For now, return empty reviews array since we don't have a Review model yet
-    // This prevents 404 errors in the frontend
-    res.json({ 
-      reviews: [],
-      message: 'Reviews feature coming soon'
-    });
+    const reviews = await Review.find({ courseId })
+      .populate('studentId', 'username profile')
+      .sort({ createdAt: -1 });
+    res.json({ reviews });
   } catch (error) {
     res.status(500).json({
       message: 'Failed to get course reviews',
@@ -576,28 +573,39 @@ export const createCourseReview = async (req, res) => {
     const { rating, review } = req.body;
     const userId = req.user._id;
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({ 
-      courseId, 
-      studentId: userId 
-    });
-
-    if (!enrollment) {
-      return res.status(403).json({ 
-        message: 'You must be enrolled in this course to write a review' 
-      });
+    if (!rating) {
+      return res.status(400).json({ message: 'Rating is required' });
     }
 
-    // For now, return success message since we don't have a Review model yet
-    res.json({ 
-      message: 'Review submitted successfully (feature coming soon)',
-      review: { rating, review, userId, courseId }
-    });
+    // Check if user is enrolled in the course
+    const enrollment = await Enrollment.findOne({ courseId, studentId: userId });
+    if (!enrollment) {
+      return res.status(403).json({ message: 'You must be enrolled in this course to write a review' });
+    }
+
+    // Create or update review (one per student per course)
+    const saved = await Review.findOneAndUpdate(
+      { courseId, studentId: userId },
+      { $set: { rating, review: review || '' } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // Update course average rating
+    const [agg] = await Review.aggregate([
+      { $match: { courseId: saved.courseId } },
+      { $group: { _id: '$courseId', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+    ]);
+
+    if (agg) {
+      await Course.findByIdAndUpdate(courseId, {
+        $set: { rating: Math.round(agg.avgRating * 10) / 10 },
+        $setOnInsert: { ratingCount: agg.count }
+      }, { upsert: false });
+    }
+
+    res.status(201).json({ message: 'Review saved', review: saved });
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to create course review',
-      error: error.message
-    });
+    res.status(500).json({ message: 'Failed to create course review', error: error.message });
   }
 };
 
