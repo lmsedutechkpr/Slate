@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { Suspense, lazy } from 'react';
 import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient.js";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -9,13 +10,13 @@ import NotFound from "@/pages/not-found";
 import Redirect from "@/components/Common/Redirect.jsx";
 import Login from "@/pages/Login.jsx";
 import Register from "@/pages/Register.jsx";
-import Dashboard from "@/pages/Dashboard.jsx";
-import Onboarding from "@/pages/Onboarding.jsx";
-import Courses from "@/pages/Courses.jsx";
-import Assignments from "@/pages/Assignments.jsx";
-import Progress from "@/pages/Progress.jsx";
-import Store from "@/pages/Store.jsx";
-import Profile from "@/pages/Profile.jsx";
+const Dashboard = lazy(() => import('@/pages/Dashboard.jsx'));
+const Onboarding = lazy(() => import('@/pages/Onboarding.jsx'));
+const Courses = lazy(() => import('@/pages/Courses.jsx'));
+const Assignments = lazy(() => import('@/pages/Assignments.jsx'));
+const Progress = lazy(() => import('@/pages/Progress.jsx'));
+const Store = lazy(() => import('@/pages/Store.jsx'));
+const Profile = lazy(() => import('@/pages/Profile.jsx'));
 import AdminDashboard from "@/pages/AdminDashboard.jsx";
 import AdminStudents from "@/pages/AdminStudents.jsx";
 import AdminCourses from "@/pages/AdminCourses.jsx";
@@ -34,9 +35,9 @@ import AdminLayout from "@/components/Admin/AdminLayout.jsx";
 import Navbar from "@/components/Layout/Navbar.jsx";
 import MobileBottomNav from "@/components/Layout/MobileBottomNav.jsx";
 import { useAuth } from "./hooks/useAuth.js";
-import CourseDetail from './pages/CourseDetail.jsx';
-import AssignmentDetail from './pages/AssignmentDetail.jsx';
-import Settings from './pages/Settings.jsx';
+const CourseDetail = lazy(() => import('./pages/CourseDetail.jsx'));
+const AssignmentDetail = lazy(() => import('./pages/AssignmentDetail.jsx'));
+const Settings = lazy(() => import('./pages/Settings.jsx'));
 import InstructorAnalytics from './pages/InstructorAnalytics.jsx';
 import InstructorLayout from "@/components/Instructor/InstructorLayout.jsx";
 import InstructorCourses from "@/pages/InstructorCourses.jsx";
@@ -63,6 +64,18 @@ function AppRoutes() {
   const isAdminRoute = location.startsWith('/admin');
   const isInstructorRoute = location.startsWith('/instructor');
 
+  // Accessibility: move focus to main content on route change
+  try {
+    // Defer to end of tick to ensure element exists
+    setTimeout(() => {
+      const mainEl = document.getElementById('main-content');
+      if (mainEl) {
+        mainEl.setAttribute('tabindex', '-1');
+        mainEl.focus();
+      }
+    }, 0);
+  } catch {}
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -72,9 +85,10 @@ function AppRoutes() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div id="main-content" className="min-h-screen bg-gray-50" role="main">
       {isAuthenticated && !isAdminRoute && !isInstructorRoute && <Navbar />}
       
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div></div>}>
       <Switch>
         {/* Public Routes */}
         <Route path="/login" component={Login} />
@@ -391,6 +405,7 @@ function AppRoutes() {
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
       
       {isAuthenticated && !isAdminRoute && !isInstructorRoute && <MobileBottomNav />}
     </div>

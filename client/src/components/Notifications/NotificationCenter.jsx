@@ -24,19 +24,24 @@ const NotificationCenter = ({ isOpen, onClose, onNotificationClick }) => {
   const { user, accessToken, authenticatedFetch } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const wsRef = useRef(null);
   const queryClient = useQueryClient();
 
   // Fetch notifications
-  const { data: notificationsData, refetch } = useQuery({
-    queryKey: ['/api/notifications', accessToken],
+  const { data: notificationsData, refetch, isFetching } = useQuery({
+    queryKey: ['/api/notifications', accessToken, page],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/notifications'));
-      if (!response.ok) return { notifications: [] };
+      const params = new URLSearchParams({ page: String(page), limit: '20' });
+      const response = await authenticatedFetch(buildApiUrl(`/api/notifications?${params.toString()}`));
+      if (!response.ok) return { notifications: [], pagination: { page: 1, pages: 1, total: 0 } };
       return response.json();
     },
     enabled: !!accessToken && isOpen,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    keepPreviousData: true,
   });
 
   // Mark as read mutation
@@ -120,8 +125,11 @@ const NotificationCenter = ({ isOpen, onClose, onNotificationClick }) => {
   // Update notifications when data changes
   useEffect(() => {
     if (notificationsData?.notifications) {
-      setNotifications(notificationsData.notifications);
-      setUnreadCount(notificationsData.notifications.filter(n => !n.read).length);
+      if (page === 1) setNotifications(notificationsData.notifications);
+      else setNotifications(prev => [...prev, ...notificationsData.notifications]);
+      setUnreadCount((notificationsData.unreadCount != null) ? notificationsData.unreadCount : (notificationsData.notifications.filter(n => !n.read).length));
+      const pages = notificationsData?.pagination?.pages || 1;
+      setHasMore(page < pages);
     }
   }, [notificationsData]);
 
@@ -183,6 +191,10 @@ const NotificationCenter = ({ isOpen, onClose, onNotificationClick }) => {
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return time.toLocaleDateString();
+  };
+
+  const loadMore = () => {
+    if (!isFetching && hasMore) setPage(p => p + 1);
   };
 
   const handleMarkAsRead = (notificationId) => {

@@ -37,6 +37,8 @@ const CourseDetail = () => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editingReviewId, setEditingReviewId] = useState(null);
   
   // Get course ID from URL
   const courseId = window.location.pathname.split('/').pop();
@@ -118,6 +120,10 @@ const CourseDetail = () => {
   const enrollment = enrollmentData?.enrollment;
   const reviews = reviewsData?.reviews || [];
   const isEnrolled = !!enrollment;
+  const myReview = reviews.find(r => (r.studentId?._id || r.user?._id || r.userId)?.toString?.() === user?._id);
+
+  // Identify current user's review (for edit)
+  const myReview = reviews.find(r => (r.studentId?._id || r.userId || r.user?._id) === user?._id);
 
   if (courseLoading) {
     return (
@@ -156,6 +162,44 @@ const CourseDetail = () => {
 
   const completedLectures = enrollment?.completedLectures?.length || 0;
   const progressPercentage = totalLectures > 0 ? (completedLectures / totalLectures) * 100 : 0;
+
+  // Mark lecture complete (optimistic)
+  const markCompleteMutation = useMutation({
+    mutationFn: async (lectureId) => {
+      const response = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId}/progress`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lectureId, progressPct: Math.min(100, Math.round(((enrollment?.completedLectures?.length || 0) + 1) / Math.max(1, totalLectures) * 100)) })
+      });
+      if (!response.ok) throw new Error('Failed to update progress');
+      return response.json();
+    },
+    onMutate: async (lectureId) => {
+      await queryClient.cancelQueries(['/api/enrollments', courseId]);
+      const previous = queryClient.getQueryData(['/api/enrollments', courseId]);
+      // Optimistically add completed lecture
+      queryClient.setQueryData(['/api/enrollments', courseId], (old) => {
+        if (!old?.enrollment) return old;
+        const already = old.enrollment.completedLectures?.some(cl => cl.lectureId === lectureId);
+        if (already) return old;
+        return {
+          ...old,
+          enrollment: {
+            ...old.enrollment,
+            completedLectures: [...(old.enrollment.completedLectures || []), { lectureId, completedAt: new Date().toISOString() }],
+            progressPct: Math.min(100, Math.round((((old.enrollment.completedLectures?.length || 0) + 1) / Math.max(1, totalLectures)) * 100))
+          }
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['/api/enrollments', courseId], ctx.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(['/api/enrollments', courseId]);
+    }
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -485,7 +529,15 @@ const CourseDetail = () => {
                                   onClick={() => setCurrentLecture(lecture)}
                                 >
                                   <div className="flex items-center space-x-3">
-                                    <Play className="w-4 h-4 text-gray-400" />
+                                    <button
+                                      className={`w-4 h-4 rounded-sm border ${enrollment?.completedLectures?.some(cl => cl.lectureId === lecture._id) ? 'bg-green-500 border-green-500' : 'border-gray-300'} flex items-center justify-center`}
+                                      title={enrollment?.completedLectures?.some(cl => cl.lectureId === lecture._id) ? 'Completed' : 'Mark complete'}
+                                      onClick={(e) => { e.stopPropagation(); markCompleteMutation.mutate(lecture._id); }}
+                                    >
+                                      {enrollment?.completedLectures?.some(cl => cl.lectureId === lecture._id) && (
+                                        <CheckCircle className="w-3 h-3 text-white" />
+                                      )}
+                                    </button>
                                     <span className="text-sm flex-1 font-medium">{lecture.title}</span>
                                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                                       {lecture.duration || '5:00'}
@@ -529,9 +581,9 @@ const CourseDetail = () => {
                 </p>
               </div>
               {isEnrolled && (
-                <Button onClick={() => setShowReviewForm(true)}>
+                <Button onClick={() => { if (myReview) { setEditingReviewId(myReview._id); setRating(myReview.rating || 0); setReview(myReview.review || ''); } setShowReviewForm(true); }}>
                   <MessageSquare className="w-4 h-4 mr-2" />
-                  Write a review
+                  {myReview ? 'Edit your review' : 'Write a review'}
                 </Button>
               )}
             </div>
@@ -539,7 +591,7 @@ const CourseDetail = () => {
             {showReviewForm && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Write a review</CardTitle>
+                  <CardTitle>{editingReviewId ? 'Edit your review' : 'Write a review'}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -577,11 +629,11 @@ const CourseDetail = () => {
                       onClick={() => reviewMutation.mutate()}
                       disabled={reviewMutation.isLoading || rating === 0}
                     >
-                      {reviewMutation.isLoading ? 'Submitting...' : 'Submit Review'}
+                      {reviewMutation.isLoading ? 'Submitting...' : (editingReviewId ? 'Save Changes' : 'Submit Review')}
                     </Button>
                     <Button 
                       variant="outline" 
-                      onClick={() => setShowReviewForm(false)}
+                      onClick={() => { setShowReviewForm(false); setEditingReviewId(null); setRating(0); setReview(''); }}
                     >
                       Cancel
                     </Button>
@@ -592,19 +644,24 @@ const CourseDetail = () => {
 
             <div className="space-y-4">
               {reviews.length > 0 ? (
-                reviews.map((review) => (
+                reviews.map((review) => {
+                  const reviewer = review.studentId || review.user || {};
+                  const first = reviewer?.profile?.firstName || reviewer?.username || 'User';
+                  const last = reviewer?.profile?.lastName || '';
+                  const initial = (first?.[0] || 'U').toUpperCase();
+                  return (
                   <Card key={review._id}>
                     <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-white font-semibold text-lg">
-                            {review.user?.profile?.firstName?.[0] || 'U'}
+                            {initial}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3 mb-2">
                             <span className="font-semibold text-gray-900">
-                              {review.user?.profile?.firstName} {review.user?.profile?.lastName}
+                              {first} {last}
                             </span>
                             <div className="flex">
                               {[1, 2, 3, 4, 5].map((star) => (
@@ -627,7 +684,8 @@ const CourseDetail = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))
+                  );
+                })
               ) : (
                 <Card>
                   <CardContent className="p-12 text-center">

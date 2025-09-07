@@ -36,7 +36,9 @@ const Assignments = () => {
       return response.json();
     },
     enabled: !!accessToken,
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    staleTime: 30000,
   });
 
   const assignments = assignmentsData?.assignments || [];
@@ -107,21 +109,23 @@ const Assignments = () => {
     });
   };
 
+  const sortByDueAsc = (list) => list.slice().sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+
   const filterAssignments = (status) => {
     switch (status) {
       case 'pending':
-        return assignments.filter(a => a.submissionStatus === 'pending' && new Date() <= new Date(a.dueAt));
+        return sortByDueAsc(assignments.filter(a => a.submissionStatus === 'pending' && new Date() <= new Date(a.dueAt)));
       case 'submitted':
         return assignments.filter(a => a.submissionStatus === 'submitted');
       case 'graded':
         return assignments.filter(a => a.submissionStatus === 'graded');
       case 'overdue':
-        return assignments.filter(a => 
+        return sortByDueAsc(assignments.filter(a => 
           (a.submissionStatus === 'pending' && new Date() > new Date(a.dueAt)) || 
           a.submissionStatus === 'overdue'
-        );
+        ));
       default:
-        return assignments;
+        return sortByDueAsc(assignments);
     }
   };
 

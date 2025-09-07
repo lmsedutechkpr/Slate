@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
+import { buildApiUrl } from '@/lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -22,7 +24,8 @@ import {
 } from 'lucide-react';
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, accessToken, authenticatedFetch } = useAuth();
+  const queryClient = useQueryClient();
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
@@ -66,7 +69,12 @@ export default function Settings() {
 
   const handleSaveSettings = async () => {
     try {
-      // Here you would save settings to the backend
+      const res = await authenticatedFetch(buildApiUrl('/api/users/settings'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      if (!res.ok) throw new Error('Save failed');
       setSuccess('Settings saved successfully!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -99,6 +107,35 @@ export default function Settings() {
     }
   };
 
+  // Active sessions
+  const { data: sessionsData } = useQuery({
+    queryKey: ['/api/sessions', accessToken],
+    queryFn: async () => {
+      const res = await authenticatedFetch(buildApiUrl('/api/sessions'));
+      if (!res.ok) return { sessions: [] };
+      return res.json();
+    },
+    enabled: !!accessToken
+  });
+
+  const signOutSession = useMutation({
+    mutationFn: async (sessionId) => {
+      const res = await authenticatedFetch(buildApiUrl(`/api/sessions/${sessionId}`), { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to sign out session');
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries(['/api/sessions', accessToken])
+  });
+
+  const signOutAllSessions = useMutation({
+    mutationFn: async () => {
+      const res = await authenticatedFetch(buildApiUrl('/api/sessions'), { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to sign out sessions');
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries(['/api/sessions', accessToken])
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -121,6 +158,37 @@ export default function Settings() {
         )}
 
         <div className="space-y-6">
+          {/* Sessions */}
+          <Card className="border-0 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>Active Sessions</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => signOutAllSessions.mutate()} disabled={signOutAllSessions.isLoading}>
+                  Sign out of all devices
+                </Button>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {(sessionsData?.sessions || []).length === 0 && (
+                  <div className="text-sm text-gray-500">No other active sessions.</div>
+                )}
+                {(sessionsData?.sessions || []).map((s) => (
+                  <div key={s._id} className="py-3 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{s.device || 'Unknown device'}</div>
+                      <div className="text-xs text-gray-500">{s.ip || 'IP unknown'} • {new Date(s.lastActiveAt || s.createdAt).toLocaleString()}</div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => signOutSession.mutate(s._id)} disabled={signOutSession.isLoading}>Sign out</Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Appearance Settings */}
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader>
@@ -233,6 +301,28 @@ export default function Settings() {
                   id="assignmentReminders"
                   checked={settings.assignmentReminders}
                   onCheckedChange={value => handleSettingChange('assignmentReminders', value)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="liveSessionReminders">Live Session Reminders</Label>
+                  <p className="text-sm text-gray-500">Reminders before live classes</p>
+                </div>
+                <Switch
+                  id="liveSessionReminders"
+                  checked={settings.liveSessionReminders}
+                  onCheckedChange={value => handleSettingChange('liveSessionReminders', value)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="achievementAlerts">Achievement Alerts</Label>
+                  <p className="text-sm text-gray-500">Badges and milestones</p>
+                </div>
+                <Switch
+                  id="achievementAlerts"
+                  checked={settings.achievementAlerts}
+                  onCheckedChange={value => handleSettingChange('achievementAlerts', value)}
                 />
               </div>
             </CardContent>

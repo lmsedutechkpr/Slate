@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '../../hooks/useAuth.js';
-import { Bell, ChevronDown, User, LogOut, Settings, Menu, X, BookOpen, Home, FileText, TrendingUp, ShoppingBag, BarChart3, Users, Shield } from 'lucide-react';
+import { Bell, ChevronDown, User, LogOut, Settings, Menu, X, BookOpen, Home, FileText, TrendingUp, BarChart3, Users, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import NotificationCenter from '../Notifications/NotificationCenter.jsx';
@@ -29,7 +29,6 @@ const Navbar = () => {
     { name: 'Courses', href: '/courses', role: 'student', icon: BookOpen },
     { name: 'Assignments', href: '/assignments', role: 'student', icon: FileText },
     { name: 'Progress', href: '/progress', role: 'student', icon: TrendingUp },
-    { name: 'Store', href: '/store', role: 'student', icon: ShoppingBag },
     { name: 'Admin Dashboard', href: '/admin', role: 'admin', icon: Shield },
     { name: 'Instructor Dashboard', href: '/instructor', role: 'instructor', icon: Users }
   ];
@@ -181,7 +180,8 @@ const Navbar = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleNotificationClick}
-                  className="relative p-2 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition-all duration-200"
+                  aria-label="Open notifications"
+                  className="relative p-2 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   data-testid="notifications-button"
                 >
                   <Bell className="h-5 w-5" />
@@ -202,7 +202,8 @@ const Navbar = () => {
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      className="flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-primary-50 transition-all duration-200"
+                      aria-label="Open user menu"
+                      className="flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                       data-testid="user-menu-trigger"
                     >
                       <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
@@ -278,7 +279,8 @@ const Navbar = () => {
                   variant="ghost"
                   size="sm"
                   onClick={toggleMobileMenu}
-                  className="p-2 rounded-xl hover:bg-primary-50 transition-all duration-200"
+                  aria-label="Toggle mobile menu"
+                  className="p-2 rounded-xl hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   data-testid="mobile-menu-button"
                 >
                   {mobileMenuOpen ? (

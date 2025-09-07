@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +40,9 @@ const Dashboard = () => {
       return response.json();
     },
     enabled: !!accessToken && !authLoading,
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    staleTime: 30000
   });
 
   // Fetch live sessions with real-time updates
@@ -51,7 +54,9 @@ const Dashboard = () => {
       return response.json();
     },
     enabled: !!accessToken && !authLoading,
-    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    staleTime: 30000
   });
 
   // Show loading state while authentication is in progress
@@ -272,10 +277,12 @@ const Dashboard = () => {
                           </span>
                         </div>
                       </div>
-                      <Button size="sm" className="flex-shrink-0">
-                        <Play className="w-4 h-4 mr-2" />
-                        Continue
-                      </Button>
+                      <Link href={`/courses/${enrollment.course?._id || enrollment.courseId}`}>
+                        <Button size="sm" className="flex-shrink-0">
+                          <Play className="w-4 h-4 mr-2" />
+                          Continue
+                        </Button>
+                      </Link>
                     </div>
                   ))}
                 </div>
