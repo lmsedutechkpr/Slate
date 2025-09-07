@@ -38,7 +38,6 @@ const CourseDetail = () => {
   const [review, setReview] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [editingReviewId, setEditingReviewId] = useState(null);
-  const [editingReviewId, setEditingReviewId] = useState(null);
   
   // Get course ID from URL
   const courseId = window.location.pathname.split('/').pop();
@@ -121,9 +120,6 @@ const CourseDetail = () => {
   const reviews = reviewsData?.reviews || [];
   const isEnrolled = !!enrollment;
   const myReview = reviews.find(r => (r.studentId?._id || r.user?._id || r.userId)?.toString?.() === user?._id);
-
-  // Identify current user's review (for edit)
-  const myReview = reviews.find(r => (r.studentId?._id || r.userId || r.user?._id) === user?._id);
 
   if (courseLoading) {
     return (
