@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
+import { getSocket } from '@/lib/realtime.js';
 import { 
   Calendar, 
   Clock, 
@@ -105,6 +106,20 @@ const AssignmentDetail = () => {
 
   const assignment = assignmentData?.assignment;
   const submission = submissionData?.submission;
+
+  // Realtime: refresh details when this assignment is updated
+  useEffect(() => {
+    if (!accessToken || !assignmentId) return;
+    const socket = getSocket(accessToken);
+    const handler = (evt) => {
+      if (evt.assignmentId === assignmentId) {
+        queryClient.invalidateQueries(['/api/assignments', assignmentId]);
+        queryClient.invalidateQueries(['/api/assignments', assignmentId, 'submission']);
+      }
+    };
+    socket.on('student:assignments:update', handler);
+    return () => { socket.off('student:assignments:update', handler); };
+  }, [accessToken, assignmentId, queryClient]);
 
   if (assignmentLoading) {
     return (

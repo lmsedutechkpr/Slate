@@ -76,15 +76,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
-  // Socket.io for realtime notifications
-  const { Server } = await import('socket.io');
-  const io = new Server(server, { cors: { origin: '*' } });
-
-  io.on('connection', (socket) => {
-    socket.on('notifications:subscribe', () => {
-      socket.join('admin');
-    });
-  });
+  // Socket.io for real-time updates
+  const { initIo, getIo } = await import('./realtime.js');
+  initIo(server);
 
   // Patch notificationController.publish to emit
   try {
@@ -92,7 +86,8 @@ app.use((req, res, next) => {
     const originalPublish = publish;
     (await import('./controllers/notificationController.js')).publish = async (req, res) => {
       await originalPublish(req, res);
-      io.to('admin').emit('notification', {
+      const io = getIo();
+      io?.to('admin').emit('notification', {
         title: req.body?.title || 'Notification',
         message: req.body?.message || ''
       });

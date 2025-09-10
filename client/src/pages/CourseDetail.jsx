@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
+import { getSocket } from '@/lib/realtime.js';
 import { 
   Play, 
   BookOpen, 
@@ -265,6 +266,19 @@ const CourseDetail = () => {
       queryClient.invalidateQueries(['/api/enrollments', courseId]);
     }
   });
+
+  // Realtime: update enrollment/progress for this course when progress events arrive
+  useEffect(() => {
+    if (!accessToken || !courseId) return;
+    const socket = getSocket(accessToken);
+    const handler = (evt) => {
+      if (evt.courseId === courseId) {
+        queryClient.invalidateQueries(['/api/enrollments', courseId]);
+      }
+    };
+    socket.on('student:progress:update', handler);
+    return () => { socket.off('student:progress:update', handler); };
+  }, [accessToken, courseId, queryClient]);
 
   return (
     <div className="min-h-screen bg-gray-50">
