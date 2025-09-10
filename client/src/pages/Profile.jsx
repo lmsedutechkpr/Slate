@@ -294,7 +294,7 @@ export default function Profile() {
                 <div className="text-center">
                   <div className="relative inline-block">
                     <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 mx-auto mb-4">
-                      {profile.avatar ? (
+              {profile.avatar ? (
                         <img 
                           src={getImageUrl(profile.avatar, buildApiUrl(''))} 
                           alt="Avatar" 
@@ -304,8 +304,8 @@ export default function Profile() {
                         <div className="w-full h-full flex items-center justify-center">
                           <User className="w-16 h-16 text-gray-400" />
                         </div>
-                      )}
-                    </div>
+              )}
+            </div>
                     <label className="absolute bottom-2 right-2 w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-700 transition-colors">
                       <Camera className="w-5 h-5 text-white" />
                       <input 
@@ -314,8 +314,8 @@ export default function Profile() {
                         className="hidden" 
                         onChange={onUploadAvatar} 
                       />
-                    </label>
-                  </div>
+                </label>
+              </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">
                     {profile.firstName} {profile.lastName}
                   </h3>
@@ -328,7 +328,7 @@ export default function Profile() {
                   >
                     {avatarUploading ? 'Uploading...' : 'Change Photo'}
                   </Button>
-                </div>
+            </div>
               </CardContent>
             </Card>
           </div>
@@ -355,7 +355,7 @@ export default function Profile() {
                       <Shield className="w-4 h-4 mr-2" />
                       Security
                     </TabsTrigger>
-                  </TabsList>
+            </TabsList>
 
                   {/* Personal Information Tab */}
                   <TabsContent value="personal" className="space-y-6">
@@ -404,7 +404,7 @@ export default function Profile() {
                           />
                         </div>
                       </div>
-                      <div>
+                <div>
                         <Label>Gender</Label>
                         <RadioGroup 
                           value={profile.gender} 
@@ -424,8 +424,8 @@ export default function Profile() {
                             <Label htmlFor="other">Other</Label>
                           </div>
                         </RadioGroup>
-                      </div>
-                      <div>
+                </div>
+                <div>
                         <Label htmlFor="email">Email Address</Label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -436,8 +436,8 @@ export default function Profile() {
                             className="pl-10 bg-gray-50"
                           />
                         </div>
-                      </div>
-                    </div>
+                </div>
+              </div>
                     
                     <div>
                       <Label htmlFor="bio">Bio</Label>
@@ -460,7 +460,7 @@ export default function Profile() {
                           placeholder="https://linkedin.com/in/..."
                         />
                       </div>
-                      <div>
+                <div>
                         <Label htmlFor="githubUrl">GitHub URL</Label>
                         <Input 
                           id="githubUrl" 
@@ -468,8 +468,8 @@ export default function Profile() {
                           onChange={e => setProfile(p => ({...p, githubUrl: e.target.value}))}
                           placeholder="https://github.com/..."
                         />
-                      </div>
-                      <div>
+                </div>
+                <div>
                         <Label htmlFor="portfolioUrl">Portfolio URL</Label>
                         <Input 
                           id="portfolioUrl" 
@@ -477,9 +477,9 @@ export default function Profile() {
                           onChange={e => setProfile(p => ({...p, portfolioUrl: e.target.value}))}
                           placeholder="https://your-portfolio.com"
                         />
-                      </div>
-                    </div>
-                  </TabsContent>
+                </div>
+              </div>
+            </TabsContent>
 
                   {/* Academic Information Tab */}
                   <TabsContent value="academic" className="space-y-6">
@@ -527,7 +527,7 @@ export default function Profile() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div>
+                <div>
                         <Label htmlFor="gpa">GPA</Label>
                         <Input 
                           id="gpa" 
@@ -535,8 +535,8 @@ export default function Profile() {
                           onChange={e => setProfile(p => ({...p, gpa: e.target.value}))}
                           placeholder="e.g., 3.8"
                         />
-                      </div>
-                      <div>
+                </div>
+                <div>
                         <Label htmlFor="expectedGraduation">Expected Graduation</Label>
                         <Input 
                           id="expectedGraduation" 
@@ -544,8 +544,8 @@ export default function Profile() {
                           value={profile.expectedGraduation} 
                           onChange={e => setProfile(p => ({...p, expectedGraduation: e.target.value}))}
                         />
-                      </div>
-                    </div>
+                </div>
+              </div>
 
                     <div>
                       <Label htmlFor="careerGoal">Career Goal</Label>
@@ -591,7 +591,7 @@ export default function Profile() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div>
+                <div>
                         <Label htmlFor="preferredLanguage">Preferred Language</Label>
                         <Select value={profile.preferredLanguage} onValueChange={value => setProfile(p => ({...p, preferredLanguage: value}))}>
                           <SelectTrigger>
@@ -606,8 +606,8 @@ export default function Profile() {
                             <SelectItem value="hindi">Hindi</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                      <div>
+                </div>
+                <div>
                         <Label htmlFor="timeZone">Time Zone</Label>
                         <Select value={profile.timeZone} onValueChange={value => setProfile(p => ({...p, timeZone: value}))}>
                           <SelectTrigger>
@@ -640,10 +640,10 @@ export default function Profile() {
                             <Label htmlFor={domain} className="text-sm">{domain}</Label>
                           </div>
                         ))}
-                      </div>
-                    </div>
+                </div>
+              </div>
 
-                    <div>
+              <div>
                       <Label>Skills</Label>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
                         {['JavaScript', 'Python', 'React', 'Node.js', 'Java', 'C++', 'SQL', 'MongoDB', 'AWS', 'Docker', 'Git', 'Machine Learning'].map(skill => (
@@ -657,9 +657,9 @@ export default function Profile() {
                           </div>
                         ))}
                       </div>
-                    </div>
+              </div>
 
-                    <div>
+              <div>
                       <Label>Notification Preferences</Label>
                       <div className="space-y-3 mt-2">
                         <div className="flex items-center justify-between">
@@ -707,15 +707,15 @@ export default function Profile() {
                           />
                         </div>
                       </div>
-                    </div>
-                  </TabsContent>
+              </div>
+            </TabsContent>
 
                   {/* Security Tab */}
                   <TabsContent value="security" className="space-y-6">
                     <div className="space-y-4">
                       <h4 className="text-lg font-semibold">Change Password</h4>
-                      <form onSubmit={onChangePassword} className="space-y-4">
-                        <div>
+              <form onSubmit={onChangePassword} className="space-y-4">
+                <div>
                           <Label htmlFor="currentPassword">Current Password</Label>
                           <div className="relative">
                             <Input 
@@ -735,9 +735,9 @@ export default function Profile() {
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
                           </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                             <Label htmlFor="newPassword">New Password</Label>
                             <div className="relative">
                               <Input 
@@ -757,8 +757,8 @@ export default function Profile() {
                                 {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </Button>
                             </div>
-                          </div>
-                          <div>
+                  </div>
+                  <div>
                             <Label htmlFor="confirmPassword">Confirm New Password</Label>
                             <div className="relative">
                               <Input 
@@ -778,13 +778,13 @@ export default function Profile() {
                                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </Button>
                             </div>
-                          </div>
-                        </div>
+                  </div>
+                </div>
                         <Button type="submit">Change Password</Button>
-                      </form>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+              </form>
+                </div>
+            </TabsContent>
+          </Tabs>
 
                 {/* Save Button */}
                 <div className="flex justify-end pt-6 border-t border-gray-100">
@@ -793,9 +793,9 @@ export default function Profile() {
                     <span>Save Changes</span>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+        </CardContent>
+      </Card>
+    </div>
         </div>
       </div>
     </div>

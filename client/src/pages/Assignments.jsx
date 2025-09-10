@@ -235,8 +235,53 @@ const Assignments = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="xl" />
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-8 w-60 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-80 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            {[0,1,2,3].map((i) => (
+              <div key={i} className="border-0 shadow-sm bg-white rounded-xl p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-3 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-7 w-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabs + content */}
+          <div className="space-y-6">
+            <div className="w-full max-w-xl h-10 bg-white rounded-md shadow-sm animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, idx) => (
+                <div key={idx} className="border-0 shadow-sm bg-white rounded-xl p-6 space-y-4">
+                  <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[0,1,2,3].map((k) => (
+                      <div key={k} className="h-4 bg-gray-100 rounded animate-pulse"></div>
+                    ))}
+                  </div>
+                  <div className="h-9 w-24 bg-gray-200 rounded animate-pulse ml-auto"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

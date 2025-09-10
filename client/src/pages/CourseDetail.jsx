@@ -53,7 +53,9 @@ const CourseDetail = () => {
       return response.json();
     },
     enabled: !!accessToken && !!courseId,
-    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    staleTime: 30000,
   });
 
   // Fetch enrollment status
@@ -65,7 +67,9 @@ const CourseDetail = () => {
       return response.json();
     },
     enabled: !!accessToken && !!courseId,
-    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    staleTime: 30000,
   });
 
   // Fetch course reviews
@@ -77,7 +81,9 @@ const CourseDetail = () => {
       return response.json();
     },
     enabled: !!accessToken && !!courseId,
-    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    staleTime: 30000,
   });
 
   // Enroll mutation
@@ -123,8 +129,71 @@ const CourseDetail = () => {
 
   if (courseLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="xl" />
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header skeleton */}
+          <div className="mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="flex items-start space-x-6">
+                  <div className="w-40 h-28 bg-gray-200 rounded-xl animate-pulse"></div>
+                  <div className="flex-1 space-y-3">
+                    <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[0,1,2,3].map((i) => (
+                    <div key={i} className="bg-white p-4 rounded-lg border">
+                      <div className="h-7 w-12 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-3 w-24 bg-gray-200 rounded animate-pulse mt-2"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-white rounded-xl border p-6">
+                  <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
+                  <div className="h-10 w-full bg-gray-200 rounded animate-pulse mt-4"></div>
+                  <div className="h-10 w-full bg-gray-100 rounded animate-pulse mt-3"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs skeleton */}
+          <div className="space-y-6">
+            <div className="w-full max-w-xl h-10 bg-white rounded-md border animate-pulse"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                <div className="bg-white rounded-lg border p-6 space-y-2">
+                  <div className="h-5 w-48 bg-gray-200 rounded animate-pulse"></div>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-4 w-full bg-gray-100 rounded animate-pulse"></div>
+                  ))}
+                </div>
+                <div className="bg-white rounded-lg border p-6 space-y-2">
+                  <div className="h-5 w-56 bg-gray-200 rounded animate-pulse"></div>
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-4 w-11/12 bg-gray-100 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg border p-6 space-y-2">
+                  <div className="h-5 w-40 bg-gray-200 rounded animate-pulse"></div>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-4 w-5/6 bg-gray-100 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
@@ -30,6 +31,24 @@ import {
 
 const Dashboard = () => {
   const { user, accessToken, authenticatedFetch, authLoading } = useAuth();
+  const [weeklyGoalHours, setWeeklyGoalHours] = useState(15);
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('weeklyGoalHours'));
+    if (!Number.isNaN(saved) && saved > 0) setWeeklyGoalHours(saved);
+  }, []);
+
+  const handleSaveWeeklyGoal = (value) => {
+    const n = Number(value);
+    if (!Number.isNaN(n) && n > 0 && n <= 100) {
+      setWeeklyGoalHours(n);
+      localStorage.setItem('weeklyGoalHours', String(n));
+      setIsEditingGoal(false);
+    } else {
+      setIsEditingGoal(false);
+    }
+  };
   
   // Fetch dashboard data with real-time updates
   const { data: dashboardData, isLoading, error } = useQuery({
@@ -70,8 +89,71 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="xl" />
+      <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header skeleton */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-72 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Welcome card skeleton */}
+          <div className="border-0 shadow-sm bg-white rounded-xl mb-8 p-8">
+            <div className="space-y-4">
+              <div className="h-7 w-80 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+              <div className="grid grid-cols-3 gap-6">
+                {[0,1,2].map((i) => (
+                  <div key={i} className="p-4 rounded-xl bg-gray-50">
+                    <div className="h-8 w-12 mx-auto bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-3 w-20 mx-auto mt-2 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Key metrics skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[0,1,2,3].map((i) => (
+              <div key={i} className="border-0 shadow-sm bg-white rounded-xl p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-3 w-28 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-7 w-16 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom grid skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[0,1].map((i) => (
+              <div key={i} className="border-0 shadow-sm bg-white rounded-xl p-6">
+                <div className="space-y-4">
+                  <div className="h-5 w-40 bg-gray-200 rounded animate-pulse"></div>
+                  {[0,1,2].map((j) => (
+                    <div key={j} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                      <div className="h-5 w-12 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -96,6 +178,14 @@ const Dashboard = () => {
     recommendations = { courses: [], products: [] },
     stats = {}
   } = dashboardData || {};
+
+  const recommendedEnrollment = useMemo(() => {
+    if (!Array.isArray(enrollments) || enrollments.length === 0) return null;
+    const withActivity = enrollments
+      .slice()
+      .sort((a, b) => new Date(b.lastActivityAt || 0) - new Date(a.lastActivityAt || 0));
+    return withActivity[0];
+  }, [enrollments]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -312,15 +402,31 @@ const Dashboard = () => {
                   <div className="text-3xl font-bold text-gray-900">
                     {formatTime(stats.weeklyStudyTime || 0)}
                   </div>
-                  <div className="text-sm text-gray-600">Goal: 15h per week</div>
+                  <div className="text-sm text-gray-600 flex items-center justify-center gap-2">
+                    <span>Goal: {weeklyGoalHours}h per week</span>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditingGoal((v) => !v)} className="h-6 px-2">Edit</Button>
+                  </div>
+                  {isEditingGoal && (
+                    <div className="mt-2 flex items-center justify-center gap-2">
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        defaultValue={weeklyGoalHours}
+                        className="w-20 border rounded px-2 py-1 text-sm"
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveWeeklyGoal(e.currentTarget.value); }}
+                        onBlur={(e) => handleSaveWeeklyGoal(e.currentTarget.value)}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span>Progress</span>
-                    <span>{Math.round(((stats.weeklyStudyTime || 0) / (15 * 60)) * 100)}%</span>
+                    <span>{Math.round(((stats.weeklyStudyTime || 0) / (weeklyGoalHours * 60)) * 100)}%</span>
                   </div>
                   <ProgressBar 
-                    value={Math.min(((stats.weeklyStudyTime || 0) / (15 * 60)) * 100, 100)} 
+                    value={Math.min(((stats.weeklyStudyTime || 0) / (weeklyGoalHours * 60)) * 100, 100)} 
                     className="h-3 bg-gray-100"
                   />
                 </div>
@@ -352,6 +458,7 @@ const Dashboard = () => {
                 <div className="space-y-4">
                   {assignments
                     .filter(a => !a.submitted && new Date(a.dueAt) > new Date())
+                    .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
                     .slice(0, 3)
                     .map((assignment) => (
                       <div key={assignment._id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
@@ -419,6 +526,40 @@ const Dashboard = () => {
                   <Video className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <p className="text-gray-600">No live sessions scheduled</p>
                   <p className="text-sm text-gray-500 mt-1">Check back later for updates</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recommended Next */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+          <Card className="border-0 shadow-sm bg-white lg:col-span-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">Recommended Next</CardTitle>
+              <CardDescription>Resume where you left off</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recommendedEnrollment ? (
+                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-primary-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 truncate">{recommendedEnrollment.course?.title || 'Course'}</h4>
+                    <p className="text-xs text-gray-600 truncate">Last activity: {recommendedEnrollment.lastActivityAt ? new Date(recommendedEnrollment.lastActivityAt).toLocaleString() : '—'}</p>
+                  </div>
+                  <Link href={`/courses/${recommendedEnrollment.course?._id || recommendedEnrollment.courseId}`}>
+                    <Button size="sm" className="flex-shrink-0">
+                      <Play className="w-4 h-4 mr-2" />
+                      Resume
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <BookOpen className="mx-auto h-10 w-10 text-gray-400 mb-3" />
+                  <p className="text-gray-600 text-sm">No recent activity. Start learning from your courses.</p>
                 </div>
               )}
             </CardContent>
