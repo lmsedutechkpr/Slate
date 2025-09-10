@@ -78,6 +78,21 @@ const Dashboard = () => {
     staleTime: 30000
   });
 
+  const {
+    enrollments = [],
+    assignments = [],
+    recommendations = { courses: [], products: [] },
+    stats = {}
+  } = dashboardData || {};
+
+  const recommendedEnrollment = useMemo(() => {
+    if (!Array.isArray(enrollments) || enrollments.length === 0) return null;
+    const withActivity = enrollments
+      .slice()
+      .sort((a, b) => new Date(b.lastActivityAt || 0) - new Date(a.lastActivityAt || 0));
+    return withActivity[0];
+  }, [enrollments]);
+
   // Show loading state while authentication is in progress
   if (authLoading) {
     return (
@@ -171,21 +186,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const {
-    enrollments = [],
-    assignments = [],
-    recommendations = { courses: [], products: [] },
-    stats = {}
-  } = dashboardData || {};
-
-  const recommendedEnrollment = useMemo(() => {
-    if (!Array.isArray(enrollments) || enrollments.length === 0) return null;
-    const withActivity = enrollments
-      .slice()
-      .sort((a, b) => new Date(b.lastActivityAt || 0) - new Date(a.lastActivityAt || 0));
-    return withActivity[0];
-  }, [enrollments]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
