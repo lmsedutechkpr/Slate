@@ -104,153 +104,143 @@ const LandingPage = () => {
     }
   ];
 
-  const platforms = [
-    { icon: Laptop, name: "Web Platform" },
-    { icon: Smartphone, name: "Mobile App" },
-    { icon: Monitor, name: "Tablet Support" }
-  ];
+  // macOS design no longer uses platforms dock
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <div className="relative min-h-screen overflow-hidden bg-slate-900 text-slate-50">
+      {/* Ambient radial lights */}
+      <div className="pointer-events-none absolute inset-0 [background-image:radial-gradient(1200px_600px_at_20%_-10%,rgba(99,102,241,0.25),transparent),radial-gradient(900px_500px_at_80%_-10%,rgba(56,189,248,0.2),transparent)]"></div>
+      {/* Navigation - macOS-style translucent menu bar */}
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-white/5 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-white" />
+          <div className="flex justify-between items-center h-14">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 shadow-md shadow-black/30 flex items-center justify-center">
+                <GraduationCap className="w-4 h-4 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">EduTech</h1>
+              <span className="text-sm tracking-tight text-white">EduTech</span>
             </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-primary-600 transition-colors">Features</a>
-              <a href="#testimonials" className="text-gray-600 hover:text-primary-600 transition-colors">Reviews</a>
-              <a href="#pricing" className="text-gray-600 hover:text-primary-600 transition-colors">Pricing</a>
+            <div className="hidden md:flex items-center gap-8 text-sm">
+              <a href="#features" className="text-slate-300 hover:text-white">Features</a>
+              <a href="#testimonials" className="text-slate-300 hover:text-white">Reviews</a>
+              <a href="#pricing" className="text-slate-300 hover:text-white">Pricing</a>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-2">
               <Link href="/login">
-                <Button variant="ghost" className="text-gray-600 hover:text-primary-600">
-                  Sign In
-                </Button>
+                <Button variant="ghost" className="h-8 px-3 text-slate-200 hover:text-white hover:bg-white/10">Sign In</Button>
               </Link>
               <Link href="/register">
-                <Button className="bg-primary-600 hover:bg-primary-700 text-white">
-                  Get Started
-                </Button>
+                <Button className="h-8 px-3 bg-white text-slate-900 hover:bg-slate-100">Get Started</Button>
               </Link>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - macOS glass + window */}
       <section className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className={`space-y-8 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <div className="space-y-4">
-                <Badge className="bg-primary-100 text-primary-700 border-primary-200 px-4 py-2">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Next-Gen Learning Platform
-                </Badge>
-                <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                  Master New Skills with
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-800"> Expert Guidance</span>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/50 px-3 py-1 text-xs text-gray-700 shadow-sm backdrop-blur-xl">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-400"></span>
+                  Live and constantly improving
+                </div>
+                <h1 className="text-4xl lg:text-6xl font-semibold text-gray-900 leading-tight tracking-tight">
+                  Learn beautifully.
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">The macOS way.</span>
                 </h1>
-                <p className="text-xl text-gray-600 leading-relaxed">
-                  Join thousands of learners advancing their careers with our comprehensive online education platform. 
-                  Learn from industry experts, earn certificates, and build the future you want.
+                <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
+                  A calm, focused space to master new skills with elegant design, smooth interactions, and powerful tools.
                 </p>
               </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
+
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Link href="/register">
-                  <Button size="lg" className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 text-lg">
-                    Start Learning Free
+                  <Button size="lg" className="h-12 px-6 rounded-2xl bg-gray-900 text-white hover:bg-black/90">
+                    Get started free
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </Link>
-                <Button variant="outline" size="lg" className="px-8 py-4 text-lg border-2">
+                <Button variant="outline" size="lg" className="h-12 px-6 rounded-2xl border-gray-300/70 bg-white/60 backdrop-blur-xl hover:bg-white">
                   <Play className="w-5 h-5 mr-2" />
-                  Watch Demo
+                  Watch demo
                 </Button>
               </div>
 
-              <div className="flex items-center space-x-8 pt-4">
+              <div className="flex items-center space-x-8 pt-2">
                 <div className="flex -space-x-2">
                   {[1,2,3,4,5].map((i) => (
-                    <div key={i} className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full border-2 border-white flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">{i}</span>
+                    <div key={i} className="w-9 h-9 rounded-full border border-white bg-gradient-to-br from-gray-200 to-white shadow-sm flex items-center justify-center text-[11px] font-medium text-gray-700">
+                      {i}
                     </div>
                   ))}
                 </div>
                 <div className="text-sm text-gray-600">
-                  <div className="font-semibold">50,000+ students</div>
-                  <div>trust EduTech for their learning</div>
+                  <div className="font-medium">50,000+ learners</div>
+                  <div>trust EduTech every day</div>
                 </div>
               </div>
             </div>
 
             <div className={`relative transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 rounded-3xl transform rotate-6 opacity-20"></div>
-                <div className="relative bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900">Dashboard</h3>
-                      <div className="flex space-x-2">
-                        <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                        <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-primary-50 rounded-xl p-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-primary-600" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">12</div>
-                            <div className="text-xs text-gray-600">Courses</div>
-                          </div>
+              <div className="mx-auto w-full max-w-xl rounded-3xl border border-white/60 bg-white/70 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/60">
+                  <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-red-400"></span>
+                    <span className="h-3 w-3 rounded-full bg-yellow-300"></span>
+                    <span className="h-3 w-3 rounded-full bg-emerald-400"></span>
+                  </div>
+                  <div className="text-xs text-gray-500">Dashboard – EduTech</div>
+                  <div className="h-5 w-20 rounded-md bg-gray-200/70"></div>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-white/60 bg-white/70 p-4 backdrop-blur-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                          <BookOpen className="w-5 h-5 text-indigo-600" />
                         </div>
-                      </div>
-                      <div className="bg-green-50 rounded-xl p-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <Award className="w-5 h-5 text-green-600" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">8</div>
-                            <div className="text-xs text-gray-600">Certificates</div>
-                          </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">12</div>
+                          <div className="text-xs text-gray-500">Courses</div>
                         </div>
                       </div>
                     </div>
+                    <div className="rounded-2xl border border-white/60 bg-white/70 p-4 backdrop-blur-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                          <Award className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">8</div>
+                          <div className="text-xs text-gray-500">Certificates</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Learning Progress</span>
-                        <span className="text-sm text-gray-500">75%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full" style={{width: '75%'}}></div>
-                      </div>
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700">Learning Progress</span>
+                      <span className="text-gray-500">75%</span>
                     </div>
+                    <div className="h-2 w-full rounded-full bg-gray-200">
+                      <div className="h-2 rounded-full bg-gradient-to-r from-gray-900 to-gray-600" style={{ width: '75%' }}></div>
+                    </div>
+                  </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Video className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">React Fundamentals</div>
-                          <div className="text-xs text-gray-500">Next: State Management</div>
-                        </div>
-                        <Play className="w-4 h-4 text-gray-400" />
+                  <div className="mt-6 space-y-2">
+                    <div className="flex items-center gap-3 rounded-xl border border-white/60 bg-white/70 p-3 backdrop-blur-xl">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <Video className="w-4 h-4 text-blue-600" />
                       </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">React Fundamentals</div>
+                        <div className="text-xs text-gray-500">Next: State Management</div>
+                      </div>
+                      <Play className="w-4 h-4 text-gray-400" />
                     </div>
                   </div>
                 </div>
@@ -261,13 +251,13 @@ const LandingPage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-3xl lg:text-4xl font-bold text-primary-600 mb-2">{stat.number}</div>
-                <div className="text-gray-600 font-medium">{stat.label}</div>
+                <div className="text-3xl lg:text-4xl font-semibold text-gray-900 mb-1">{stat.number}</div>
+                <div className="text-gray-600">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -275,27 +265,23 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
+      <section id="features" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Succeed
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our comprehensive platform provides all the tools and resources you need to achieve your learning goals.
-            </p>
+            <h2 className="text-3xl lg:text-4xl font-semibold text-gray-900 mb-4">Everything you need to succeed</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">Thoughtfully crafted tools that feel right at home on macOS.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white">
+                <Card key={index} className="border border-white/60 bg-white/70 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow rounded-3xl">
                   <CardContent className="p-8">
-                    <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-6">
-                      <Icon className="w-6 h-6 text-primary-600" />
+                    <div className="w-12 h-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center mb-6">
+                      <Icon className="w-6 h-6" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
                     <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
@@ -306,35 +292,31 @@ const LandingPage = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-white">
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-600">
-              Get started in minutes and begin your learning journey today
-            </p>
+            <h2 className="text-3xl lg:text-4xl font-semibold text-gray-900 mb-4">How it works</h2>
+            <p className="text-lg text-gray-600">Get started in minutes and begin your learning journey today</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary-600">1</span>
+              <div className="w-16 h-16 rounded-full border border-white/60 bg-white/70 backdrop-blur-xl flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-semibold text-gray-900">1</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Sign Up & Choose</h3>
               <p className="text-gray-600">Create your account and browse our extensive course catalog to find the perfect learning path.</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary-600">2</span>
+              <div className="w-16 h-16 rounded-full border border-white/60 bg-white/70 backdrop-blur-xl flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-semibold text-gray-900">2</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Learn & Practice</h3>
               <p className="text-gray-600">Access video lessons, interactive exercises, and hands-on projects designed by industry experts.</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary-600">3</span>
+              <div className="w-16 h-16 rounded-full border border-white/60 bg-white/70 backdrop-blur-xl flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-semibold text-gray-900">3</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Get Certified</h3>
               <p className="text-gray-600">Complete courses and earn industry-recognized certificates to showcase your new skills.</p>
@@ -344,20 +326,16 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-20 bg-gray-50">
+      <section id="testimonials" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              What Our Students Say
-            </h2>
-            <p className="text-xl text-gray-600">
-              Join thousands of successful learners who have transformed their careers
-            </p>
+            <h2 className="text-3xl lg:text-4xl font-semibold text-gray-900 mb-4">What our students say</h2>
+            <p className="text-lg text-gray-600">Join thousands of successful learners who have transformed their careers</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 shadow-lg bg-white">
+              <Card key={index} className="border border-white/60 bg-white/70 backdrop-blur-xl shadow-xl rounded-3xl">
                 <CardContent className="p-8">
                   <div className="flex items-center mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -366,7 +344,7 @@ const LandingPage = () => {
                   </div>
                   <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.content}"</p>
                   <div className="flex items-center">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-semibold">
                       {testimonial.avatar}
                     </div>
                     <div className="ml-4">
@@ -382,81 +360,76 @@ const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary-600 to-primary-800">
+      <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-            Ready to Start Your Learning Journey?
-          </h2>
-          <p className="text-xl text-primary-100 mb-8">
-            Join thousands of students who are already advancing their careers with EduTech
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button size="lg" className="bg-white text-primary-600 hover:bg-gray-50 px-8 py-4 text-lg">
-                Get Started Free
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-primary-600 px-8 py-4 text-lg">
-                Sign In
-              </Button>
-            </Link>
+          <div className="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-10">
+            <h2 className="text-3xl lg:text-4xl font-semibold text-gray-900 mb-4">Ready to start your journey?</h2>
+            <p className="text-lg text-gray-600 mb-8">Join learners who prefer calm, delightful design without distractions.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/register">
+                <Button size="lg" className="h-12 px-6 rounded-2xl bg-gray-900 text-white hover:bg-black/90">
+                  Get started free
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="outline" size="lg" className="h-12 px-6 rounded-2xl border-gray-300/70 bg-white hover:bg-white">
+                  Sign in
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
+      <footer className="py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
-                  <GraduationCap className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-xl bg-gray-900 text-white flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4" />
                 </div>
-                <h3 className="text-xl font-bold">EduTech</h3>
+                <span className="text-sm tracking-tight text-gray-700">EduTech</span>
               </div>
-              <p className="text-gray-400 mb-6 max-w-md">
-                Empowering learners worldwide with cutting-edge education technology and expert instruction.
+              <p className="text-gray-600 max-w-md">
+                Empowering learners with elegant tools and an experience inspired by macOS.
               </p>
-              <div className="flex space-x-4">
-                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer">
-                  <Globe className="w-5 h-5" />
+              <div className="flex gap-3 mt-6">
+                <div className="w-9 h-9 rounded-xl border border-white/60 bg-white/70 backdrop-blur-xl flex items-center justify-center text-gray-700 hover:bg-white cursor-pointer">
+                  <Globe className="w-4 h-4" />
                 </div>
-                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer">
-                  <MessageSquare className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl border border-white/60 bg-white/70 backdrop-blur-xl flex items-center justify-center text-gray-700 hover:bg-white cursor-pointer">
+                  <MessageSquare className="w-4 h-4" />
                 </div>
-                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer">
-                  <Bell className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl border border-white/60 bg-white/70 backdrop-blur-xl flex items-center justify-center text-gray-700 hover:bg-white cursor-pointer">
+                  <Bell className="w-4 h-4" />
                 </div>
               </div>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold mb-4">Platform</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Courses</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Instructors</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Certificates</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Live Sessions</a></li>
+              <h4 className="font-semibold text-gray-900 mb-3">Platform</h4>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                <li><a href="#" className="hover:text-gray-900">Courses</a></li>
+                <li><a href="#" className="hover:text-gray-900">Instructors</a></li>
+                <li><a href="#" className="hover:text-gray-900">Certificates</a></li>
+                <li><a href="#" className="hover:text-gray-900">Live Sessions</a></li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <h4 className="font-semibold text-gray-900 mb-3">Support</h4>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                <li><a href="#" className="hover:text-gray-900">Help Center</a></li>
+                <li><a href="#" className="hover:text-gray-900">Contact Us</a></li>
+                <li><a href="#" className="hover:text-gray-900">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-gray-900">Terms of Service</a></li>
               </ul>
             </div>
           </div>
-          
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 EduTech. All rights reserved.</p>
-          </div>
+          <div className="mt-10 text-center text-sm text-gray-500">&copy; 2024 EduTech. All rights reserved.</div>
         </div>
       </footer>
     </div>
