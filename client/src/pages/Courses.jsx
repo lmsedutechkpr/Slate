@@ -12,6 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 import { getImageUrl, buildApiUrl } from '@/lib/utils.js';
+
+// Import new components
+import EnhancedCourseCard from '../components/Courses/EnhancedCourseCard.jsx';
+import SortDropdown from '../components/Courses/SortDropdown.jsx';
+import PersonalizedRecommendations from '../components/Courses/PersonalizedRecommendations.jsx';
+import { WishlistProvider, useWishlist } from '../contexts/WishlistContext.jsx';
+
 import { 
   Search, 
   BookOpen, 
@@ -23,15 +30,18 @@ import {
   Eye,
   TrendingUp,
   Award,
-  Zap
+  Zap,
+  Heart
 } from 'lucide-react';
 
-const Courses = () => {
+const CoursesContent = () => {
   const { accessToken, authenticatedFetch } = useAuth();
+  const { toggleWishlist, isWishlisted } = useWishlist();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [sortBy, setSortBy] = useState('popular');
   const [activeTab, setActiveTab] = useState('all');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
@@ -43,12 +53,13 @@ const Courses = () => {
 
   // Fetch all courses with real-time updates
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
-    queryKey: ['/api/courses', { search: debouncedSearchTerm, category: selectedCategory, level: selectedLevel }, accessToken],
+    queryKey: ['/api/courses', { search: debouncedSearchTerm, category: selectedCategory, level: selectedLevel, sort: sortBy }, accessToken],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
       if (selectedLevel && selectedLevel !== 'all') params.append('level', selectedLevel);
+      if (sortBy && sortBy !== 'popular') params.append('sort', sortBy);
       
       const response = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
       if (!response.ok) throw new Error('Failed to fetch courses');
@@ -94,6 +105,32 @@ const Courses = () => {
   const enrollments = enrollmentsData?.enrollments || [];
   const recommendations = recommendationsData?.courses || [];
 
+  // Sort courses based on selected sort option
+  const getSortedCourses = (coursesList) => {
+    if (!coursesList || coursesList.length === 0) return coursesList;
+
+    const sorted = [...coursesList].sort((a, b) => {
+      switch (sortBy) {
+        case 'rating':
+          return (b.rating?.average || 0) - (a.rating?.average || 0);
+        case 'newest':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'students':
+          return (b.enrollmentCount || 0) - (a.enrollmentCount || 0);
+        case 'title':
+          return a.title.localeCompare(b.title);
+        case 'popular':
+        default:
+          return (b.enrollmentCount || 0) - (a.enrollmentCount || 0);
+      }
+    });
+
+    return sorted;
+  };
+
+  const sortedCourses = getSortedCourses(courses);
+  const sortedRecommendations = getSortedCourses(recommendations);
+
   const getLevelColor = (level) => {
     switch (level?.toLowerCase()) {
       case 'beginner': return 'bg-green-50 text-green-600 border-green-200';
@@ -103,137 +140,16 @@ const Courses = () => {
     }
   };
 
-  const formatDuration = (hours) => {
-    if (!hours) return 'Duration varies';
-    return `${hours}h`;
-  };
-
-  const CourseCard = ({ course, isEnrolled = false, enrollment = null }) => {
-    if (!course) return null;
-    const safeSections = (course && Array.isArray(course.sections)) ? course.sections : [];
-    const totalLectures = safeSections.reduce((total, section) => 
-      total + (section.lectures?.length || 0), 0) || 0;
-
-    return (
-      <Card 
-        className="border-0 shadow-sm bg-white hover:shadow-md transition-all duration-200 cursor-pointer group" 
-        data-testid={`course-card-${course._id}`}
-        onClick={() => setLocation(`/courses/${course._id}`)}
-      >
-        <CardHeader className="p-6 pb-4">
-          <div className="flex items-start space-x-4 mb-4">
-            {course.coverUrl && (
-              <img 
-                src={getImageUrl(course.coverUrl, buildApiUrl(''))}
-                alt={course.title}
-                className="w-20 h-16 object-cover rounded-lg flex-shrink-0"
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg font-semibold line-clamp-2 group-hover:text-primary-600 transition-colors">
-                {course.title}
-              </CardTitle>
-              <CardDescription className="mt-1 line-clamp-2">
-                {course.description}
-              </CardDescription>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2 mb-4">
-            <Badge className={`border ${getLevelColor(course.level)}`}>
-              {course.level || 'Beginner'}
-            </Badge>
-            {course.price > 0 && (
-              <Badge variant="outline" className="font-medium">₹{course.price}</Badge>
-            )}
-            {course.price === 0 && (
-              <Badge className="bg-green-50 text-green-600 border-green-200">Free</Badge>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-            <div className="flex items-center">
-              <Users className="w-4 h-4 mr-2 text-gray-400" />
-              {course.enrollmentCount || 0} students
-            </div>
-            <div className="flex items-center">
-              <BookOpen className="w-4 h-4 mr-2 text-gray-400" />
-              {totalLectures} lessons
-            </div>
-            <div className="flex items-center">
-              <Clock className="w-4 h-4 mr-2 text-gray-400" />
-              {formatDuration(course.estimatedHours)}
-            </div>
-            {course.rating?.average > 0 && (
-              <div className="flex items-center">
-                <Star className="w-4 h-4 mr-2 fill-yellow-400 text-yellow-400" />
-                {course.rating.average.toFixed(1)} ({course.rating.count})
-              </div>
-            )}
-          </div>
-          
-          {isEnrolled && enrollment && (
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">Progress</span>
-                <span className="text-sm font-semibold text-gray-900">
-                  {Math.round(enrollment.progressPct || 0)}%
-                </span>
-              </div>
-              <ProgressBar 
-                value={enrollment.progressPct || 0} 
-                className="h-2 bg-gray-100"
-              />
-            </div>
-          )}
-        </CardHeader>
-        
-        <CardContent className="p-6 pt-0">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              by {course.assignedInstructor?.profile?.firstName || course.assignedInstructor?.username || 'Instructor'}
-            </div>
-            <Button 
-              size="sm"
-              variant={isEnrolled ? "outline" : "default"}
-              className="flex-shrink-0"
-              data-testid={`button-${isEnrolled ? 'continue' : 'enroll'}-${course._id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isEnrolled) {
-                  setLocation(`/courses/${course._id}`);
-                  return;
-                }
-                // Enroll logic
-                (async () => {
-                  try {
-                    const res = await authenticatedFetch(buildApiUrl(`/api/courses/${course._id}/enroll`), {
-                    method: 'POST',
-                    });
-                    if (!res.ok) throw new Error('Enroll failed');
-                    window.location.reload();
-                } catch (e) {
-                    console.error(e);
-                  }
-                })();
-              }}
-            >
-              {isEnrolled ? (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Continue Learning
-                </>
-              ) : (
-                <>
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Enroll Now
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  const handleEnroll = async (courseId) => {
+    try {
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId}/enroll`), {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Enroll failed');
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   if (coursesLoading || enrollmentsLoading) {
@@ -305,6 +221,11 @@ const Courses = () => {
                 <SelectItem value="advanced">Advanced</SelectItem>
               </SelectContent>
             </Select>
+
+            <SortDropdown 
+              value={sortBy} 
+              onValueChange={setSortBy}
+            />
           </div>
         </div>
           </CardContent>
@@ -326,7 +247,7 @@ const Courses = () => {
 
         {/* All Courses */}
         <TabsContent value="all" className="space-y-6">
-          {courses.length === 0 ? (
+          {sortedCourses.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -336,6 +257,7 @@ const Courses = () => {
                     setSearchTerm('');
                     setSelectedCategory('all');
                     setSelectedLevel('all');
+                    setSortBy('popular');
                   }}>
                     <Filter className="w-4 h-4 mr-2" />
                     Clear Filters
@@ -344,14 +266,17 @@ const Courses = () => {
               </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map((course) => {
+              {sortedCourses.map((course) => {
                 const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
                 return (
-                  <CourseCard
+                  <EnhancedCourseCard
                     key={course._id}
                     course={course}
                     isEnrolled={!!enrollment}
                     enrollment={enrollment}
+                    isWishlisted={isWishlisted(course._id)}
+                    onWishlistToggle={toggleWishlist}
+                    onEnroll={handleEnroll}
                   />
                 );
               })}
@@ -376,11 +301,14 @@ const Courses = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {enrollments.map((enrollment) => (
-                <CourseCard
+                <EnhancedCourseCard
                   key={enrollment._id}
                   course={enrollment.courseId}
                   isEnrolled={true}
                   enrollment={enrollment}
+                  isWishlisted={isWishlisted(enrollment.courseId?._id)}
+                  onWishlistToggle={toggleWishlist}
+                  onEnroll={handleEnroll}
                 />
               ))}
             </div>
@@ -389,7 +317,10 @@ const Courses = () => {
 
         {/* Recommended Courses */}
         <TabsContent value="recommended" className="space-y-6">
-          {recommendations.length === 0 ? (
+          {/* Personalized Recommendations Header */}
+          <PersonalizedRecommendations enrollments={enrollments} />
+          
+          {sortedRecommendations.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <TrendingUp className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -403,14 +334,17 @@ const Courses = () => {
               </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendations.map((course) => {
+              {sortedRecommendations.map((course) => {
                 const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
                 return (
-                  <CourseCard
+                  <EnhancedCourseCard
                     key={course._id}
                     course={course}
                     isEnrolled={!!enrollment}
                     enrollment={enrollment}
+                    isWishlisted={isWishlisted(course._id)}
+                    onWishlistToggle={toggleWishlist}
+                    onEnroll={handleEnroll}
                   />
                 );
               })}
@@ -420,6 +354,14 @@ const Courses = () => {
       </Tabs>
       </div>
     </div>
+  );
+};
+
+const Courses = () => {
+  return (
+    <WishlistProvider>
+      <CoursesContent />
+    </WishlistProvider>
   );
 };
 
