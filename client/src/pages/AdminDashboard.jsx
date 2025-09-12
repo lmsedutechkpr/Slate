@@ -1,6 +1,5 @@
 import { useLocation } from 'wouter';
 import { useState, useEffect, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import { buildApiUrl } from '../lib/utils.js';
 
 const AdminDashboard = () => {
   const [location, setLocation] = useLocation();
-  const queryClient = useQueryClient();
   const queryClient = useQueryClient();
   const { accessToken, authenticatedFetch } = useAuth();
   const { authLoading } = useAuthRefresh();
@@ -52,6 +50,9 @@ const AdminDashboard = () => {
       timer = setTimeout(() => {
         timer = null;
         queryClient.invalidateQueries(['/api/admin/analytics/overview', range]);
+        queryClient.invalidateQueries(['/api/admin/analytics/students']);
+        queryClient.invalidateQueries(['/api/courses', 'admin-dashboard']);
+        queryClient.invalidateQueries(['/api/admin/reports/sales', 'last30']);
       }, 800);
     };
     socket.on('analytics:update', schedule);
@@ -97,6 +98,78 @@ const AdminDashboard = () => {
   }, [stats.dau]);
 
   const topCoursesSeries = useMemo(() => (stats.topCourses || []).map(t => ({ name: t.title, enrollments: t.enrollments })), [stats.topCourses]);
+
+  // Users tab: new users by month
+  const { data: studentsData } = useQuery({
+    queryKey: ['/api/admin/analytics/students'],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '500');
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/analytics/students?${params.toString()}`));
+      if (!res.ok) throw new Error('Failed to load students');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading,
+  });
+  const usersGrowth = useMemo(() => {
+    const list = studentsData?.students || [];
+    const byMonth = new Map();
+    list.forEach((s) => {
+      const d = new Date(s.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      byMonth.set(key, (byMonth.get(key) || 0) + 1);
+    });
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, users]) => ({ month, users }));
+  }, [studentsData]);
+
+  // Courses tab: category distribution
+  const { data: coursesData } = useQuery({
+    queryKey: ['/api/courses', 'admin-dashboard'],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '500');
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
+      if (!res.ok) throw new Error('Failed to load courses');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading,
+  });
+  const categoryDistribution = useMemo(() => {
+    const list = coursesData?.courses || [];
+    const counts = new Map();
+    list.forEach((c) => {
+      const key = c.category || 'Other';
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return Array.from(counts.entries()).map(([name, count]) => ({ name, count }));
+  }, [coursesData]);
+
+  // Activity tab: sales last 30 days
+  const { data: salesReport } = useQuery({
+    queryKey: ['/api/admin/reports/sales', 'last30'],
+    queryFn: async () => {
+      const to = new Date();
+      const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/reports/sales?${params.toString()}`));
+      if (!res.ok) throw new Error('Failed to load sales report');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading,
+  });
+  const salesDailySeries = useMemo(
+    () =>
+      (salesReport?.daily || []).map((d) => ({
+        date: `${d._id.y}-${String(d._id.m).padStart(2, '0')}-${String(d._id.d).padStart(2, '0')}`,
+        revenue: d.total,
+        orders: d.count,
+      })),
+    [salesReport]
+  );
 
   // Show loading state while authentication is in progress
   if (authLoading) {
@@ -207,6 +280,62 @@ const AdminDashboard = () => {
                 <Card className="md:col-span-2 lg:col-span-3">
                   <CardHeader><CardTitle>Conversion Funnel</CardTitle><CardDescription>Visitors → Enrollments → Orders (30d)</CardDescription></CardHeader>
                   <CardContent className="h-56"><ResponsiveContainer width="100%" height="100%"><BarChart data={[{stage:'Visitors', value: stats.funnel?.visitors || 0},{stage:'Enrollments', value: stats.funnel?.enrollments || 0},{stage:'Orders', value: stats.funnel?.orders || 0}]}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="stage" /><YAxis /><Tooltip /><Bar dataKey="value" fill="#9333ea" /></BarChart></ResponsiveContainer></CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            <TabsContent value="users" className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader><CardTitle>New Users by Month</CardTitle><CardDescription>Account creations</CardDescription></CardHeader>
+                  <CardContent className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={usersGrowth}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="users" fill="#3b82f6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            <TabsContent value="courses" className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader><CardTitle>Courses by Category</CardTitle><CardDescription>Distribution</CardDescription></CardHeader>
+                  <CardContent className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={categoryDistribution}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" interval={0} angle={-20} textAnchor="end" height={60} />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#8b5cf6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            <TabsContent value="activity" className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader><CardTitle>Sales (Last 30 days)</CardTitle><CardDescription>Revenue and orders</CardDescription></CardHeader>
+                  <CardContent className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={salesDailySeries}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis yAxisId="left" orientation="left" />
+                        <YAxis yAxisId="right" orientation="right" />
+                        <Tooltip />
+                        <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={false} />
+                        <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#2563eb" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
                 </Card>
               </div>
             </TabsContent>
