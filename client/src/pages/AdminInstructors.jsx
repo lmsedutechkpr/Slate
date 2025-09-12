@@ -47,7 +47,6 @@ const AdminInstructors = () => {
   const [showPayoutDialog, setShowPayoutDialog] = useState(false);
   const [showAddInstructorDialog, setShowAddInstructorDialog] = useState(false);
   const [assigningInstructor, setAssigningInstructor] = useState(null);
-  const [availableCourses, setAvailableCourses] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [newInstructor, setNewInstructor] = useState({
     firstName: '',
