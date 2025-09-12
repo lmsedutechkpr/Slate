@@ -139,10 +139,10 @@ const Navbar = () => {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <Link href="/dashboard">
-                  <div className="flex items-center cursor-pointer">
-                    <div className="h-8 w-auto bg-white rounded-md ring-1 ring-gray-200 shadow-sm px-1 py-0.5">
-                      <img src="/slate-logo.png" alt="Slate" className="h-7 w-auto object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
-                    </div>
+                  <div className="flex items-center space-x-2 cursor-pointer group">
+                    <h1 className="text-xl sm:text-2xl font-bold text-primary-700 group-hover:text-primary-800 transition-colors" data-testid="logo">
+                      Slate
+                    </h1>
                   </div>
                 </Link>
               </div>

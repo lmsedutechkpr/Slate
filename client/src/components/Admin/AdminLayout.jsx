@@ -30,15 +30,18 @@ const AdminLayout = ({ children }) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [storeOpen, setStoreOpen] = useState(true);
   const navigationItems = [
     { title: 'Dashboard', href: '/admin', icon: Home, description: 'Dashboard overview', roles: ['admin', 'super-admin'] },
     { title: 'User Management', href: '/admin/users', icon: Users, description: 'All users with role filters', roles: ['admin', 'user-admin', 'super-admin'] },
     { title: 'Instructors', href: '/admin/instructors', icon: UserCheck, description: 'Manage instructors', roles: ['admin', 'instructor-admin', 'super-admin'] },
     { title: 'Courses', href: '/admin/courses', icon: BookOpen, description: 'Manage courses', roles: ['admin', 'course-admin', 'super-admin'] },
-    { title: 'Store Management', href: '/admin/store', icon: ShoppingBag, description: 'E-commerce administration', roles: ['super-admin', 'admin'] },
-    { title: 'Products', href: '/admin/store/products', icon: Package, description: 'Manage products', roles: ['super-admin', 'admin'], indent: true },
-    { title: 'Orders', href: '/admin/store/orders', icon: Receipt, description: 'View and process orders', roles: ['super-admin', 'admin'], indent: true },
-    { title: 'Inventory', href: '/admin/store/inventory', icon: Boxes, description: 'Track stock levels', roles: ['super-admin', 'admin'], indent: true },
+    { title: 'Store Management', href: '/admin/store', icon: ShoppingBag, description: 'E-commerce administration', roles: ['super-admin', 'admin'], collapsible: true },
+    ...(storeOpen ? [
+      { title: 'Products', href: '/admin/store/products', icon: Package, description: 'Manage products', roles: ['super-admin', 'admin'], indent: true },
+      { title: 'Orders', href: '/admin/store/orders', icon: Receipt, description: 'View and process orders', roles: ['super-admin', 'admin'], indent: true },
+      { title: 'Inventory', href: '/admin/store/inventory', icon: Boxes, description: 'Track stock levels', roles: ['super-admin', 'admin'], indent: true },
+    ] : []),
     { title: 'Reports & Analytics', href: '/admin/analytics', icon: BarChart3, description: 'Sales and learning insights', roles: ['admin', 'analytics-admin', 'super-admin'] },
     { title: 'Audit Logs', href: '/admin/logs', icon: BarChart3, description: 'System audit trail', roles: ['admin', 'super-admin'] },
     { title: 'Settings', href: '/admin/settings', icon: Settings, description: 'System configuration', roles: ['super-admin'] }
@@ -96,13 +99,7 @@ const AdminLayout = ({ children }) => {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-white rounded-lg ring-1 ring-gray-200 shadow-sm p-1 overflow-hidden">
-              <img
-                src="/slate-logo.png"
-                alt="Slate"
-                className="w-full h-full object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]"
-              />
-            </div>
+            <span className="text-lg font-semibold text-gray-900">Slate</span>
           </div>
           <Button
             variant="ghost"
@@ -149,6 +146,7 @@ const AdminLayout = ({ children }) => {
             const isActive = currentPath === item.href;
             const Icon = item.icon;
             
+            const isStoreHeader = item.collapsible;
             return (
               <Button
                 key={item.href}
@@ -157,7 +155,9 @@ const AdminLayout = ({ children }) => {
                   w-full justify-start h-auto py-3 px-3 text-left ${item.indent ? 'pl-8' : ''}
                   ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
                 `}
-                onClick={() => handleNavigation(item.href)}
+                onClick={() => {
+                  if (isStoreHeader) { setStoreOpen(v => !v); } else { handleNavigation(item.href); }
+                }}
               >
                 <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -166,6 +166,9 @@ const AdminLayout = ({ children }) => {
                     {item.description}
                   </div>
                 </div>
+                {isStoreHeader && (
+                  <svg className={`w-4 h-4 ml-2 transition-transform ${storeOpen ? '' : '-rotate-90'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                )}
               </Button>
             );
           })}
