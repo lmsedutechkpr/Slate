@@ -34,6 +34,7 @@ const AdminLayout = ({ children }) => {
   const navigationItems = [
     { title: 'Dashboard', href: '/admin', icon: Home, description: 'Dashboard overview', roles: ['admin', 'super-admin'] },
     { title: 'User Management', href: '/admin/users', icon: Users, description: 'All users with role filters', roles: ['admin', 'user-admin', 'super-admin'] },
+    { title: 'Roles & Permissions', href: '/admin/roles', icon: Settings, description: 'Manage roles and permissions', roles: ['admin', 'super-admin'] },
     { title: 'Instructors', href: '/admin/instructors', icon: UserCheck, description: 'Manage instructors', roles: ['admin', 'instructor-admin', 'super-admin'] },
     { title: 'Courses', href: '/admin/courses', icon: BookOpen, description: 'Manage courses', roles: ['admin', 'course-admin', 'super-admin'] },
     { title: 'Store Management', href: '/admin/store', icon: ShoppingBag, description: 'E-commerce administration', roles: ['super-admin', 'admin'], collapsible: true },

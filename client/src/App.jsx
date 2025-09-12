@@ -24,6 +24,8 @@ import AdminInstructors from "@/pages/AdminInstructors.jsx";
 import AdminAnalytics from "@/pages/AdminAnalytics.jsx";
 import AdminSettings from "@/pages/AdminSettings.jsx";
 import AdminUsers from "@/pages/AdminUsers.jsx";
+import AdminUserDetail from "@/pages/AdminUserDetail.jsx";
+import AdminRoles from "@/pages/AdminRoles.jsx";
 import AdminAuditLogs from "@/pages/AdminAuditLogs.jsx";
 import AdminCourseDetail from "@/pages/AdminCourseDetail.jsx";
 import AdminInstructorDetail from "@/pages/AdminInstructorDetail.jsx";
@@ -255,6 +257,22 @@ function AppRoutes() {
           <ProtectedRoute requiredRole="admin">
             <AdminLayout>
               <AdminUsers />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/users/:userId">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminUserDetail />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/roles">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminRoles />
             </AdminLayout>
           </ProtectedRoute>
         </Route>

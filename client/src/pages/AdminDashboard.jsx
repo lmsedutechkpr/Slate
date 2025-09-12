@@ -152,15 +152,15 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader>
+        <CardHeader>
             <CardTitle>Revenue Trends</CardTitle>
             <CardDescription>
               {totalPrev > 0 ? (
                 <span className={deltaPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{deltaPct >= 0 ? `+${deltaPct}%` : `${deltaPct}%`} from last period</span>
               ) : 'Trend over selected period'}
             </CardDescription>
-          </CardHeader>
-          <CardContent>
+        </CardHeader>
+        <CardContent>
             {(totalCurrent === 0 && totalPrev === 0) ? (
               <div className="text-center text-sm text-gray-500 py-16 flex flex-col items-center gap-2">
                 <svg className="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg>
@@ -269,8 +269,8 @@ const AdminDashboard = () => {
               <svg className="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <span>No new activity to report</span>
             </div>
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
       </div>
 
       {/* Removed separate Platform Analytics section; detailed reports live on Analytics page */}
