@@ -1,7 +1,7 @@
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts';
 import {
   Users, BookOpen, GraduationCap, TrendingUp, BarChart3, UserCheck, Eye, Plus,
@@ -13,12 +13,14 @@ import { buildApiUrl } from '../lib/utils.js';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { subscribe } from '@/lib/realtime.js';
+import { useState, useMemo } from 'react';
 
 const AdminDashboard = () => {
   const [location, setLocation] = useLocation();
   const { accessToken, authenticatedFetch } = useAuth();
   const { authLoading } = useAuthRefresh();
   const queryClient = useQueryClient();
+  const [timeRange, setTimeRange] = useState('30d');
 
   const { data: overview, isLoading } = useQuery({
     queryKey: ['/api/admin/analytics/overview'],
@@ -35,6 +37,33 @@ const AdminDashboard = () => {
     enabled: !!accessToken && !authLoading,
     retry: 3,
     retryDelay: 1000
+  });
+
+  // Secondary datasets
+  const { data: studentsSample } = useQuery({
+    queryKey: ['/api/admin/analytics/students', { page: 1, limit: 50 }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '50');
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/analytics/students?${params.toString()}`));
+      if (!res.ok) throw new Error('Failed to load students');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading
+  });
+
+  const { data: coursesData } = useQuery({
+    queryKey: ['/api/courses', { page: 1, limit: 50 }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '50');
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
+      if (!res.ok) throw new Error('Failed to load courses');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading
   });
 
   // Realtime: invalidate overview on updates
@@ -58,7 +87,7 @@ const AdminDashboard = () => {
   console.log('isLoading:', isLoading);
   console.log('overview data:', overview);
 
-  const stats = overview || { totalUsers: 0, totalStudents: 0, totalInstructors: 0, totalCourses: 0, totalEnrollments: 0, totalRevenue: 0, monthlyGrowth: 0 };
+  const stats = overview || { totalUsers: 0, totalStudents: 0, totalInstructors: 0, totalCourses: 0, totalEnrollments: 0, totalRevenue: 0, monthlyGrowth: 0, activeUsers: 0 };
 
   // Simple synthetic trend data derived from current totals (placeholder until backend provides series)
   const trend = [
@@ -86,26 +115,56 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Welcome to Admin Dashboard</h1>
-          <p className="text-sm lg:text-base text-gray-600">Monitor platform performance and manage your learning ecosystem</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+          <p className="text-sm lg:text-base text-gray-600">Monitor performance and act quickly</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setLocation('/admin/students')} variant="outline"><Eye className="w-4 h-4 mr-2" /> View Students</Button>
-          <Button onClick={() => setLocation('/admin/analytics')} variant="outline"><BarChart3 className="w-4 h-4 mr-2" /> Analytics</Button>
           <Button onClick={() => setLocation('/admin/courses')}><Plus className="w-4 h-4 mr-2" /> Create Course</Button>
         </div>
       </div>
 
-      {/* Stats + Charts */}
+      {/* Row 1: KPI cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <Stat title="Total Revenue" value={isLoading ? '...' : `₹${(stats.totalRevenue || 0).toLocaleString()}`} icon={TrendingUp} actionLabel="Sales Report" onAction={() => setLocation('/admin/analytics')} />
+        <Stat title="Total Enrollments" value={isLoading ? '...' : stats.totalEnrollments} icon={BookOpen} />
+        <Stat title="Active Students" value={isLoading ? '...' : stats.activeUsers} icon={Users} actionLabel="View Students" onAction={() => setLocation('/admin/students')} />
+        <Stat title="Total Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} actionLabel="Manage" onAction={() => setLocation('/admin/instructors')} />
+      </div>
+
+      {/* Row 2: Primary Visualizations with global date filter */}
+      <div className="flex items-center justify-end">
+        <Select value={timeRange} onValueChange={setTimeRange}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Date Range" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="90d">Last 90 days</SelectItem>
+            <SelectItem value="12m">Last 12 months</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-        <div className="grid grid-cols-2 gap-4">
-          <Stat title="Total Users" value={isLoading ? '...' : stats.totalUsers} icon={Users} actionLabel="View Users" onAction={() => setLocation('/admin/users')} />
-          <Stat title="Students" value={isLoading ? '...' : stats.totalStudents} icon={GraduationCap} />
-          <Stat title="Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} actionLabel="Manage" onAction={() => setLocation('/admin/instructors')} />
-          <Stat title="Courses" value={isLoading ? '...' : stats.totalCourses} icon={BookOpen} />
-        </div>
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>User Growth</CardTitle><CardDescription>Weekly trend</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Revenue Trends</CardTitle><CardDescription>Trend over selected period</CardDescription></CardHeader>
+          <CardContent>
+            {trend.length === 0 ? (
+              <div className="text-center text-sm text-gray-500 py-12">No revenue data available for this period</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>User Growth</CardTitle><CardDescription>New sign-ups trend</CardDescription></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -120,65 +179,66 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
+      {/* Row 3: Secondary lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        {/* Recent Enrollments */}
         <Card>
-          <CardHeader><CardTitle>Enrollments</CardTitle><CardDescription>Total course enrollments</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Recent Enrollments</CardTitle><CardDescription>Last 10 sign-ups</CardDescription></CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={trend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="enrollments" fill="#6366f1" />
-              </BarChart>
-            </ResponsiveContainer>
+            {studentsSample?.students?.length ? (
+              <ul className="divide-y">
+                {studentsSample.students
+                  .slice(0, 10)
+                  .map((s) => (
+                  <li key={s._id} className="py-2 text-sm flex items-center justify-between">
+                    <span className="truncate mr-2">{s.profile?.firstName || s.username}</span>
+                    <span className="text-gray-500">{new Date(s.analytics?.lastActivity || s.createdAt).toLocaleDateString()}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm text-gray-500 text-center py-8">No recent enrollments</div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Course Performance */}
         <Card>
-          <CardHeader><CardTitle>Revenue</CardTitle><CardDescription>Total platform revenue</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Course Performance</CardTitle><CardDescription>Top courses by enrollments</CardDescription></CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={trend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            {Array.isArray(coursesData?.courses) && coursesData.courses.length > 0 ? (
+              <div className="text-sm">
+                <div className="grid grid-cols-3 pb-2 border-b text-gray-500">
+                  <div>Course</div>
+                  <div>Instructor</div>
+                  <div className="text-right">Enrollments</div>
+                </div>
+                {coursesData.courses
+                  .slice(0, 5)
+                  .map((c) => (
+                    <div key={c._id} className="grid grid-cols-3 py-2 border-b last:border-0">
+                      <div className="truncate pr-2">{c.title}</div>
+                      <div className="truncate pr-2">{c.assignedInstructor?.profile?.firstName || '—'}</div>
+                      <div className="text-right">{c.enrollmentCount ?? '—'}</div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 text-center py-8">No course performance data</div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Platform Activity */}
         <Card>
-          <CardHeader><CardTitle>Growth</CardTitle><CardDescription>Monthly user growth</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Platform Activity</CardTitle><CardDescription>Latest events</CardDescription></CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              <span className={stats.monthlyGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{isLoading ? '...' : stats.monthlyGrowth}%</span>
-            </div>
+            <div className="text-sm text-gray-500 text-center py-8">No recent platform activity</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Promoted Platform Analytics */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>Platform Analytics</CardTitle>
-          <CardDescription>Live trends for users, revenue, enrollments</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="flex w-full overflow-x-auto whitespace-nowrap p-1 bg-gray-100 rounded-lg gap-1 md:grid md:grid-cols-4 md:overflow-visible md:whitespace-normal">
-              <TabsTrigger value="overview" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900 md:w-full md:justify-center">Overview</TabsTrigger>
-              <TabsTrigger value="users" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900 md:w-full md:justify-center">Users</TabsTrigger>
-              <TabsTrigger value="courses" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900 md:w-full md:justify-center">Courses</TabsTrigger>
-              <TabsTrigger value="activity" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900 md:w-full md:justify-center">Activity</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" className="mt-4 text-sm text-gray-600">
-              Live data powered by API. Use Analytics page for full reports.
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      {/* Removed separate Platform Analytics section; detailed reports live on Analytics page */}
     </div>
   );
 };
