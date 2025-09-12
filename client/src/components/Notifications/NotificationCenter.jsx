@@ -98,7 +98,7 @@ const NotificationCenter = ({ isOpen, onClose, onNotificationClick }) => {
             new Notification(data.notification.title, {
               body: data.notification.message,
               icon: '/favicon.ico',
-              tag: 'edutech-notification',
+              tag: 'slate-notification',
             });
           }
         }

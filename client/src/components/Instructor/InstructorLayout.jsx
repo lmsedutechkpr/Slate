@@ -156,7 +156,7 @@ const InstructorLayout = ({ children }) => {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="px-3 lg:px-4 py-4 border-t border-gray-200 text-xs text-gray-500">© EduTech</div>
+        <div className="px-3 lg:px-4 py-4 border-t border-gray-200 text-xs text-gray-500">© Slate</div>
       </div>
 
       {/* Main Content */}

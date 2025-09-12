@@ -15,7 +15,11 @@ import {
   Bell,
   Home,
   Menu,
-  X
+  X,
+  ShoppingBag,
+  Package,
+  Receipt,
+  Boxes
 } from 'lucide-react';
 
 const AdminLayout = ({ children }) => {
@@ -27,12 +31,15 @@ const AdminLayout = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const navigationItems = [
-    { title: 'Overview', href: '/admin', icon: Home, description: 'Dashboard overview', roles: ['admin', 'super-admin'] },
-    { title: 'Courses', href: '/admin/courses', icon: BookOpen, description: 'Manage courses', roles: ['admin', 'course-admin', 'super-admin'] },
+    { title: 'Dashboard', href: '/admin', icon: Home, description: 'Dashboard overview', roles: ['admin', 'super-admin'] },
+    { title: 'User Management', href: '/admin/users', icon: Users, description: 'All users with role filters', roles: ['admin', 'user-admin', 'super-admin'] },
     { title: 'Instructors', href: '/admin/instructors', icon: UserCheck, description: 'Manage instructors', roles: ['admin', 'instructor-admin', 'super-admin'] },
-    { title: 'Students', href: '/admin/students', icon: Users, description: 'Student management', roles: ['admin', 'student-admin', 'super-admin'] },
-    { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, description: 'Reports & insights', roles: ['admin', 'analytics-admin', 'super-admin'] },
-    { title: 'Users', href: '/admin/users', icon: Users, description: 'User management', roles: ['admin', 'user-admin', 'super-admin'] },
+    { title: 'Courses', href: '/admin/courses', icon: BookOpen, description: 'Manage courses', roles: ['admin', 'course-admin', 'super-admin'] },
+    { title: 'Store Management', href: '/admin/store', icon: ShoppingBag, description: 'E-commerce administration', roles: ['super-admin', 'admin'] },
+    { title: 'Products', href: '/admin/store/products', icon: Package, description: 'Manage products', roles: ['super-admin', 'admin'], indent: true },
+    { title: 'Orders', href: '/admin/store/orders', icon: Receipt, description: 'View and process orders', roles: ['super-admin', 'admin'], indent: true },
+    { title: 'Inventory', href: '/admin/store/inventory', icon: Boxes, description: 'Track stock levels', roles: ['super-admin', 'admin'], indent: true },
+    { title: 'Reports & Analytics', href: '/admin/analytics', icon: BarChart3, description: 'Sales and learning insights', roles: ['admin', 'analytics-admin', 'super-admin'] },
     { title: 'Audit Logs', href: '/admin/logs', icon: BarChart3, description: 'System audit trail', roles: ['admin', 'super-admin'] },
     { title: 'Settings', href: '/admin/settings', icon: Settings, description: 'System configuration', roles: ['super-admin'] }
   ];
@@ -89,10 +96,11 @@ const AdminLayout = ({ children }) => {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="/slate-logo.png" alt="Slate" className="w-8 h-8 object-cover" onError={(e) => { e.currentTarget.style.display='none'; }} />
+              <span className="text-white font-bold text-sm">S</span>
             </div>
-            <span className="text-lg font-semibold text-gray-900">Admin Panel</span>
+            <span className="text-lg font-semibold text-gray-900">Slate Admin</span>
           </div>
           <Button
             variant="ghost"
@@ -186,7 +194,7 @@ const AdminLayout = ({ children }) => {
                 key={item.href}
                 variant={isActive ? "default" : "ghost"}
                 className={`
-                  w-full justify-start h-auto py-3 px-3 text-left
+                  w-full justify-start h-auto py-3 px-3 text-left ${item.indent ? 'pl-8' : ''}
                   ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
                 `}
                 onClick={() => handleNavigation(item.href)}
@@ -204,7 +212,7 @@ const AdminLayout = ({ children }) => {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="px-3 lg:px-4 py-4 border-t border-gray-200 text-xs text-gray-500">© EduTech</div>
+        <div className="px-3 lg:px-4 py-4 border-t border-gray-200 text-xs text-gray-500">© Slate</div>
       </div>
 
       {/* Main Content */}

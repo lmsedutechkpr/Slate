@@ -141,7 +141,7 @@ const Navbar = () => {
                 <Link href="/dashboard">
                   <div className="flex items-center space-x-2 cursor-pointer group">
                     <h1 className="text-xl sm:text-2xl font-bold text-primary-700 group-hover:text-primary-800 transition-colors" data-testid="logo">
-                      EduTech
+                      Slate
                     </h1>
                   </div>
                 </Link>

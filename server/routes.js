@@ -29,7 +29,7 @@ export async function registerRoutes(app) {
   
   // API Info
   app.get('/api', (_req, res) => res.json({ 
-    message: 'EduTech LMS API',
+    message: 'Slate LMS API',
     version: '1.0.0',
     status: 'running',
     time: new Date().toISOString(),

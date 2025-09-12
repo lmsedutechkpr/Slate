@@ -14,7 +14,7 @@ export const seedAdmin = async () => {
     // Create admin user
     const adminUser = new User({
       username: 'admin',
-      email: process.env.ADMIN_EMAIL || 'admin@edutech.com',
+      email: process.env.ADMIN_EMAIL || 'admin@slate.com',
       password: process.env.ADMIN_PASSWORD || 'Admin@123456',
       role: UserRoles.ADMIN,
       profile: {

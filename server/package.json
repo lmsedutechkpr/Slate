@@ -1,8 +1,8 @@
 {
-  "name": "edutech-lms-server",
+  "name": "slate-lms-server",
   "version": "1.0.0",
   "type": "module",
-  "description": "EduTech LMS Backend Server",
+  "description": "Slate LMS Backend Server",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
