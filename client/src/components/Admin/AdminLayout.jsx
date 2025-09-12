@@ -23,6 +23,8 @@ const AdminLayout = ({ children }) => {
   const [location, setLocation] = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const navigationItems = [
     { title: 'Overview', href: '/admin', icon: Home, description: 'Dashboard overview', roles: ['admin', 'super-admin'] },
@@ -56,6 +58,7 @@ const AdminLayout = ({ children }) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCmdOpen((v) => !v);
+        setSearchOpen((v) => !v);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -99,6 +102,50 @@ const AdminLayout = ({ children }) => {
           >
             <X className="w-4 h-4" />
           </Button>
+        </div>
+
+        {/* Global Search */}
+        <div className="px-3 lg:px-4 py-3 border-b border-gray-200">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); setCmdOpen(true); }}
+              onFocus={() => { setSearchOpen(true); setCmdOpen(true); }}
+              placeholder="Search users, courses, instructors... (Ctrl+K)"
+              className="w-full h-9 px-3 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Global search"
+            />
+            {searchOpen && cmdOpen && (
+              <div className="absolute left-0 right-0 mt-2 z-50" role="listbox">
+                <div className="rounded-md border bg-white shadow-xl">
+                  <Command>
+                    <CommandInput value={searchQuery} onValueChange={setSearchQuery} placeholder="Type to search..." />
+                    <CommandList>
+                      <CommandGroup heading="Navigation">
+                        {navigationItems
+                          .filter(item => item.title.toLowerCase().includes((searchQuery || '').toLowerCase()))
+                          .slice(0, 6)
+                          .map((item) => (
+                            <CommandItem key={item.href} onSelect={() => { handleNavigation(item.href); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>
+                              {item.title}
+                            </CommandItem>
+                          ))}
+                        {(!searchQuery || navigationItems.filter(item => item.title.toLowerCase().includes((searchQuery || '').toLowerCase())).length === 0) && (
+                          <CommandItem disabled>No results</CommandItem>
+                        )}
+                      </CommandGroup>
+                      <CommandGroup heading="Quick Actions">
+                        <CommandItem onSelect={() => { setLocation('/admin/courses'); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>Create Course</CommandItem>
+                        <CommandItem onSelect={() => { setLocation('/admin/users'); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>Invite Instructor</CommandItem>
+                        <CommandItem onSelect={() => { setLocation('/admin/analytics'); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>View Analytics</CommandItem>
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* User Profile Section */}
@@ -268,6 +315,25 @@ export default AdminLayout;
 function NotificationsBell() {
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
+  const [open, setOpen] = useState(false);
+
+  // Load persisted notifications
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('admin.notifications');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setItems(Array.isArray(parsed) ? parsed : []);
+        setCount((Array.isArray(parsed) ? parsed : []).filter(i => i.unread).length);
+      }
+    } catch {}
+  }, []);
+
+  // Persist on change
+  useEffect(() => {
+    try { localStorage.setItem('admin.notifications', JSON.stringify(items)); } catch {}
+  }, [items]);
+
   useEffect(() => {
     let socket;
     (async () => {
@@ -275,31 +341,67 @@ function NotificationsBell() {
       socket = io('/', { path: '/socket.io' });
       socket.emit('notifications:subscribe');
       socket.on('notification', (n) => {
-        setItems(prev => [{ id: Date.now().toString(), title: n.title, message: n.message }, ...prev].slice(0, 10));
+        const next = {
+          id: Date.now().toString(),
+          title: n.title,
+          message: n.message,
+          href: n.href || '/admin/analytics',
+          unread: true
+        };
+        setItems(prev => [next, ...prev].slice(0, 20));
         setCount(c => c + 1);
       });
     })();
     return () => { if (socket) socket.disconnect(); };
   }, []);
 
+  const markAllRead = () => {
+    setItems(prev => prev.map(i => ({ ...i, unread: false })));
+    setCount(0);
+  };
+
+  const clearAll = () => {
+    setItems([]);
+    setCount(0);
+  };
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
+        <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
           <Bell className="w-4 h-4 lg:w-5 lg:h-5" />
           {count > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] leading-none rounded-full flex items-center justify-center">{Math.min(count,9)}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0">
-        <div className="p-2 border-b font-medium">Notifications</div>
+        <div className="p-2 border-b font-medium flex items-center justify-between">
+          <span>Notifications</span>
+          <div className="flex gap-1">
+            <Button size="xs" variant="outline" onClick={markAllRead}>Mark all read</Button>
+            <Button size="xs" variant="ghost" onClick={clearAll}>Clear</Button>
+          </div>
+        </div>
         {items.length === 0 ? (
           <div className="p-3 text-sm text-gray-500">No notifications</div>
         ) : (
           <ul className="max-h-64 overflow-auto divide-y">
             {items.map(n => (
-              <li key={n.id} className="p-3 text-sm">
-                <div className="font-medium">{n.title}</div>
-                <div className="text-gray-600">{n.message}</div>
+              <li key={n.id} className={`p-3 text-sm cursor-pointer hover:bg-gray-50 ${n.unread ? 'bg-blue-50/40' : ''}`}
+                  onClick={() => {
+                    setItems(prev => prev.map(i => i.id === n.id ? { ...i, unread: false } : i));
+                    setCount(c => Math.max(0, c - (n.unread ? 1 : 0)));
+                    if (n.href) window.location.href = n.href;
+                    setOpen(false);
+                  }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      {n.title}
+                      {n.unread && <span className="inline-block w-2 h-2 bg-blue-600 rounded-full" aria-hidden />}
+                    </div>
+                    <div className="text-gray-600">{n.message}</div>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
