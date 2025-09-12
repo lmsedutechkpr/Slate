@@ -87,11 +87,8 @@ const InstructorLayout = ({ children }) => {
       `}>
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">I</span>
-            </div>
-            <span className="text-lg font-semibold text-gray-900">Instructor Portal</span>
+          <div className="flex items-center">
+            <img src="/slate-logo.png" alt="Slate" className="w-8 h-8 object-contain drop-shadow" />
           </div>
           <Button
             variant="ghost"
@@ -175,8 +172,7 @@ const InstructorLayout = ({ children }) => {
               </Button>
               
               <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-700">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <span className="font-medium text-gray-900">Instructor Portal</span>
+                <img src="/slate-logo.png" alt="Slate" className="w-6 h-6 object-contain" />
               </div>
             </div>
 

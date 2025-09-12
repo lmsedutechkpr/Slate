@@ -139,10 +139,8 @@ const Navbar = () => {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <Link href="/dashboard">
-                  <div className="flex items-center space-x-2 cursor-pointer group">
-                    <h1 className="text-xl sm:text-2xl font-bold text-primary-700 group-hover:text-primary-800 transition-colors" data-testid="logo">
-                      Slate
-                    </h1>
+                  <div className="flex items-center cursor-pointer">
+                    <img src="/slate-logo.png" alt="Slate" className="h-7 w-auto object-contain drop-shadow" />
                   </div>
                 </Link>
               </div>

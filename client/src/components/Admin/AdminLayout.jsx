@@ -95,12 +95,15 @@ const AdminLayout = ({ children }) => {
       `}>
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden">
-              <img src="/slate-logo.png" alt="Slate" className="w-8 h-8 object-cover" onError={(e) => { e.currentTarget.style.display='none'; }} />
-              <span className="text-white font-bold text-sm">S</span>
+          <div className="flex items-center">
+            <div className="w-8 h-8 rounded-lg overflow-hidden">
+              <img
+                src="/slate-logo.png"
+                alt="Slate"
+                className="w-8 h-8 object-contain drop-shadow"
+                style={{ backgroundColor: 'transparent' }}
+              />
             </div>
-            <span className="text-lg font-semibold text-gray-900">Slate Admin</span>
           </div>
           <Button
             variant="ghost"
