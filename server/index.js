@@ -41,6 +41,33 @@ app.use(cors({
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
+// Defensive CORS headers and universal preflight handling
+app.use((req, res, next) => {
+  const requestOrigin = req.headers.origin;
+  const allowList = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://edu-tech-rosy.vercel.app',
+    process.env.FRONTEND_URL
+  ].filter(Boolean);
+
+  const isVercelPreview = typeof requestOrigin === 'string' && requestOrigin.includes('.vercel.app');
+  const isAllowed = requestOrigin && (allowList.includes(requestOrigin) || isVercelPreview || (process.env.NODE_ENV === 'development' && requestOrigin.includes('localhost')));
+
+  if (isAllowed) {
+    res.header('Access-Control-Allow-Origin', requestOrigin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, X-Requested-With');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+  }
+
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
