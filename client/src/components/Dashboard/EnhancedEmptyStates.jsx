@@ -11,23 +11,23 @@ import {
 } from 'lucide-react';
 
 export const EmptyAssignments = () => (
-  <div className="text-center py-8">
-    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-      <Calendar className="w-8 h-8 text-green-600" />
+  <div className="text-center py-6">
+    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+      <Calendar className="w-6 h-6 text-green-600" />
     </div>
-    <h3 className="text-lg font-medium text-gray-900 mb-2">All caught up!</h3>
-    <p className="text-gray-600 mb-4">No upcoming assignments. You're doing great!</p>
-    <div className="space-y-2">
+    <h3 className="text-base font-medium text-gray-900 mb-1">All caught up!</h3>
+    <p className="text-sm text-gray-600 mb-3">No upcoming assignments. You're doing great!</p>
+    <div className="flex gap-2 justify-center">
       <Link href="/courses">
-        <Button className="w-full">
-          <BookOpen className="w-4 h-4 mr-2" />
-          Go to My Courses
+        <Button size="sm" variant="outline" className="text-xs">
+          <BookOpen className="w-3 h-3 mr-1" />
+          My Courses
         </Button>
       </Link>
       <Link href="/assignments">
-        <Button variant="outline" className="w-full">
-          <Clock className="w-4 h-4 mr-2" />
-          Plan Your Study Week
+        <Button size="sm" variant="ghost" className="text-xs">
+          <Clock className="w-3 h-3 mr-1" />
+          Study Plan
         </Button>
       </Link>
     </div>
@@ -35,23 +35,23 @@ export const EmptyAssignments = () => (
 );
 
 export const EmptyLiveSessions = () => (
-  <div className="text-center py-8">
-    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-      <Video className="w-8 h-8 text-purple-600" />
+  <div className="text-center py-6">
+    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+      <Video className="w-6 h-6 text-purple-600" />
     </div>
-    <h3 className="text-lg font-medium text-gray-900 mb-2">No live sessions scheduled</h3>
-    <p className="text-gray-600 mb-4">Check back later for interactive learning sessions</p>
-    <div className="space-y-2">
+    <h3 className="text-base font-medium text-gray-900 mb-1">No live sessions scheduled</h3>
+    <p className="text-sm text-gray-600 mb-3">Check back later for interactive learning sessions</p>
+    <div className="flex gap-2 justify-center">
       <Link href="/courses">
-        <Button className="w-full">
-          <BookOpen className="w-4 h-4 mr-2" />
-          Browse Courses with Live Sessions
+        <Button size="sm" variant="outline" className="text-xs">
+          <BookOpen className="w-3 h-3 mr-1" />
+          Live Courses
         </Button>
       </Link>
       <Link href="/live-sessions">
-        <Button variant="outline" className="w-full">
-          <Users className="w-4 h-4 mr-2" />
-          View All Sessions
+        <Button size="sm" variant="ghost" className="text-xs">
+          <Users className="w-3 h-3 mr-1" />
+          All Sessions
         </Button>
       </Link>
     </div>

@@ -149,7 +149,7 @@ const Navbar = () => {
               </div>
               
               {/* Desktop Navigation */}
-              <div className="hidden lg:block ml-10">
+              <div className="hidden lg:block ml-8">
                 <div className="flex items-center space-x-1">
                   {getVisibleNavigation().map((item) => {
                     const Icon = item.icon;
@@ -157,18 +157,15 @@ const Navbar = () => {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-xl relative ${
+                        className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium transition-colors duration-200 rounded-lg ${
                           isActiveTab(item.href)
-                            ? 'bg-primary-100 text-primary-700 shadow-md border border-primary-200'
-                            : 'text-gray-600 hover:text-primary-600 hover:bg-primary-50/50'
+                            ? 'text-primary-600 bg-primary-50'
+                            : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
                         }`}
                         data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                       >
-                        <Icon className={`w-4 h-4 ${isActiveTab(item.href) ? 'text-primary-600' : ''}`} />
-                        <span className={isActiveTab(item.href) ? 'font-semibold' : ''}>{item.name}</span>
-                        {isActiveTab(item.href) && (
-                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary-600 rounded-full"></div>
-                        )}
+                        <Icon className="w-4 h-4" />
+                        <span>{item.name}</span>
                       </Link>
                     );
                   })}
@@ -176,41 +173,22 @@ const Navbar = () => {
               </div>
             </div>
             
-            {/* Right side - Search, Notifications, User Menu, Mobile Menu Button */}
-            <div className="flex items-center space-x-4">
-              {/* Inline Search */}
-              <div className="hidden md:block">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="h-9 w-64 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    aria-label="Search"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const q = e.currentTarget.value.trim();
-                        if (q) setLocation(`/admin/search?q=${encodeURIComponent(q)}`);
-                      }
-                    }}
-                  />
-                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </div>
-              </div>
-
-              {/* Notifications - Hidden on small screens */}
+            {/* Right side - Notifications, User Menu, Mobile Menu Button */}
+            <div className="flex items-center space-x-3">
+              {/* Notifications */}
               <div className="hidden sm:block relative">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleNotificationClick}
                   aria-label="Open notifications"
-                  className="relative p-2 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="relative p-2 rounded-lg text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200"
                   data-testid="notifications-button"
                 >
                   <Bell className="h-5 w-5" />
                   {notificationCount > 0 && showNotificationBadge && (
                     <Badge 
-                      className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full p-0 flex items-center justify-center animate-pulse"
+                      className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full p-0 flex items-center justify-center"
                       data-testid="notification-count"
                     >
                       {notificationCount > 9 ? '9+' : notificationCount}
@@ -219,17 +197,17 @@ const Navbar = () => {
                 </Button>
               </div>
               
-              {/* User Menu - Hidden on small screens */}
-              <div className="hidden sm:flex items-center space-x-3">
+              {/* User Menu */}
+              <div className="hidden sm:flex items-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
                       aria-label="Open user menu"
-                      className="flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="flex items-center space-x-2 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                       data-testid="user-menu-trigger"
                     >
-                      <div className="w-9 h-9 bg-white ring-1 ring-gray-200 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                         {getUserAvatar() ? (
                           <img 
                             src={getImageUrl(getUserAvatar(), buildApiUrl(''))} 
@@ -237,16 +215,16 @@ const Navbar = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-gray-700 text-sm font-semibold">
+                          <span className="text-gray-600 text-sm font-medium">
                             {getInitials(userProfile?.profile?.firstName, userProfile?.profile?.lastName)}
                           </span>
                         )}
                       </div>
                       <div className="text-left hidden lg:block">
-                        <div className="text-sm font-medium text-gray-900 leading-tight">
+                        <div className="text-sm font-medium text-gray-900">
                           {getUserDisplayName()}
                         </div>
-                        <div className="text-xs text-gray-500 capitalize leading-tight">
+                        <div className="text-xs text-gray-500 capitalize">
                           {getUserRole()}
                         </div>
                       </div>
@@ -303,7 +281,7 @@ const Navbar = () => {
                   size="sm"
                   onClick={toggleMobileMenu}
                   aria-label="Toggle mobile menu"
-                  className="p-2 rounded-xl hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                   data-testid="mobile-menu-button"
                 >
                   {mobileMenuOpen ? (
@@ -328,18 +306,15 @@ const Navbar = () => {
                       key={item.name}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center space-x-3 px-3 py-3 text-base font-medium rounded-xl transition-all duration-200 relative ${
+                      className={`flex items-center space-x-3 px-3 py-3 text-base font-medium rounded-lg transition-colors duration-200 ${
                         isActiveTab(item.href)
-                          ? 'bg-primary-100 text-primary-700 shadow-md border border-primary-200'
-                          : 'text-gray-600 hover:bg-primary-50/50 hover:text-primary-600'
+                          ? 'text-primary-600 bg-primary-50'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
                       }`}
                       data-testid={`mobile-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
-                      <Icon className={`w-5 h-5 ${isActiveTab(item.href) ? 'text-primary-600' : ''}`} />
-                      <span className={isActiveTab(item.href) ? 'font-semibold' : ''}>{item.name}</span>
-                      {isActiveTab(item.href) && (
-                        <div className="absolute right-3 w-2 h-2 bg-primary-600 rounded-full"></div>
-                      )}
+                      <Icon className="w-5 h-5" />
+                      <span>{item.name}</span>
                     </Link>
                   );
                 })}
