@@ -96,12 +96,11 @@ const AdminLayout = ({ children }) => {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
           <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg overflow-hidden">
+            <div className="w-10 h-10 bg-white rounded-lg ring-1 ring-gray-200 shadow-sm p-1 overflow-hidden">
               <img
                 src="/slate-logo.png"
                 alt="Slate"
-                className="w-8 h-8 object-contain drop-shadow"
-                style={{ backgroundColor: 'transparent' }}
+                className="w-full h-full object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]"
               />
             </div>
           </div>
@@ -115,49 +114,7 @@ const AdminLayout = ({ children }) => {
           </Button>
         </div>
 
-        {/* Global Search */}
-        <div className="px-3 lg:px-4 py-3 border-b border-gray-200">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); setCmdOpen(true); }}
-              onFocus={() => { setSearchOpen(true); setCmdOpen(true); }}
-              placeholder="Search users, courses, instructors... (Ctrl+K)"
-              className="w-full h-9 px-3 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Global search"
-            />
-            {searchOpen && cmdOpen && (
-              <div className="absolute left-0 right-0 mt-2 z-50" role="listbox">
-                <div className="rounded-md border bg-white shadow-xl">
-                  <Command>
-                    <CommandInput value={searchQuery} onValueChange={setSearchQuery} placeholder="Type to search..." />
-                    <CommandList>
-                      <CommandGroup heading="Navigation">
-                        {navigationItems
-                          .filter(item => item.title.toLowerCase().includes((searchQuery || '').toLowerCase()))
-                          .slice(0, 6)
-                          .map((item) => (
-                            <CommandItem key={item.href} onSelect={() => { handleNavigation(item.href); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>
-                              {item.title}
-                            </CommandItem>
-                          ))}
-                        {(!searchQuery || navigationItems.filter(item => item.title.toLowerCase().includes((searchQuery || '').toLowerCase())).length === 0) && (
-                          <CommandItem disabled>No results</CommandItem>
-                        )}
-                      </CommandGroup>
-                      <CommandGroup heading="Quick Actions">
-                        <CommandItem onSelect={() => { setLocation('/admin/courses'); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>Create Course</CommandItem>
-                        <CommandItem onSelect={() => { setLocation('/admin/users'); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>Invite Instructor</CommandItem>
-                        <CommandItem onSelect={() => { setLocation('/admin/analytics'); setSearchOpen(false); setCmdOpen(false); setSearchQuery(''); }}>View Analytics</CommandItem>
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        
 
         {/* User Profile Section */}
         <div className="px-4 lg:px-6 py-4 border-b border-gray-200">

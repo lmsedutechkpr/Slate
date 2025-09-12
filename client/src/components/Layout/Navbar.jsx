@@ -140,7 +140,9 @@ const Navbar = () => {
               <div className="flex-shrink-0">
                 <Link href="/dashboard">
                   <div className="flex items-center cursor-pointer">
-                    <img src="/slate-logo.png" alt="Slate" className="h-7 w-auto object-contain drop-shadow" />
+                    <div className="h-8 w-auto bg-white rounded-md ring-1 ring-gray-200 shadow-sm px-1 py-0.5">
+                      <img src="/slate-logo.png" alt="Slate" className="h-7 w-auto object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+                    </div>
                   </div>
                 </Link>
               </div>
@@ -170,8 +172,27 @@ const Navbar = () => {
               </div>
             </div>
             
-            {/* Right side - Notifications, User Menu, Mobile Menu Button */}
+            {/* Right side - Search, Notifications, User Menu, Mobile Menu Button */}
             <div className="flex items-center space-x-4">
+              {/* Inline Search */}
+              <div className="hidden md:block">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="h-9 w-64 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    aria-label="Search"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const q = e.currentTarget.value.trim();
+                        if (q) window.dispatchEvent(new CustomEvent('global-search', { detail: { q } }));
+                      }
+                    }}
+                  />
+                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </div>
+              </div>
+
               {/* Notifications - Hidden on small screens */}
               <div className="hidden sm:block relative">
                 <Button
@@ -204,7 +225,7 @@ const Navbar = () => {
                       className="flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                       data-testid="user-menu-trigger"
                     >
-                      <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+                      <div className="w-9 h-9 bg-white ring-1 ring-gray-200 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
                         {getUserAvatar() ? (
                           <img 
                             src={getImageUrl(getUserAvatar(), buildApiUrl(''))} 
@@ -212,16 +233,16 @@ const Navbar = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-white text-sm font-medium">
+                          <span className="text-gray-700 text-sm font-semibold">
                             {getInitials(userProfile?.profile?.firstName, userProfile?.profile?.lastName)}
                           </span>
                         )}
                       </div>
-                      <div className="text-left">
-                        <div className="text-sm font-medium text-gray-900">
+                      <div className="text-left hidden lg:block">
+                        <div className="text-sm font-medium text-gray-900 leading-tight">
                           {getUserDisplayName()}
                         </div>
-                        <div className="text-xs text-gray-500 capitalize">
+                        <div className="text-xs text-gray-500 capitalize leading-tight">
                           {getUserRole()}
                         </div>
                       </div>

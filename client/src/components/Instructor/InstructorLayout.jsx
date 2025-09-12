@@ -88,7 +88,9 @@ const InstructorLayout = ({ children }) => {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-gray-200">
           <div className="flex items-center">
-            <img src="/slate-logo.png" alt="Slate" className="w-8 h-8 object-contain drop-shadow" />
+            <div className="w-10 h-10 bg-white rounded-lg ring-1 ring-gray-200 shadow-sm p-1 overflow-hidden">
+              <img src="/slate-logo.png" alt="Slate" className="w-full h-full object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+            </div>
           </div>
           <Button
             variant="ghost"
