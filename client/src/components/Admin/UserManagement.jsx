@@ -360,6 +360,7 @@ const UserManagement = () => {
                 </div>
               </div>
               {createMode === 'instructor' ? (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name</Label>
@@ -420,6 +421,7 @@ const UserManagement = () => {
                   data-testid="input-instructor-googleEmail"
                 />
               </div>
+              </>
               ) : (
               <>
                 <div className="grid grid-cols-2 gap-4">
