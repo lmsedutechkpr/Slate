@@ -8,14 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users, BookOpen, GraduationCap, TrendingUp, BarChart3, UserCheck, Eye, Plus,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { getSocket } from '../lib/realtime.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 import { buildApiUrl } from '../lib/utils.js';
 
 const AdminDashboard = () => {
   const [location, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const queryClient = useQueryClient();
   const { accessToken, authenticatedFetch } = useAuth();
   const { authLoading } = useAuthRefresh();
@@ -39,6 +41,27 @@ const AdminDashboard = () => {
     retry: 3,
     retryDelay: 1000
   });
+
+  // Realtime: debounced invalidation to avoid spamming
+  useEffect(() => {
+    const socket = getSocket(accessToken);
+    if (!socket) return;
+    let timer = null;
+    const schedule = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        queryClient.invalidateQueries(['/api/admin/analytics/overview', range]);
+      }, 800);
+    };
+    socket.on('analytics:update', schedule);
+    socket.on('orders:paid', schedule);
+    socket.on('admin:courses:update', schedule);
+    return () => {
+      try { socket.off('analytics:update', schedule); socket.off('orders:paid', schedule); socket.off('admin:courses:update', schedule); } catch {}
+      if (timer) clearTimeout(timer);
+    };
+  }, [accessToken, range, queryClient]);
 
   // Debug: Log query state
   console.log('=== DASHBOARD QUERY STATE ===');
