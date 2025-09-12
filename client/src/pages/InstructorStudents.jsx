@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,10 @@ const InstructorStudents = () => {
     enabled: !!accessToken && !!user?._id,
     refetchInterval: 15000
   });
+
+  useRealtimeInvalidate([
+    ['instructor-students', user?._id]
+  ], ['students']);
 
   // Mark attendance mutation
   const markAttendanceMutation = useMutation({

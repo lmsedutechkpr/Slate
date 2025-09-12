@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,6 +19,10 @@ const InstructorAnalytics = () => {
     enabled: !!accessToken && !!user?._id,
     refetchInterval: 30000
   });
+
+  useRealtimeInvalidate([
+    ['/api/instructor/analytics', user?._id]
+  ], ['instructor', 'analytics']);
 
   if (isLoading) return <LoadingSpinner />;
 

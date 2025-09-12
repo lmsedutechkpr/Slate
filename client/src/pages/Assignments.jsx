@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useLocation } from 'wouter';
 import { buildApiUrl } from '../lib/utils.js';
@@ -40,6 +41,10 @@ const Assignments = () => {
     refetchInterval: false,
     staleTime: 30000,
   });
+
+  useRealtimeInvalidate([
+    ['/api/students/assignments']
+  ], ['assignments']);
 
   const assignments = assignmentsData?.assignments || [];
 

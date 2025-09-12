@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,6 +83,12 @@ const Courses = () => {
     enabled: !!accessToken,
     refetchInterval: 30000,
   });
+
+  useRealtimeInvalidate([
+    ['/api/courses'],
+    ['/api/enrollments'],
+    ['/api/recommendations']
+  ], ['courses', 'enrollments', 'recommendations']);
 
   const courses = coursesData?.courses || [];
   const enrollments = enrollmentsData?.enrollments || [];

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl, getImageUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -85,6 +86,12 @@ const CourseDetail = () => {
     refetchInterval: false,
     staleTime: 30000,
   });
+
+  useRealtimeInvalidate([
+    ['/api/courses', courseId],
+    ['/api/enrollments', courseId],
+    ['/api/courses', courseId, 'reviews']
+  ], ['courses', 'enrollments', 'reviews']);
 
   // Enroll mutation
   const enrollMutation = useMutation({

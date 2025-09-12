@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +65,12 @@ const Progress = () => {
     enabled: !!accessToken,
     refetchInterval: 30000,
   });
+
+  useRealtimeInvalidate([
+    ['/api/students/progress'],
+    ['/api/students/achievements'],
+    ['/api/students/analytics']
+  ], ['progress', 'achievements', 'analytics']);
 
   if (isLoading) {
     return (

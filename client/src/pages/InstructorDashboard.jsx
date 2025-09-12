@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
@@ -67,6 +68,12 @@ const InstructorDashboard = () => {
     enabled: !!accessToken && !!user?._id,
     refetchInterval: 15000
   });
+
+  useRealtimeInvalidate([
+    ['instructor-courses', user?._id],
+    ['instructor-assignments', user?._id],
+    ['instructor-live-sessions', user?._id]
+  ], ['courses', 'assignments', 'live-sessions']);
 
   if (coursesLoading || assignmentsLoading || sessionsLoading) {
     return <LoadingSpinner />;

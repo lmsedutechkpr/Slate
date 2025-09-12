@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,6 +62,11 @@ const AssignmentDetail = () => {
     },
     enabled: !!accessToken && !!assignmentId,
   });
+
+  useRealtimeInvalidate([
+    ['/api/assignments', assignmentId],
+    ['/api/assignments', assignmentId, 'submission']
+  ], ['assignments']);
 
   // Submit assignment mutation
   const submitMutation = useMutation({

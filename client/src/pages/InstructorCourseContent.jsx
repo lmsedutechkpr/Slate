@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useLocation, useRoute } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
@@ -71,6 +72,11 @@ const InstructorCourseContent = () => {
     enabled: !!courseId && !!accessToken,
     refetchInterval: 30000
   });
+
+  useRealtimeInvalidate([
+    ['course', courseId],
+    ['course-materials', courseId]
+  ], ['courses', 'materials']);
 
   // Add material mutation
   const addMaterialMutation = useMutation({
