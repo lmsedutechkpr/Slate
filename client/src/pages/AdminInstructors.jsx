@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
 import { useRealtimeInvalidate } from '../lib/useRealtimeInvalidate.js';
@@ -7,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -33,6 +35,7 @@ import {
 } from 'lucide-react';
 
 const AdminInstructors = () => {
+  const [, setLocation] = useLocation();
   const { accessToken } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -42,6 +45,19 @@ const AdminInstructors = () => {
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [showAssignCoursesDialog, setShowAssignCoursesDialog] = useState(false);
   const [showPayoutDialog, setShowPayoutDialog] = useState(false);
+  const [showAddInstructorDialog, setShowAddInstructorDialog] = useState(false);
+  const [assigningInstructor, setAssigningInstructor] = useState(null);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [newInstructor, setNewInstructor] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    username: '',
+    password: '',
+    bio: '',
+    expertise: ''
+  });
   const [payoutSettings, setPayoutSettings] = useState({
     percentage: 70,
     method: 'bank_transfer',
@@ -94,6 +110,28 @@ const AdminInstructors = () => {
 
   const instructors = instructorsData?.instructors || [];
 
+  // Fetch available courses for assignment
+  const { data: coursesData } = useQuery({
+    queryKey: ['/api/courses', accessToken],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl('/api/courses'), {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+      
+      return response.json();
+    },
+    enabled: !!accessToken && showAssignCoursesDialog,
+  });
+
+  const availableCourses = coursesData?.courses || [];
+
   // Real-time updates
   useRealtimeInvalidate(['/api/admin/instructors', '/api/admin/instructors/kpis'], ['instructors:update', 'instructors:create', 'instructors:delete', 'users:update']);
 
@@ -119,6 +157,79 @@ const AdminInstructors = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors/kpis'] });
       toast({ title: 'Instructor status updated successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  // Assign courses mutation
+  const assignCoursesMutation = useMutation({
+    mutationFn: async ({ instructorId, courseIds }) => {
+      const response = await fetch(buildApiUrl(`/api/admin/instructors/${instructorId}/assign-courses`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ courseIds })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to assign courses');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+      setShowAssignCoursesDialog(false);
+      setSelectedCourses([]);
+      setAssigningInstructor(null);
+      toast({ title: 'Courses assigned successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  // Create instructor mutation
+  const createInstructorMutation = useMutation({
+    mutationFn: async (instructorData) => {
+      const response = await fetch(buildApiUrl('/api/admin/users'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...instructorData,
+          role: 'instructor',
+          status: 'pending'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create instructor');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors/kpis'] });
+      setShowAddInstructorDialog(false);
+      setNewInstructor({
+        firstName: '',
+        lastName: '',
+        email: '',
+        username: '',
+        password: '',
+        bio: '',
+        expertise: ''
+      });
+      toast({ title: 'Instructor created successfully' });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -175,6 +286,29 @@ const AdminInstructors = () => {
     updateStatusMutation.mutate({ instructorId, status: newStatus });
   };
 
+  const handleAssignCourses = (instructor) => {
+    setAssigningInstructor(instructor);
+    setSelectedCourses([]);
+    setShowAssignCoursesDialog(true);
+  };
+
+  const handleCourseSelection = (courseId) => {
+    setSelectedCourses(prev => 
+      prev.includes(courseId) 
+        ? prev.filter(id => id !== courseId)
+        : [...prev, courseId]
+    );
+  };
+
+  const handleAssignCoursesSubmit = () => {
+    if (assigningInstructor && selectedCourses.length > 0) {
+      assignCoursesMutation.mutate({
+        instructorId: assigningInstructor._id,
+        courseIds: selectedCourses
+      });
+    }
+  };
+
   const handlePayoutSettings = (instructor) => {
     setSelectedInstructor(instructor);
     setPayoutSettings({
@@ -183,6 +317,14 @@ const AdminInstructors = () => {
       email: instructor.payoutSettings?.email || instructor.email
     });
     setShowPayoutDialog(true);
+  };
+
+  const handleCreateInstructor = () => {
+    if (newInstructor.firstName && newInstructor.lastName && newInstructor.email && newInstructor.username && newInstructor.password) {
+      createInstructorMutation.mutate(newInstructor);
+    } else {
+      toast({ title: 'Error', description: 'Please fill in all required fields', variant: 'destructive' });
+    }
   };
 
   const handleUpdatePayoutSettings = () => {
@@ -218,7 +360,7 @@ const AdminInstructors = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Instructor Management</h1>
           <p className="text-gray-600">Manage instructors, their courses, and performance</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowAddInstructorDialog(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
           Add Instructor
         </Button>
@@ -282,7 +424,7 @@ const AdminInstructors = () => {
           </CardContent>
         </Card>
       </div>
-
+      
       {/* Search and Filters */}
       <Card>
         <CardHeader>
@@ -392,14 +534,14 @@ const AdminInstructors = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setSelectedInstructor(instructor)}
+                            onClick={() => setLocation(`/admin/instructors/${instructor._id}`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setShowAssignCoursesDialog(true)}
+                            onClick={() => handleAssignCourses(instructor)}
                           >
                             <BookOpen className="h-4 w-4" />
                           </Button>
@@ -427,7 +569,7 @@ const AdminInstructors = () => {
                                 <Button
                                   variant="outline"
                                   className="w-full justify-start"
-                                  onClick={() => setSelectedInstructor(instructor)}
+                                  onClick={() => setLocation(`/admin/instructors/${instructor._id}`)}
                                 >
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Profile
@@ -435,7 +577,7 @@ const AdminInstructors = () => {
                                 <Button
                                   variant="outline"
                                   className="w-full justify-start"
-                                  onClick={() => setShowAssignCoursesDialog(true)}
+                                  onClick={() => handleAssignCourses(instructor)}
                                 >
                                   <BookOpen className="h-4 w-4 mr-2" />
                                   Assign Courses
@@ -483,6 +625,177 @@ const AdminInstructors = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Instructor Dialog */}
+      <Dialog open={showAddInstructorDialog} onOpenChange={setShowAddInstructorDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Instructor</DialogTitle>
+            <DialogDescription>
+              Create a new instructor account
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={newInstructor.firstName}
+                  onChange={(e) => setNewInstructor(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={newInstructor.lastName}
+                  onChange={(e) => setNewInstructor(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Enter last name"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newInstructor.email}
+                  onChange={(e) => setNewInstructor(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="username">Username *</Label>
+                <Input
+                  id="username"
+                  value={newInstructor.username}
+                  onChange={(e) => setNewInstructor(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="Enter username"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
+                type="password"
+                value={newInstructor.password}
+                onChange={(e) => setNewInstructor(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Enter password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="bio">Bio</Label>
+              <Input
+                id="bio"
+                value={newInstructor.bio}
+                onChange={(e) => setNewInstructor(prev => ({ ...prev, bio: e.target.value }))}
+                placeholder="Enter instructor bio"
+              />
+            </div>
+            <div>
+              <Label htmlFor="expertise">Expertise</Label>
+              <Input
+                id="expertise"
+                value={newInstructor.expertise}
+                onChange={(e) => setNewInstructor(prev => ({ ...prev, expertise: e.target.value }))}
+                placeholder="Enter areas of expertise"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowAddInstructorDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateInstructor} 
+              disabled={createInstructorMutation.isPending}
+            >
+              {createInstructorMutation.isPending ? 'Creating...' : 'Create Instructor'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Course Assignment Dialog */}
+      <Dialog open={showAssignCoursesDialog} onOpenChange={setShowAssignCoursesDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Assign Courses</DialogTitle>
+            <DialogDescription>
+              Select courses to assign to {assigningInstructor?.firstName} {assigningInstructor?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="max-h-60 overflow-y-auto border rounded-lg p-4">
+              {availableCourses.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p>No courses available</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {availableCourses.map((course) => (
+                    <div
+                      key={course._id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedCourses.includes(course._id)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleCourseSelection(course._id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{course.title}</h4>
+                          <p className="text-sm text-gray-600">{course.description}</p>
+                          <div className="flex items-center gap-4 mt-1">
+                            <span className="text-xs text-gray-500">${course.price}</span>
+                            <span className="text-xs text-gray-500">{course.enrollments?.length || 0} students</span>
+                            <Badge variant={course.status === 'published' ? 'default' : 'secondary'} className="text-xs">
+                              {course.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className={`w-4 h-4 border-2 rounded ${
+                            selectedCourses.includes(course._id)
+                              ? 'bg-blue-500 border-blue-500'
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedCourses.includes(course._id) && (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <CheckCircle className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="text-sm text-gray-600">
+              {selectedCourses.length} course{selectedCourses.length !== 1 ? 's' : ''} selected
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowAssignCoursesDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssignCoursesSubmit} 
+              disabled={assignCoursesMutation.isPending || selectedCourses.length === 0}
+            >
+              {assignCoursesMutation.isPending ? 'Assigning...' : 'Assign Courses'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Payout Settings Dialog */}
       <Dialog open={showPayoutDialog} onOpenChange={setShowPayoutDialog}>

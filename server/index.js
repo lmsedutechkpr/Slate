@@ -106,6 +106,16 @@ app.use((req, res, next) => {
           if (first) {
             io.emit(`${first}:update`, { path, method: req.method, status: res.statusCode });
           }
+          
+          // Emit instructor-specific events
+          if (path.includes('/instructors')) {
+            io.emit('instructors:update', { path, method: req.method, status: res.statusCode });
+          }
+          
+          // Emit user-specific events for instructor management
+          if (path.includes('/users') && capturedJsonResponse?.role === 'instructor') {
+            io.emit('instructors:update', { path, method: req.method, status: res.statusCode });
+          }
         }
       } catch {}
     }
