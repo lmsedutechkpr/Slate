@@ -90,80 +90,68 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Welcome to Admin Dashboard</h1>
-          <p className="text-sm lg:text-base text-gray-600">Monitor platform performance and manage your learning ecosystem</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <section className="rounded-xl bg-white/80 border border-gray-200 p-4 lg:p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-gray-900">Admin Control Center</h1>
+            <p className="text-gray-600 mt-1">Measure, manage, and grow your learning business in one place</p>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Select value={range} onValueChange={setRange}>
+              <SelectTrigger className="w-32"><SelectValue placeholder="Range" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => {
+              const rows = [{ totalUsers: stats.totalUsers, totalStudents: stats.totalStudents, totalInstructors: stats.totalInstructors, totalCourses: stats.totalCourses, totalEnrollments: stats.totalEnrollments, totalRevenue: stats.totalRevenue, ordersCount: stats.ordersCount||0 }];
+              const header = Object.keys(rows[0] || {}).join(',');
+              const body = rows.map(r => Object.values(r).join(',')).join('\n');
+              const csv = header + '\n' + body; const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `overview-${range}.csv`; a.click(); URL.revokeObjectURL(url);
+            }}>Export CSV</Button>
+            <Button variant="outline" onClick={() => {
+              import('jspdf').then(({ default: jsPDF }) => {
+                const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
+                doc.setFontSize(18); doc.text('Admin Overview', 40, 40);
+                doc.setFontSize(12);
+                const lines = [
+                  `Users: ${stats.totalUsers}`,
+                  `Students: ${stats.totalStudents}`,
+                  `Instructors: ${stats.totalInstructors}`,
+                  `Courses: ${stats.totalCourses}`,
+                  `Enrollments: ${stats.totalEnrollments}`,
+                  `Revenue: ₹${stats.totalRevenue}`,
+                  `Orders: ${stats.ordersCount||0}`,
+                ];
+                let y=70; lines.forEach(line => { doc.text(line, 40, y); y+=18; }); doc.save(`overview-${range}.pdf`);
+              });
+            }}>Export PDF</Button>
+            <Button variant="outline" onClick={() => setLocation('/admin/analytics')}><BarChart3 className="w-4 h-4 mr-2" /> Reports</Button>
+            <Button onClick={() => setLocation('/admin/courses')}><Plus className="w-4 h-4 mr-2" /> New Course</Button>
+          </div>
         </div>
-        <div className="flex gap-2 items-center">
-          <Select value={range} onValueChange={(v) => {
-            setRange(v);
-          }}>
-            <SelectTrigger className="w-28">
-              <SelectValue placeholder="Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={() => {
-            const rows = [{
-              totalUsers: stats.totalUsers,
-              totalStudents: stats.totalStudents,
-              totalInstructors: stats.totalInstructors,
-              totalCourses: stats.totalCourses,
-              totalEnrollments: stats.totalEnrollments,
-              totalRevenue: stats.totalRevenue,
-              monthlyGrowth: stats.monthlyGrowth,
-            }];
-            const header = Object.keys(rows[0] || {}).join(',');
-            const body = rows.map(r => Object.values(r).join(',')).join('\n');
-            const csv = header + '\n' + body;
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `overview-${range}.csv`; a.click(); URL.revokeObjectURL(url);
-          }}>Export CSV</Button>
-          <Button variant="outline" onClick={() => {
-            import('jspdf').then(({ default: jsPDF }) => {
-              const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-              doc.setFontSize(16);
-              doc.text('Admin Overview', 40, 40);
-              doc.setFontSize(11);
-              const lines = [
-                `Total Users: ${stats.totalUsers}`,
-                `Students: ${stats.totalStudents}`,
-                `Instructors: ${stats.totalInstructors}`,
-                `Courses: ${stats.totalCourses}`,
-                `Enrollments: ${stats.totalEnrollments}`,
-                `Revenue: ₹${stats.totalRevenue}`,
-              ];
-              let y = 70;
-              lines.forEach(line => { doc.text(line, 40, y); y += 18; });
-              doc.save(`overview-${range}.pdf`);
-            });
-          }}>Export PDF</Button>
-          <Button onClick={() => setLocation('/admin/analytics')} variant="outline"><BarChart3 className="w-4 h-4 mr-2" /> Analytics</Button>
-          <Button onClick={() => setLocation('/admin/courses')}><Plus className="w-4 h-4 mr-2" /> Create Course</Button>
-        </div>
-      </div>
+      </section>
 
-      {/* Stats Cards (clickable) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Stat title="Total Users" value={isLoading ? '...' : stats.totalUsers} icon={Users} onClick={() => setLocation('/admin/users')} color="text-blue-600" />
-        <Stat title="Students" value={isLoading ? '...' : stats.totalStudents} icon={GraduationCap} onClick={() => setLocation('/admin/users?role=student')} color="text-blue-600" />
-        <Stat title="Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} onClick={() => setLocation('/admin/users?role=instructor')} color="text-blue-600" />
-        <Stat title="Courses" value={isLoading ? '...' : stats.totalCourses} icon={BookOpen} onClick={() => setLocation('/admin/courses')} color="text-purple-600" />
-      </div>
+      {/* KPI Row */}
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiCard title="Users" value={isLoading ? '...' : stats.totalUsers} icon={Users} color="bg-blue-50 text-blue-700" onClick={() => setLocation('/admin/users')} />
+        <KpiCard title="Students" value={isLoading ? '...' : stats.totalStudents} icon={GraduationCap} color="bg-sky-50 text-sky-700" onClick={() => setLocation('/admin/users?role=student')} />
+        <KpiCard title="Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} color="bg-indigo-50 text-indigo-700" onClick={() => setLocation('/admin/users?role=instructor')} />
+        <KpiCard title="Courses" value={isLoading ? '...' : stats.totalCourses} icon={BookOpen} color="bg-purple-50 text-purple-700" onClick={() => setLocation('/admin/courses')} />
+      </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 lg:gap-6">
-        <Card className="hover:shadow-md transition-shadow"><CardHeader><CardTitle>Enrollments</CardTitle><CardDescription>Total course enrollments</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-blue-600">{isLoading ? '...' : stats.totalEnrollments}</div></CardContent></Card>
-        <Card className="hover:shadow-md transition-shadow"><CardHeader><CardTitle>Revenue</CardTitle><CardDescription>Total platform revenue</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-green-600">₹{isLoading ? '...' : stats.totalRevenue}</div><div className="mt-3 h-20"><ResponsiveContainer width="100%" height="100%"><LineChart data={revenueSeries}><XAxis dataKey="label" hide /><YAxis hide /><Tooltip /><Line type="monotone" dataKey="total" stroke="#16a34a" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div></CardContent></Card>
-        <Card className="hover:shadow-md transition-shadow"><CardHeader><CardTitle>Orders</CardTitle><CardDescription>Total paid/refunded orders</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-indigo-600">{isLoading ? '...' : (stats.ordersCount || 0)}</div></CardContent></Card>
-        <Card className="hover:shadow-md transition-shadow"><CardHeader><CardTitle>DAU (30d)</CardTitle><CardDescription>Daily active users</CardDescription></CardHeader><CardContent><div className="h-20"><ResponsiveContainer width="100%" height="100%"><LineChart data={dauSeries}><XAxis dataKey="date" hide /><YAxis hide /><Tooltip /><Line type="monotone" dataKey="count" stroke="#7c3aed" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div></CardContent></Card>
-      </div>
+      {/* Metrics Row */}
+      <section className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>Enrollments</CardTitle><CardDescription>Total course enrollments</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-blue-600">{isLoading ? '...' : stats.totalEnrollments}</div></CardContent></Card>
+        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>Revenue</CardTitle><CardDescription>Platform revenue</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-green-600">₹{isLoading ? '...' : stats.totalRevenue}</div><div className="mt-3 h-16"><ResponsiveContainer width="100%" height="100%"><LineChart data={revenueSeries}><XAxis dataKey="label" hide /><YAxis hide /><Tooltip /><Line type="monotone" dataKey="total" stroke="#16a34a" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div></CardContent></Card>
+        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>Orders</CardTitle><CardDescription>Paid / refunded</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-indigo-600">{isLoading ? '...' : (stats.ordersCount || 0)}</div></CardContent></Card>
+        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>DAU (30d)</CardTitle><CardDescription>Daily active users</CardDescription></CardHeader><CardContent><div className="h-16"><ResponsiveContainer width="100%" height="100%"><LineChart data={dauSeries}><XAxis dataKey="date" hide /><YAxis hide /><Tooltip /><Line type="monotone" dataKey="count" stroke="#7c3aed" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div></CardContent></Card>
+      </section>
 
       {/* Minimal analytics tabs retained - assume charts wired later */}
       <Card>
@@ -212,6 +200,22 @@ function Stat({ title, value, icon: Icon, onClick, color = 'text-blue-600' }) {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle><Icon className={`h-4 w-4 ${color}`} /></CardHeader>
       <CardContent><div className="text-2xl font-bold text-gray-900">{value}</div></CardContent>
     </Card>
+  );
+}
+
+function KpiCard({ title, value, icon: Icon, onClick, color }) {
+  return (
+    <div onClick={onClick} className={`rounded-xl border bg-white hover:shadow-md transition-all p-4 ${onClick ? 'cursor-pointer' : ''}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm text-gray-500">{title}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{value}</div>
+        </div>
+        <div className={`w-10 h-10 rounded-lg grid place-items-center ${color}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+      </div>
+    </div>
   );
 }
 
