@@ -72,13 +72,14 @@ const Analytics = () => {
   const { data: cmpData } = useQuery({
     queryKey: ['/api/admin/courses/analytics/enrollments-vs-completions', courseForCmp, cmpKey],
     queryFn: async () => {
-      const id = courseForCmp || 'all';
-      const path = courseForCmp ? `/api/admin/courses/${courseForCmp}/analytics/enrollments-vs-completions` : `/api/admin/courses/${courseList[0]?._id || ''}/analytics/enrollments-vs-completions`;
+      const selected = courseForCmp || (courseList[0]?._id || null);
+      if (!selected) return { series: [] };
+      const path = `/api/admin/courses/${selected}/analytics/enrollments-vs-completions`;
       const res = await authenticatedFetch(buildApiUrl(path));
       if (!res.ok) throw new Error('Failed to load chart');
       return res.json();
     },
-    enabled: !!accessToken && !authLoading && (courseList.length > 0)
+    enabled: !!accessToken && !authLoading
   });
   const { data: salesReport } = useQuery({
     queryKey: ['/api/admin/reports/sales', from, to, cmpKey],

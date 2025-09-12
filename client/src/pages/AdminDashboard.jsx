@@ -9,7 +9,6 @@ import {
   Users, BookOpen, GraduationCap, TrendingUp, BarChart3, UserCheck, Eye, Plus,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { getSocket } from '../lib/realtime.js';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts';
 import { useAuth } from '../hooks/useAuth.js';
 import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
@@ -23,7 +22,7 @@ const AdminDashboard = () => {
 
   const [range, setRange] = useState('30d');
   const { data: overview, isLoading } = useQuery({
-    queryKey: ['/api/admin/analytics/overview'],
+    queryKey: ['/api/admin/analytics/overview', range],
     queryFn: async () => {
       console.log('=== DASHBOARD API CALL ===');
       console.log('Making analytics request...');
@@ -35,22 +34,11 @@ const AdminDashboard = () => {
       return data;
     },
     enabled: !!accessToken && !authLoading,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
     retry: 3,
     retryDelay: 1000
   });
-
-  // Realtime: listen for analytics updates and refresh query
-  useEffect(() => {
-    const socket = getSocket(accessToken);
-    if (!socket) return;
-    const handler = () => {
-      queryClient.invalidateQueries(['/api/admin/analytics/overview']);
-    };
-    socket.on('analytics:update', handler);
-    return () => {
-      try { socket.off('analytics:update', handler); } catch (_) {}
-    };
-  }, [accessToken, queryClient]);
 
   // Debug: Log query state
   console.log('=== DASHBOARD QUERY STATE ===');
