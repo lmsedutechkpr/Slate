@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
+import { useRealtimeInvalidate } from '../lib/useRealtimeInvalidate.js';
+import { useParams } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,51 +32,63 @@ import {
 const AdminUserDetail = () => {
   const { accessToken } = useAuth();
   const [, setLocation] = useLocation();
+  const { userId } = useParams();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
 
-  // Mock user data - in real app, this would come from URL params and API
-  const userId = '1'; // This would come from useParams or URL
-  const user = {
-    _id: '1',
-    username: 'john_doe',
-    email: 'john@example.com',
-    profile: {
-      firstName: 'John',
-      lastName: 'Doe',
-      bio: 'Passionate learner and developer'
+  // Fetch user data from API
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['/api/admin/users', userId, accessToken],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}`), {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user details');
+      }
+      
+      return response.json();
     },
-    role: 'student',
-    status: 'active',
-    createdAt: new Date('2024-01-15'),
-    lastLogin: new Date('2024-01-20'),
-    enrollments: [
-      {
-        courseId: { title: 'React Fundamentals', _id: 'c1' },
-        enrolledAt: new Date('2024-01-16'),
-        progressPct: 75
-      },
-      {
-        courseId: { title: 'JavaScript Advanced', _id: 'c2' },
-        enrolledAt: new Date('2024-01-18'),
-        progressPct: 45
+    enabled: !!accessToken && !!userId,
+  });
+
+  // Real-time updates
+  useRealtimeInvalidate(['/api/admin/users'], ['users:update', 'users:create', 'users:delete']);
+
+  // Update admin notes mutation
+  const updateNotesMutation = useMutation({
+    mutationFn: async (notes) => {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}/notes`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ adminNotes: notes })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update admin notes');
       }
-    ],
-    purchases: [
-      {
-        orderId: 'ORD-001',
-        productName: 'Premium Course Bundle',
-        amount: 299,
-        purchaseDate: new Date('2024-01-10')
-      },
-      {
-        orderId: 'ORD-002',
-        productName: 'Study Materials',
-        amount: 49,
-        purchaseDate: new Date('2024-01-12')
-      }
-    ],
-    adminNotes: 'Good student, very engaged in discussions. Consider for mentorship program.'
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId] });
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      console.error('Error updating notes:', error);
+    }
+  });
+
+  const handleSaveNotes = () => {
+    updateNotesMutation.mutate(adminNotes);
   };
 
   const getRoleIcon = (role) => {
@@ -111,6 +125,52 @@ const AdminUserDetail = () => {
     }).format(amount);
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation('/admin/users')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Users
+          </Button>
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation('/admin/users')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Users
+          </Button>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-500">User not found</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -145,9 +205,13 @@ const AdminUserDetail = () => {
             {isEditing ? 'Cancel' : 'Edit'}
           </Button>
           {isEditing && (
-            <Button className="flex items-center gap-2">
+            <Button 
+              onClick={handleSaveNotes}
+              disabled={updateNotesMutation.isPending}
+              className="flex items-center gap-2"
+            >
               <Save className="h-4 w-4" />
-              Save Changes
+              {updateNotesMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           )}
         </div>
@@ -381,7 +445,7 @@ const AdminUserDetail = () => {
                   <Textarea
                     id="admin-notes"
                     placeholder="Add notes about this user..."
-                    value={adminNotes || user.adminNotes || ''}
+                    value={isEditing ? adminNotes : (user.adminNotes || '')}
                     onChange={(e) => setAdminNotes(e.target.value)}
                     className="min-h-[120px]"
                     disabled={!isEditing}

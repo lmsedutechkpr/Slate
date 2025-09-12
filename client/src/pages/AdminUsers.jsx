@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
+import { useRealtimeInvalidate } from '../lib/useRealtimeInvalidate.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Search, 
   Filter, 
@@ -31,24 +33,125 @@ import {
 } from 'lucide-react';
 
 const AdminUsers = () => {
+  const { accessToken } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  
   const [selectedRole, setSelectedRole] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [joinDateFilter, setJoinDateFilter] = useState('all');
+  const [enrollmentFilter, setEnrollmentFilter] = useState('all');
 
-  // Mock data for demonstration
-  const users = [
-    { _id: '1', username: 'john_doe', email: 'john@example.com', role: 'student', status: 'active', createdAt: new Date(), lastLogin: new Date() },
-    { _id: '2', username: 'jane_smith', email: 'jane@example.com', role: 'instructor', status: 'active', createdAt: new Date(), lastLogin: new Date() },
-    { _id: '3', username: 'admin_user', email: 'admin@example.com', role: 'admin', status: 'active', createdAt: new Date(), lastLogin: new Date() }
-  ];
+  // Fetch users data from API
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ['/api/admin/users', { 
+      search: searchTerm, 
+      role: selectedRole, 
+      page, 
+      limit,
+      joinDate: joinDateFilter,
+      enrollment: enrollmentFilter
+    }, accessToken],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (selectedRole && selectedRole !== 'all') params.append('role', selectedRole);
+      if (joinDateFilter && joinDateFilter !== 'all') params.append('joinDate', joinDateFilter);
+      if (enrollmentFilter && enrollmentFilter !== 'all') params.append('enrollment', enrollmentFilter);
+      params.append('page', String(page));
+      params.append('limit', String(limit));
+      
+      const response = await fetch(buildApiUrl(`/api/admin/users?${params.toString()}`), {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      return response.json();
+    },
+    enabled: !!accessToken,
+  });
 
-  const roleCounts = {
-    all: users.length,
-    student: users.filter(u => u.role === 'student').length,
-    instructor: users.filter(u => u.role === 'instructor').length,
-    admin: users.filter(u => u.role === 'admin').length
-  };
+  const users = usersData?.users || [];
+  const pagination = usersData?.pagination || { page, limit, total: 0 };
+
+  // Calculate role counts from real data
+  const roleCounts = useMemo(() => {
+    const counts = { all: users.length, student: 0, instructor: 0, admin: 0 };
+    users.forEach(user => {
+      if (user.role === 'student') counts.student++;
+      else if (user.role === 'instructor') counts.instructor++;
+      else if (user.role === 'admin') counts.admin++;
+    });
+    return counts;
+  }, [users]);
+
+  // Real-time updates
+  useRealtimeInvalidate(['/api/admin/users'], ['users:update', 'users:create', 'users:delete']);
+
+  // Bulk actions mutation
+  const bulkActionMutation = useMutation({
+    mutationFn: async ({ action, userIds }) => {
+      const response = await fetch(buildApiUrl('/api/admin/users/bulk-action'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action, userIds })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to perform bulk action');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      setSelectedUsers([]);
+      toast({ title: 'Bulk action completed successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  // Individual user actions mutation
+  const userActionMutation = useMutation({
+    mutationFn: async ({ action, userId }) => {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}/${action}`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} user`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({ title: 'Action completed successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -96,8 +199,15 @@ const AdminUsers = () => {
   };
 
   const handleBulkAction = (action) => {
-    console.log(`Bulk action: ${action} on users:`, selectedUsers);
-    // Here you would implement the actual bulk action logic
+    if (selectedUsers.length === 0) {
+      toast({ title: 'Please select users first', variant: 'destructive' });
+      return;
+    }
+    bulkActionMutation.mutate({ action, userIds: selectedUsers });
+  };
+
+  const handleUserAction = (action, userId) => {
+    userActionMutation.mutate({ action, userId });
   };
 
   return (
@@ -261,7 +371,11 @@ const AdminUsers = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 sm:p-6">
-              {filteredUsers.length === 0 ? (
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                </div>
+              ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">No users found matching your criteria</p>
                 </div>
@@ -300,23 +414,29 @@ const AdminUsers = () => {
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLocation(`/admin/users/${user._id}`)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLocation(`/admin/users/${user._id}/progress`)}>
                                 <GraduationCap className="h-4 w-4 mr-2" />
                                 View Progress
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUserAction('reset-password', user._id)}>
                                 <Unlock className="h-4 w-4 mr-2" />
                                 Reset Password
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
-                                <Ban className="h-4 w-4 mr-2" />
-                                Ban User
+                              <DropdownMenuItem 
+                                onClick={() => handleUserAction(user.status === 'banned' ? 'unban' : 'ban', user._id)}
+                                className={user.status === 'banned' ? 'text-green-600' : 'text-red-600'}
+                              >
+                                {user.status === 'banned' ? <Unlock className="h-4 w-4 mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
+                                {user.status === 'banned' ? 'Unban User' : 'Ban User'}
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem 
+                                onClick={() => handleUserAction('delete', user._id)}
+                                className="text-red-600"
+                              >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
                               </DropdownMenuItem>
@@ -404,23 +524,29 @@ const AdminUsers = () => {
                                     <Eye className="h-4 w-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setLocation(`/admin/users/${user._id}`)}>
                                     <Edit className="h-4 w-4 mr-2" />
                                     Edit
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setLocation(`/admin/users/${user._id}/progress`)}>
                                     <GraduationCap className="h-4 w-4 mr-2" />
                                     View Progress
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleUserAction('reset-password', user._id)}>
                                     <Unlock className="h-4 w-4 mr-2" />
                                     Reset Password
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">
-                                    <Ban className="h-4 w-4 mr-2" />
-                                    Ban User
+                                  <DropdownMenuItem 
+                                    onClick={() => handleUserAction(user.status === 'banned' ? 'unban' : 'ban', user._id)}
+                                    className={user.status === 'banned' ? 'text-green-600' : 'text-red-600'}
+                                  >
+                                    {user.status === 'banned' ? <Unlock className="h-4 w-4 mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
+                                    {user.status === 'banned' ? 'Unban User' : 'Ban User'}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleUserAction('delete', user._id)}
+                                    className="text-red-600"
+                                  >
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Delete
                                   </DropdownMenuItem>

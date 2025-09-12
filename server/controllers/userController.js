@@ -291,11 +291,60 @@ export const createInstructor = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const { role, status, page = 1, limit = 10, search, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
+    const { 
+      role, 
+      status, 
+      page = 1, 
+      limit = 10, 
+      search, 
+      sortBy = 'createdAt', 
+      sortDir = 'desc',
+      joinDate,
+      enrollment
+    } = req.query;
     
     const filter = {};
     if (role) filter.role = role;
     if (status) filter.status = status;
+    
+    // Date filtering
+    if (joinDate && joinDate !== 'all') {
+      const now = new Date();
+      switch (joinDate) {
+        case '7days':
+          filter.createdAt = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
+          break;
+        case '30days':
+          filter.createdAt = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
+          break;
+        case '90days':
+          filter.createdAt = { $gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) };
+          break;
+        case '1year':
+          filter.createdAt = { $gte: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) };
+          break;
+      }
+    }
+    
+    // Enrollment filtering
+    if (enrollment && enrollment !== 'all') {
+      switch (enrollment) {
+        case 'enrolled':
+          filter.enrollments = { $exists: true, $not: { $size: 0 } };
+          break;
+        case 'no-enrollments':
+          filter.$or = [
+            { enrollments: { $exists: false } },
+            { enrollments: { $size: 0 } }
+          ];
+          break;
+        case 'active-courses':
+          // Users with active enrollments (you might need to adjust this based on your schema)
+          filter.enrollments = { $exists: true, $not: { $size: 0 } };
+          break;
+      }
+    }
+    
     if (search) {
       const rx = new RegExp(search, 'i');
       filter.$or = [
@@ -462,6 +511,260 @@ export const updateUserStatus = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: 'Failed to update user status',
+      error: error.message
+    });
+  }
+};
+
+// Get user by ID for admin
+export const getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId)
+      .populate('enrollments.courseId', 'title description')
+      .populate('purchases.productId', 'name price')
+      .select('-password -refreshToken');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to fetch user details',
+      error: error.message
+    });
+  }
+};
+
+// Bulk user actions
+export const bulkUserAction = async (req, res) => {
+  try {
+    const { action, userIds } = req.body;
+    const adminId = req.user._id;
+    
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'User IDs are required' });
+    }
+    
+    let result;
+    switch (action) {
+      case 'ban':
+        result = await User.updateMany(
+          { _id: { $in: userIds } },
+          { $set: { status: 'banned', updatedAt: new Date() } }
+        );
+        break;
+      case 'activate':
+        result = await User.updateMany(
+          { _id: { $in: userIds } },
+          { $set: { status: 'active', updatedAt: new Date() } }
+        );
+        break;
+      case 'delete':
+        result = await User.deleteMany({ _id: { $in: userIds } });
+        break;
+      case 'export':
+        // For export, we'll return the user data
+        const users = await User.find({ _id: { $in: userIds } })
+          .select('-password -refreshToken')
+          .lean();
+        return res.json({ users, action: 'export' });
+      default:
+        return res.status(400).json({ message: 'Invalid action' });
+    }
+    
+    // Log the bulk action
+    await AuditLog.create({
+      action: `bulk_${action}`,
+      performedBy: adminId,
+      targetType: 'users',
+      targetId: userIds,
+      details: { count: userIds.length, action }
+    });
+    
+    res.json({ 
+      message: `Bulk ${action} completed successfully`,
+      modifiedCount: result.modifiedCount || result.deletedCount || 0
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to perform bulk action',
+      error: error.message
+    });
+  }
+};
+
+// Ban user
+export const banUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user._id;
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { status: 'banned', updatedAt: new Date() } },
+      { new: true }
+    );
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Log the action
+    await AuditLog.create({
+      action: 'ban_user',
+      performedBy: adminId,
+      targetType: 'user',
+      targetId: userId,
+      details: { username: user.username, email: user.email }
+    });
+    
+    res.json({ message: 'User banned successfully', user });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to ban user',
+      error: error.message
+    });
+  }
+};
+
+// Unban user
+export const unbanUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user._id;
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { status: 'active', updatedAt: new Date() } },
+      { new: true }
+    );
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Log the action
+    await AuditLog.create({
+      action: 'unban_user',
+      performedBy: adminId,
+      targetType: 'user',
+      targetId: userId,
+      details: { username: user.username, email: user.email }
+    });
+    
+    res.json({ message: 'User unbanned successfully', user });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to unban user',
+      error: error.message
+    });
+  }
+};
+
+// Reset user password
+export const resetUserPassword = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user._id;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Generate a temporary password (in production, send reset email)
+    const tempPassword = Math.random().toString(36).slice(-8);
+    user.password = tempPassword; // This should be hashed in production
+    user.updatedAt = new Date();
+    await user.save();
+    
+    // Log the action
+    await AuditLog.create({
+      action: 'reset_password',
+      performedBy: adminId,
+      targetType: 'user',
+      targetId: userId,
+      details: { username: user.username, email: user.email }
+    });
+    
+    res.json({ 
+      message: 'Password reset successfully',
+      tempPassword // In production, don't return this
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to reset password',
+      error: error.message
+    });
+  }
+};
+
+// Delete user
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user._id;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Soft delete or hard delete based on your requirements
+    await User.findByIdAndDelete(userId);
+    
+    // Log the action
+    await AuditLog.create({
+      action: 'delete_user',
+      performedBy: adminId,
+      targetType: 'user',
+      targetId: userId,
+      details: { username: user.username, email: user.email }
+    });
+    
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to delete user',
+      error: error.message
+    });
+  }
+};
+
+// Update user admin notes
+export const updateUserNotes = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { adminNotes } = req.body;
+    const adminId = req.user._id;
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { adminNotes, updatedAt: new Date() } },
+      { new: true }
+    );
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Log the action
+    await AuditLog.create({
+      action: 'update_admin_notes',
+      performedBy: adminId,
+      targetType: 'user',
+      targetId: userId,
+      details: { username: user.username, notesLength: adminNotes?.length || 0 }
+    });
+    
+    res.json({ message: 'Admin notes updated successfully', user });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to update admin notes',
       error: error.message
     });
   }

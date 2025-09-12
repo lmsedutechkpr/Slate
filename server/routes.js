@@ -73,8 +73,15 @@ export async function registerRoutes(app) {
   // Admin user management
   app.post('/api/admin/instructors', authenticateToken, requireAdmin, userController.createInstructor);
   app.get('/api/admin/users', authenticateToken, requireAdmin, userController.getAllUsers);
+  app.get('/api/admin/users/:userId', authenticateToken, requireAdmin, userController.getUserById);
   app.put('/api/admin/users/:userId/status', authenticateToken, requireAdmin, userController.updateUserStatus);
   app.get('/api/admin/users/:userId/progress', authenticateToken, requireAdmin, userController.getUserProgress);
+  app.post('/api/admin/users/bulk-action', authenticateToken, requireAdmin, userController.bulkUserAction);
+  app.post('/api/admin/users/:userId/ban', authenticateToken, requireAdmin, userController.banUser);
+  app.post('/api/admin/users/:userId/unban', authenticateToken, requireAdmin, userController.unbanUser);
+  app.post('/api/admin/users/:userId/reset-password', authenticateToken, requireAdmin, userController.resetUserPassword);
+  app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, userController.deleteUser);
+  app.post('/api/admin/users/:userId/notes', authenticateToken, requireAdmin, userController.updateUserNotes);
   
   // Course routes - Specific routes first (with parameters)
   app.post('/api/courses/:courseId/lectures/upload', authenticateToken, requireInstructorOrAdmin, courseController.uploadLectureVideoMiddleware, courseController.uploadLectureVideo);
