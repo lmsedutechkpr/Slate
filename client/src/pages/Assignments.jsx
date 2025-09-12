@@ -8,8 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
-import { useEffect } from 'react';
-import { getSocket } from '@/lib/realtime.js';
 import { 
   Calendar, 
   Clock, 
@@ -44,19 +42,6 @@ const Assignments = () => {
   });
 
   const assignments = assignmentsData?.assignments || [];
-
-  // Realtime: listen for assignment updates for this student
-  useEffect(() => {
-    if (!accessToken) return;
-    const socket = getSocket(accessToken);
-    socket.emit('auth', accessToken);
-    const handler = () => {
-      // Invalidate and refetch on any update
-      setTimeout(() => window.dispatchEvent(new Event('focus')), 0);
-    };
-    socket.on('student:assignments:update', handler);
-    return () => { socket.off('student:assignments:update', handler); };
-  }, [accessToken]);
 
   const getStatusInfo = (assignment) => {
     const { submissionStatus, dueAt } = assignment;

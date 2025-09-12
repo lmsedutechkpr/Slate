@@ -28,7 +28,6 @@ import {
   ShoppingBag,
   ArrowRight
 } from 'lucide-react';
-import { getSocket } from '@/lib/realtime.js';
 
 const Dashboard = () => {
   const { user, accessToken, authenticatedFetch, authLoading } = useAuth();
@@ -78,22 +77,6 @@ const Dashboard = () => {
     refetchInterval: false,
     staleTime: 30000
   });
-
-  // Realtime: listen to progress and assignment updates to refresh dashboard
-  useEffect(() => {
-    if (!accessToken) return;
-    const socket = getSocket(accessToken);
-    const refresh = () => {
-      // Trigger a refetch by invalidating via window focus behavior
-      setTimeout(() => window.dispatchEvent(new Event('focus')), 0);
-    };
-    socket.on('student:progress:update', refresh);
-    socket.on('student:assignments:update', refresh);
-    return () => {
-      socket.off('student:progress:update', refresh);
-      socket.off('student:assignments:update', refresh);
-    };
-  }, [accessToken]);
 
   const {
     enrollments = [],

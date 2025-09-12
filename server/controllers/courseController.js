@@ -484,20 +484,6 @@ export const updateCourseProgress = async (req, res) => {
       enrollment,
       xpGained
     });
-
-    // Emit realtime event to the student for dashboard/progress widgets
-    try {
-      const { getIo } = await import('../realtime.js');
-      const io = getIo();
-      io?.to(`user:${studentId.toString()}`).emit('student:progress:update', {
-        type: 'course_progress',
-        courseId,
-        lectureId,
-        progressPct: enrollment.progressPct,
-        completedLectures: enrollment.completedLectures,
-        xpGained
-      });
-    } catch {}
   } catch (error) {
     res.status(500).json({
       message: 'Failed to update progress',

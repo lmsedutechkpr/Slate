@@ -133,18 +133,6 @@ export const submitAssignment = async (req, res) => {
       message: 'Assignment submitted successfully',
       submission
     });
-
-    // Emit realtime event to the student and course room
-    try {
-      const { getIo } = await import('../realtime.js');
-      const io = getIo();
-      io?.to(`user:${studentId.toString()}`).emit('student:assignments:update', {
-        type: 'submission_created',
-        assignmentId: assignmentId,
-        courseId: assignment.courseId?.toString?.(),
-        submission
-      });
-    } catch {}
   } catch (error) {
     res.status(500).json({
       message: 'Failed to submit assignment',
@@ -202,19 +190,6 @@ export const gradeSubmission = async (req, res) => {
       submission: assignment.submissions[submissionIndex],
       xpGained
     });
-
-    // Emit realtime event to the student
-    try {
-      const { getIo } = await import('../realtime.js');
-      const io = getIo();
-      io?.to(`user:${studentId.toString()}`).emit('student:assignments:update', {
-        type: 'submission_graded',
-        assignmentId,
-        submissionId,
-        submission: assignment.submissions[submissionIndex],
-        xpGained
-      });
-    } catch {}
   } catch (error) {
     res.status(500).json({
       message: 'Failed to grade assignment',

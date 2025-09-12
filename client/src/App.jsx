@@ -8,7 +8,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import NotFound from "@/pages/not-found";
 import Redirect from "@/components/Common/Redirect.jsx";
-import LandingPage from "@/pages/LandingPage.jsx";
 import Login from "@/pages/Login.jsx";
 import Register from "@/pages/Register.jsx";
 const Dashboard = lazy(() => import('@/pages/Dashboard.jsx'));
@@ -92,7 +91,6 @@ function AppRoutes() {
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div></div>}>
       <Switch>
         {/* Public Routes */}
-        <Route path="/landing" component={LandingPage} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         
@@ -392,7 +390,7 @@ function AppRoutes() {
         {/* Default route: redirect */}
         <Route path="/">
           {!isAuthenticated ? (
-            <Redirect to="/landing" />
+            <Redirect to="/login" />
           ) : user?.role === 'admin' ? (
             <Redirect to="/admin" />
           ) : user?.role === 'instructor' ? (
