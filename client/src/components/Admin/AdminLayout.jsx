@@ -26,6 +26,9 @@ const AdminLayout = ({ children }) => {
   const [location, setLocation] = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('admin.sidebar') === 'collapsed'; } catch { return false; }
+  });
 
   const navigationGroups = [
     { label: 'Overview', items: [
@@ -96,7 +99,7 @@ const AdminLayout = ({ children }) => {
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 ${collapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
         ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
@@ -106,16 +109,32 @@ const AdminLayout = ({ children }) => {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">A</span>
             </div>
-            <span className="text-lg font-semibold text-gray-900">Admin Panel</span>
+            {!collapsed && <span className="text-lg font-semibold text-gray-900">Admin Panel</span>}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={closeMobileSidebar}
-            className="lg:hidden"
-          >
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={closeMobileSidebar}
+              className="lg:hidden"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden lg:inline-flex"
+              onClick={() => {
+                setCollapsed(v => {
+                  const next = !v; try { localStorage.setItem('admin.sidebar', next ? 'collapsed' : 'expanded'); } catch {}
+                  return next;
+                });
+              }}
+              title={collapsed ? 'Expand' : 'Collapse'}
+            >
+              {collapsed ? '›' : '‹'}
+            </Button>
+          </div>
         </div>
 
         {/* User Profile Section */}
@@ -146,10 +165,10 @@ const AdminLayout = ({ children }) => {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 px-3 lg:px-4 py-4 space-y-3 overflow-y-auto">
+        <nav className="flex-1 px-2 lg:px-3 py-4 space-y-3 overflow-y-auto">
           {navigationGroups.map(group => (
             <div key={group.label}>
-              <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-gray-400">{group.label}</div>
+              {!collapsed && <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-gray-400">{group.label}</div>}
               <div className="space-y-1">
                 {group.items.map((item) => {
                   const isActive = currentPath === item.href;
@@ -158,14 +177,17 @@ const AdminLayout = ({ children }) => {
                     <Button
                       key={item.href}
                       variant={isActive ? "default" : "ghost"}
-                      className={`w-full justify-start h-auto py-3 px-3 text-left ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                      className={`w-full justify-start h-auto py-3 ${collapsed ? 'px-2' : 'px-3'} text-left ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                       onClick={() => handleNavigation(item.href)}
+                      title={collapsed ? item.title : undefined}
                     >
-                      <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{item.title}</div>
-                        <div className={`text-xs truncate ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>{item.description}</div>
-                      </div>
+                      <Icon className={`w-5 h-5 ${collapsed ? '' : 'mr-3'} flex-shrink-0`} />
+                      {!collapsed && (
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{item.title}</div>
+                          <div className={`text-xs truncate ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>{item.description}</div>
+                        </div>
+                      )}
                     </Button>
                   );
                 })}
@@ -181,7 +203,7 @@ const AdminLayout = ({ children }) => {
       {/* Main Content */}
       <div className={`
         transition-all duration-300 ease-in-out
-        lg:ml-64
+        ${collapsed ? 'lg:ml-20' : 'lg:ml-64'}
       `}>
         {/* Top Bar with Integrated Navigation */}
         <div className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200 px-3 py-3 lg:px-6 shadow-sm">
@@ -252,7 +274,7 @@ const AdminLayout = ({ children }) => {
 
         {/* Page Content */
         }
-        <main className="p-3 lg:p-6">
+        <main className="p-3 lg:p-6 max-w-7xl mx-auto">
           {children}
         </main>
       </div>
