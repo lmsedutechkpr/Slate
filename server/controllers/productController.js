@@ -1,5 +1,4 @@
-import { Product, Bundle } from '../models/index.js';
-import { getIo } from '../realtime.js';
+import { Product } from '../models/index.js';
 
 export const createProduct = async (req, res) => {
   try {
@@ -129,11 +128,6 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    try {
-      if (product && typeof product.stock === 'number' && typeof product.lowStockThreshold === 'number' && product.stock <= product.lowStockThreshold) {
-        getIo()?.emit('admin:inventory:low', { productId: product._id, stock: product.stock });
-      }
-    } catch {}
     res.json({
       message: 'Product updated successfully',
       product
@@ -181,68 +175,5 @@ export const getProductCategories = async (req, res) => {
       message: 'Failed to get categories',
       error: error.message
     });
-  }
-};
-
-export const getTrendingProducts = async (req, res) => {
-  try {
-    const { limit = 10 } = req.query;
-    const products = await Product.find({ isActive: true })
-      .sort({ salesCount: -1, 'rating.average': -1, createdAt: -1 })
-      .limit(parseInt(limit));
-    res.json({ products });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to get trending products', error: error.message });
-  }
-};
-
-export const createBundle = async (req, res) => {
-  try {
-    const { title, description, courseId, products = [], price, discountPrice } = req.body;
-    if (!title || !Array.isArray(products) || products.length === 0 || price == null) {
-      return res.status(400).json({ message: 'title, products, and price are required' });
-    }
-    const bundle = await Bundle.create({ title, description, courseId, products, price, discountPrice });
-    try { getIo()?.emit('admin:products:update', { type: 'bundle_created', id: bundle._id }); } catch {}
-    res.status(201).json({ message: 'Bundle created', bundle });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to create bundle', error: error.message });
-  }
-};
-
-export const listBundles = async (req, res) => {
-  try {
-    const { courseId } = req.query;
-    const filter = { isActive: true };
-    if (courseId) filter.courseId = courseId;
-    const bundles = await Bundle.find(filter).populate('courseId', 'title').populate('products.productId', 'title price discountPrice');
-    res.json({ bundles });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to list bundles', error: error.message });
-  }
-};
-
-export const updateBundle = async (req, res) => {
-  try {
-    const { bundleId } = req.params;
-    const update = req.body || {};
-    const bundle = await Bundle.findByIdAndUpdate(bundleId, update, { new: true });
-    if (!bundle) return res.status(404).json({ message: 'Bundle not found' });
-    try { getIo()?.emit('admin:products:update', { type: 'bundle_updated', id: bundle._id }); } catch {}
-    res.json({ message: 'Bundle updated', bundle });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to update bundle', error: error.message });
-  }
-};
-
-export const deleteBundle = async (req, res) => {
-  try {
-    const { bundleId } = req.params;
-    const bundle = await Bundle.findByIdAndUpdate(bundleId, { isActive: false }, { new: true });
-    if (!bundle) return res.status(404).json({ message: 'Bundle not found' });
-    try { getIo()?.emit('admin:products:update', { type: 'bundle_deleted', id: bundle._id }); } catch {}
-    res.json({ message: 'Bundle deleted' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to delete bundle', error: error.message });
   }
 };

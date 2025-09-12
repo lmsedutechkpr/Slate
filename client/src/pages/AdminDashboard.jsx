@@ -1,32 +1,26 @@
 import { useLocation } from 'wouter';
-import { useState, useEffect, useMemo } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users, BookOpen, GraduationCap, TrendingUp, BarChart3, UserCheck, Eye, Plus,
 } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
-import { getSocket } from '../lib/realtime.js';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 import { buildApiUrl } from '../lib/utils.js';
 
 const AdminDashboard = () => {
   const [location, setLocation] = useLocation();
-  const queryClient = useQueryClient();
   const { accessToken, authenticatedFetch } = useAuth();
   const { authLoading } = useAuthRefresh();
 
-  const [range, setRange] = useState('30d');
   const { data: overview, isLoading } = useQuery({
-    queryKey: ['/api/admin/analytics/overview', range],
+    queryKey: ['/api/admin/analytics/overview'],
     queryFn: async () => {
       console.log('=== DASHBOARD API CALL ===');
       console.log('Making analytics request...');
-      const res = await authenticatedFetch(buildApiUrl(`/api/admin/analytics/overview?range=${range}`));
+      const res = await authenticatedFetch(buildApiUrl('/api/admin/analytics/overview'));
       console.log('Analytics response status:', res.status);
       if (!res.ok) throw new Error('Failed to load analytics');
       const data = await res.json();
@@ -34,35 +28,9 @@ const AdminDashboard = () => {
       return data;
     },
     enabled: !!accessToken && !authLoading,
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
     retry: 3,
     retryDelay: 1000
   });
-
-  // Realtime: debounced invalidation to avoid spamming
-  useEffect(() => {
-    const socket = getSocket(accessToken);
-    if (!socket) return;
-    let timer = null;
-    const schedule = () => {
-      if (timer) return;
-      timer = setTimeout(() => {
-        timer = null;
-        queryClient.invalidateQueries(['/api/admin/analytics/overview', range]);
-        queryClient.invalidateQueries(['/api/admin/analytics/students']);
-        queryClient.invalidateQueries(['/api/courses', 'admin-dashboard']);
-        queryClient.invalidateQueries(['/api/admin/reports/sales', 'last30']);
-      }, 800);
-    };
-    socket.on('analytics:update', schedule);
-    socket.on('orders:paid', schedule);
-    socket.on('admin:courses:update', schedule);
-    return () => {
-      try { socket.off('analytics:update', schedule); socket.off('orders:paid', schedule); socket.off('admin:courses:update', schedule); } catch {}
-      if (timer) clearTimeout(timer);
-    };
-  }, [accessToken, range, queryClient]);
 
   // Debug: Log query state
   console.log('=== DASHBOARD QUERY STATE ===');
@@ -72,104 +40,7 @@ const AdminDashboard = () => {
   console.log('isLoading:', isLoading);
   console.log('overview data:', overview);
 
-  const stats = overview || { totalUsers: 0, totalStudents: 0, totalInstructors: 0, totalCourses: 0, totalEnrollments: 0, totalRevenue: 0, monthlyGrowth: 0, revenueByMonth: [], dau: [], topCourses: [] };
-
-  const revenueSeries = useMemo(() => {
-    const now = new Date();
-    const months = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({ key: `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`, label: d.toLocaleString('default', { month: 'short' }) + ' ' + String(d.getFullYear()).slice(2), total: 0 });
-    }
-    const map = new Map(months.map(m => [m.key, m]));
-    (stats.revenueByMonth || []).forEach(r => {
-      const key = `${r._id?.y}-${String(r._id?.m).padStart(2,'0')}`;
-      const entry = map.get(key);
-      if (entry) entry.total = r.total || 0;
-    });
-    return months;
-  }, [stats.revenueByMonth]);
-
-  const dauSeries = useMemo(() => {
-    return (stats.dau || []).map(d => ({
-      date: `${d.date?.y}-${String(d.date?.m).padStart(2,'0')}-${String(d.date?.d).padStart(2,'0')}`,
-      count: d.count || 0
-    }));
-  }, [stats.dau]);
-
-  const topCoursesSeries = useMemo(() => (stats.topCourses || []).map(t => ({ name: t.title, enrollments: t.enrollments })), [stats.topCourses]);
-
-  // Users tab: new users by month
-  const { data: studentsData } = useQuery({
-    queryKey: ['/api/admin/analytics/students'],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append('page', '1');
-      params.append('limit', '500');
-      const res = await authenticatedFetch(buildApiUrl(`/api/admin/analytics/students?${params.toString()}`));
-      if (!res.ok) throw new Error('Failed to load students');
-      return res.json();
-    },
-    enabled: !!accessToken && !authLoading,
-  });
-  const usersGrowth = useMemo(() => {
-    const list = studentsData?.students || [];
-    const byMonth = new Map();
-    list.forEach((s) => {
-      const d = new Date(s.createdAt);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      byMonth.set(key, (byMonth.get(key) || 0) + 1);
-    });
-    return Array.from(byMonth.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, users]) => ({ month, users }));
-  }, [studentsData]);
-
-  // Courses tab: category distribution
-  const { data: coursesData } = useQuery({
-    queryKey: ['/api/courses', 'admin-dashboard'],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append('page', '1');
-      params.append('limit', '500');
-      const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
-      if (!res.ok) throw new Error('Failed to load courses');
-      return res.json();
-    },
-    enabled: !!accessToken && !authLoading,
-  });
-  const categoryDistribution = useMemo(() => {
-    const list = coursesData?.courses || [];
-    const counts = new Map();
-    list.forEach((c) => {
-      const key = c.category || 'Other';
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    return Array.from(counts.entries()).map(([name, count]) => ({ name, count }));
-  }, [coursesData]);
-
-  // Activity tab: sales last 30 days
-  const { data: salesReport } = useQuery({
-    queryKey: ['/api/admin/reports/sales', 'last30'],
-    queryFn: async () => {
-      const to = new Date();
-      const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
-      const res = await authenticatedFetch(buildApiUrl(`/api/admin/reports/sales?${params.toString()}`));
-      if (!res.ok) throw new Error('Failed to load sales report');
-      return res.json();
-    },
-    enabled: !!accessToken && !authLoading,
-  });
-  const salesDailySeries = useMemo(
-    () =>
-      (salesReport?.daily || []).map((d) => ({
-        date: `${d._id.y}-${String(d._id.m).padStart(2, '0')}-${String(d._id.d).padStart(2, '0')}`,
-        revenue: d.total,
-        orders: d.count,
-      })),
-    [salesReport]
-  );
+  const stats = overview || { totalUsers: 0, totalStudents: 0, totalInstructors: 0, totalCourses: 0, totalEnrollments: 0, totalRevenue: 0, monthlyGrowth: 0 };
 
   // Show loading state while authentication is in progress
   if (authLoading) {
@@ -186,68 +57,31 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <section className="rounded-xl bg-white/80 border border-gray-200 p-4 lg:p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-            <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-gray-900">Admin Control Center</h1>
-            <p className="text-gray-600 mt-1">Measure, manage, and grow your learning business in one place</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Welcome to Admin Dashboard</h1>
+          <p className="text-sm lg:text-base text-gray-600">Monitor platform performance and manage your learning ecosystem</p>
         </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            <Select value={range} onValueChange={setRange}>
-              <SelectTrigger className="w-32"><SelectValue placeholder="Range" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={() => {
-              const rows = [{ totalUsers: stats.totalUsers, totalStudents: stats.totalStudents, totalInstructors: stats.totalInstructors, totalCourses: stats.totalCourses, totalEnrollments: stats.totalEnrollments, totalRevenue: stats.totalRevenue, ordersCount: stats.ordersCount||0 }];
-            const header = Object.keys(rows[0] || {}).join(',');
-            const body = rows.map(r => Object.values(r).join(',')).join('\n');
-              const csv = header + '\n' + body; const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `overview-${range}.csv`; a.click(); URL.revokeObjectURL(url);
-          }}>Export CSV</Button>
-            <Button variant="outline" onClick={() => {
-              import('jspdf').then(({ default: jsPDF }) => {
-                const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-                doc.setFontSize(18); doc.text('Admin Overview', 40, 40);
-                doc.setFontSize(12);
-                const lines = [
-                  `Users: ${stats.totalUsers}`,
-                  `Students: ${stats.totalStudents}`,
-                  `Instructors: ${stats.totalInstructors}`,
-                  `Courses: ${stats.totalCourses}`,
-                  `Enrollments: ${stats.totalEnrollments}`,
-                  `Revenue: ₹${stats.totalRevenue}`,
-                  `Orders: ${stats.ordersCount||0}`,
-                ];
-                let y=70; lines.forEach(line => { doc.text(line, 40, y); y+=18; }); doc.save(`overview-${range}.pdf`);
-              });
-            }}>Export PDF</Button>
-            <Button variant="outline" onClick={() => setLocation('/admin/analytics')}><BarChart3 className="w-4 h-4 mr-2" /> Reports</Button>
-            <Button onClick={() => setLocation('/admin/courses')}><Plus className="w-4 h-4 mr-2" /> New Course</Button>
-          </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setLocation('/admin/analytics')} variant="outline"><BarChart3 className="w-4 h-4 mr-2" /> Analytics</Button>
+          <Button onClick={() => setLocation('/admin/courses')}><Plus className="w-4 h-4 mr-2" /> Create Course</Button>
         </div>
-      </section>
+      </div>
 
-      {/* KPI Row */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard title="Users" value={isLoading ? '...' : stats.totalUsers} icon={Users} color="bg-blue-50 text-blue-700" onClick={() => setLocation('/admin/users')} />
-        <KpiCard title="Students" value={isLoading ? '...' : stats.totalStudents} icon={GraduationCap} color="bg-sky-50 text-sky-700" onClick={() => setLocation('/admin/users?role=student')} />
-        <KpiCard title="Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} color="bg-indigo-50 text-indigo-700" onClick={() => setLocation('/admin/users?role=instructor')} />
-        <KpiCard title="Courses" value={isLoading ? '...' : stats.totalCourses} icon={BookOpen} color="bg-purple-50 text-purple-700" onClick={() => setLocation('/admin/courses')} />
-      </section>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <Stat title="Total Users" value={isLoading ? '...' : stats.totalUsers} icon={Users} />
+        <Stat title="Students" value={isLoading ? '...' : stats.totalStudents} icon={GraduationCap} />
+        <Stat title="Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} />
+        <Stat title="Courses" value={isLoading ? '...' : stats.totalCourses} icon={BookOpen} />
+      </div>
 
-      {/* Metrics Row */}
-      <section className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>Enrollments</CardTitle><CardDescription>Total course enrollments</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-blue-600">{isLoading ? '...' : stats.totalEnrollments}</div></CardContent></Card>
-        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>Revenue</CardTitle><CardDescription>Platform revenue</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-green-600">₹{isLoading ? '...' : stats.totalRevenue}</div><div className="mt-3 h-16"><ResponsiveContainer width="100%" height="100%"><LineChart data={revenueSeries}><XAxis dataKey="label" hide /><YAxis hide /><Tooltip /><Line type="monotone" dataKey="total" stroke="#16a34a" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div></CardContent></Card>
-        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>Orders</CardTitle><CardDescription>Paid / refunded</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-indigo-600">{isLoading ? '...' : (stats.ordersCount || 0)}</div></CardContent></Card>
-        <Card className="xl:col-span-1 hover:shadow-sm"><CardHeader><CardTitle>DAU (30d)</CardTitle><CardDescription>Daily active users</CardDescription></CardHeader><CardContent><div className="h-16"><ResponsiveContainer width="100%" height="100%"><LineChart data={dauSeries}><XAxis dataKey="date" hide /><YAxis hide /><Tooltip /><Line type="monotone" dataKey="count" stroke="#7c3aed" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div></CardContent></Card>
-      </section>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+        <Card className="hover:shadow-md transition-shadow"><CardHeader><CardTitle>Enrollments</CardTitle><CardDescription>Total course enrollments</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-blue-600">{isLoading ? '...' : stats.totalEnrollments}</div></CardContent></Card>
+        <Card className="hover:shadow-md transition-shadow"><CardHeader><CardTitle>Revenue</CardTitle><CardDescription>Total platform revenue</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-green-600">₹{isLoading ? '...' : stats.totalRevenue}</div></CardContent></Card>
+        <Card className="hover:shadow-md transition-shadow"><CardHeader><CardTitle>Growth</CardTitle><CardDescription>Monthly user growth</CardDescription></CardHeader><CardContent><div className="text-3xl font-bold text-purple-600">{isLoading ? '...' : stats.monthlyGrowth}%</div></CardContent></Card>
+      </div>
 
       {/* Minimal analytics tabs retained - assume charts wired later */}
       <Card>
@@ -263,82 +97,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="courses" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900 md:w-full md:justify-center">Courses</TabsTrigger>
               <TabsTrigger value="activity" className="text-xs sm:text-sm px-3 py-2 shrink-0 rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900 md:w-full md:justify-center">Activity</TabsTrigger>
             </TabsList>
-            <TabsContent value="overview" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader><CardTitle>Revenue (12 mo)</CardTitle><CardDescription>Monthly revenue</CardDescription></CardHeader>
-                  <CardContent className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={revenueSeries}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Bar dataKey="total" fill="#22c55e" /></BarChart></ResponsiveContainer></CardContent>
-                </Card>
-                <Card>
-                  <CardHeader><CardTitle>Top Courses</CardTitle><CardDescription>By enrollments (30d)</CardDescription></CardHeader>
-                  <CardContent className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={topCoursesSeries}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" interval={0} angle={-20} textAnchor="end" height={60} /><YAxis /><Tooltip /><Bar dataKey="enrollments" fill="#3b82f6" /></BarChart></ResponsiveContainer></CardContent>
-                </Card>
-                <Card>
-                  <CardHeader><CardTitle>Revenue Split</CardTitle><CardDescription>Platform vs Instructor payout</CardDescription></CardHeader>
-                  <CardContent className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[{name:'Platform', value: stats.platformRevenue || 0},{name:'Instructors', value: stats.instructorPayout || 0}]} cx="50%" cy="50%" outerRadius={80} dataKey="value" label>{[{name:'Platform', value: stats.platformRevenue || 0},{name:'Instructors', value: stats.instructorPayout || 0}].map((_,i)=>(<Cell key={i} fill={i===0? '#16a34a':'#60a5fa'} />))}</Pie><Tooltip /></PieChart></ResponsiveContainer></CardContent>
-                </Card>
-                <Card className="md:col-span-2 lg:col-span-3">
-                  <CardHeader><CardTitle>Conversion Funnel</CardTitle><CardDescription>Visitors → Enrollments → Orders (30d)</CardDescription></CardHeader>
-                  <CardContent className="h-56"><ResponsiveContainer width="100%" height="100%"><BarChart data={[{stage:'Visitors', value: stats.funnel?.visitors || 0},{stage:'Enrollments', value: stats.funnel?.enrollments || 0},{stage:'Orders', value: stats.funnel?.orders || 0}]}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="stage" /><YAxis /><Tooltip /><Bar dataKey="value" fill="#9333ea" /></BarChart></ResponsiveContainer></CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            <TabsContent value="users" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader><CardTitle>New Users by Month</CardTitle><CardDescription>Account creations</CardDescription></CardHeader>
-                  <CardContent className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={usersGrowth}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="users" fill="#3b82f6" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            <TabsContent value="courses" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader><CardTitle>Courses by Category</CardTitle><CardDescription>Distribution</CardDescription></CardHeader>
-                  <CardContent className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={categoryDistribution}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" interval={0} angle={-20} textAnchor="end" height={60} />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#8b5cf6" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            <TabsContent value="activity" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader><CardTitle>Sales (Last 30 days)</CardTitle><CardDescription>Revenue and orders</CardDescription></CardHeader>
-                  <CardContent className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={salesDailySeries}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis yAxisId="left" orientation="left" />
-                        <YAxis yAxisId="right" orientation="right" />
-                        <Tooltip />
-                        <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={false} />
-                        <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#2563eb" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+            <TabsContent value="overview" className="mt-4 text-sm text-gray-600">Live data powered by API. Use Analytics page for full reports.</TabsContent>
           </Tabs>
         </CardContent>
       </Card>
@@ -346,28 +105,12 @@ const AdminDashboard = () => {
   );
 };
 
-function Stat({ title, value, icon: Icon, onClick, color = 'text-blue-600' }) {
+function Stat({ title, value, icon: Icon }) {
   return (
-    <Card onClick={onClick} className={`hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer hover:bg-gray-50' : ''}`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle><Icon className={`h-4 w-4 ${color}`} /></CardHeader>
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle><Icon className="h-4 w-4 text-blue-600" /></CardHeader>
       <CardContent><div className="text-2xl font-bold text-gray-900">{value}</div></CardContent>
     </Card>
-  );
-}
-
-function KpiCard({ title, value, icon: Icon, onClick, color }) {
-  return (
-    <div onClick={onClick} className={`rounded-xl border bg-white hover:shadow-md transition-all p-4 ${onClick ? 'cursor-pointer' : ''}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-sm text-gray-500">{title}</div>
-          <div className="text-3xl font-bold text-gray-900 mt-1">{value}</div>
-        </div>
-        <div className={`w-10 h-10 rounded-lg grid place-items-center ${color}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-    </div>
   );
 }
 

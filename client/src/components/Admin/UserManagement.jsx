@@ -13,9 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import ConfirmDialog from '@/components/Common/ConfirmDialog.jsx';
-import { UserPlus, Search, Filter, MoreHorizontal, Ban, CheckCircle, XCircle, BarChart2, Trash2, ThumbsUp, ThumbsDown, UserPlus2 } from 'lucide-react';
-import { getSocket } from '@/lib/realtime.js';
+import { UserPlus, Search, Filter, MoreHorizontal, Ban, CheckCircle, XCircle, BarChart2 } from 'lucide-react';
 
 const UserManagement = () => {
   const { accessToken, authenticatedFetch } = useAuth();
@@ -24,14 +22,12 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState(() => new URLSearchParams(window.location.search).get('role') || localStorage.getItem('adminUsers.role') || 'all');
-  const [activeTab, setActiveTab] = useState(() => (['student','instructor','admin'].includes(new URLSearchParams(window.location.search).get('role')||'') ? new URLSearchParams(window.location.search).get('role') : 'all'));
+  const [selectedRole, setSelectedRole] = useState(() => localStorage.getItem('adminUsers.role') || 'all');
   const [selectedStatus, setSelectedStatus] = useState(() => localStorage.getItem('adminUsers.status') || 'all');
   const [savedViews, setSavedViews] = useState(() => {
     try { return JSON.parse(localStorage.getItem('adminUsers.savedViews') || '[]'); } catch { return []; }
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createMode, setCreateMode] = useState('instructor'); // 'instructor' | 'student'
   const [newInstructor, setNewInstructor] = useState({
     username: '',
     email: '',
@@ -40,23 +36,10 @@ const UserManagement = () => {
     lastName: '',
     googleEmail: ''
   });
-  const [newStudent, setNewStudent] = useState({
-    username: '', email: '', password: '', firstName: '', lastName: ''
-  });
   const [progressOpen, setProgressOpen] = useState(false);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressData, setProgressData] = useState([]);
   const [progressUser, setProgressUser] = useState(null);
-  const [columnsOpen, setColumnsOpen] = useState(false);
-  const [visibleCols, setVisibleCols] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('admin.users.columns') || 'null');
-      return saved || { role: true, status: true, joined: true };
-    } catch { return { role: true, status: true, joined: true }; }
-  });
-  useEffect(() => {
-    try { localStorage.setItem('admin.users.columns', JSON.stringify(visibleCols)); } catch {}
-  }, [visibleCols]);
 
   // Fetch users
   const [page, setPage] = useState(1);
@@ -85,15 +68,6 @@ const UserManagement = () => {
     },
     enabled: !!accessToken && !authLoading,
   });
-
-  // Realtime refresh on admin user updates
-  useEffect(() => {
-    const socket = getSocket(accessToken);
-    if (!socket) return;
-    const handler = () => queryClient.invalidateQueries(['/api/admin/users']);
-    socket.on('admin:users:update', handler);
-    return () => { try { socket.off('admin:users:update', handler); } catch {} };
-  }, [accessToken, queryClient]);
 
   // Persist filters
   useEffect(() => {
@@ -168,30 +142,6 @@ const UserManagement = () => {
     },
   });
 
-  const createStudentMutation = useMutation({
-    mutationFn: async (studentData) => {
-      const response = await authenticatedFetch(buildApiUrl('/api/admin/users'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(studentData)
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create student');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: 'Success', description: 'Student created successfully' });
-      setNewStudent({ username: '', email: '', password: '', firstName: '', lastName: '' });
-      setIsCreateDialogOpen(false);
-      queryClient.invalidateQueries(['/api/admin/users']);
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    }
-  });
-
   // Update user status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ userId, status }) => {
@@ -224,40 +174,6 @@ const UserManagement = () => {
         variant: "destructive",
       });
     },
-  });
-
-  const deleteUserMutation = useMutation({
-    mutationFn: async ({ userId, mode }) => {
-      const response = await authenticatedFetch(buildApiUrl(`/api/admin/users/${userId}?mode=${mode}`), { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: 'Success', description: 'User updated successfully' });
-      queryClient.invalidateQueries(['/api/admin/users']);
-    },
-    onError: (error) => toast({ title: 'Error', description: error.message, variant: 'destructive' })
-  });
-
-  const approveInstructorMutation = useMutation({
-    mutationFn: async ({ userId, approvalStatus }) => {
-      const response = await authenticatedFetch(buildApiUrl(`/api/admin/instructors/${userId}/approval`), {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approvalStatus })
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update approval');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: 'Success', description: 'Approval updated' });
-      queryClient.invalidateQueries(['/api/admin/users']);
-    },
-    onError: (error) => toast({ title: 'Error', description: error.message, variant: 'destructive' })
   });
 
   const users = usersData?.users || [];
@@ -299,10 +215,6 @@ const UserManagement = () => {
     createInstructorMutation.mutate(newInstructor);
   };
 
-  const [confirmStatusOpen, setConfirmStatusOpen] = useState(false);
-  const [statusTarget, setStatusTarget] = useState(null);
-  const [nextStatus, setNextStatus] = useState('active');
-  const requestStatusChange = (user, status) => { setStatusTarget(user); setNextStatus(status); setConfirmStatusOpen(true); };
   const handleUpdateStatus = (userId, status) => {
     updateStatusMutation.mutate({ userId, status });
   };
@@ -342,26 +254,19 @@ const UserManagement = () => {
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-user">
+            <Button data-testid="button-create-instructor">
               <UserPlus className="w-4 h-4 mr-2" />
-              Create User
+              Create Instructor
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription>Choose user type and provide details.</DialogDescription>
+              <DialogTitle>Create New Instructor</DialogTitle>
+              <DialogDescription>
+                Add a new instructor to the system. They will receive login credentials via email.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label>User Type</Label>
-                <div className="mt-2 flex gap-2">
-                  <Button variant={createMode==='student'?'default':'outline'} onClick={()=>setCreateMode('student')}><UserPlus2 className="w-4 h-4 mr-2"/>Student</Button>
-                  <Button variant={createMode==='instructor'?'default':'outline'} onClick={()=>setCreateMode('instructor')}><UserPlus className="w-4 h-4 mr-2"/>Instructor</Button>
-                </div>
-              </div>
-              {createMode === 'instructor' ? (
-              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name</Label>
@@ -422,47 +327,20 @@ const UserManagement = () => {
                   data-testid="input-instructor-googleEmail"
                 />
               </div>
-              </>
-              ) : (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>First Name</Label>
-                    <Input value={newStudent.firstName} onChange={(e)=> setNewStudent(s => ({...s, firstName: e.target.value}))} />
-                  </div>
-                  <div>
-                    <Label>Last Name</Label>
-                    <Input value={newStudent.lastName} onChange={(e)=> setNewStudent(s => ({...s, lastName: e.target.value}))} />
-                  </div>
-                </div>
-                <div>
-                  <Label>Username</Label>
-                  <Input value={newStudent.username} onChange={(e)=> setNewStudent(s => ({...s, username: e.target.value}))} />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input type="email" value={newStudent.email} onChange={(e)=> setNewStudent(s => ({...s, email: e.target.value}))} />
-                </div>
-                <div>
-                  <Label>Password</Label>
-                  <Input type="password" value={newStudent.password} onChange={(e)=> setNewStudent(s => ({...s, password: e.target.value}))} />
-                </div>
-              </>
-              )}
               <div className="flex justify-end space-x-2">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsCreateDialogOpen(false)}
-                  data-testid="button-cancel-user"
+                  data-testid="button-cancel-instructor"
                 >
                   Cancel
                 </Button>
                 <Button 
-                  onClick={() => createMode==='instructor' ? handleCreateInstructor() : createStudentMutation.mutate(newStudent)}
-                  disabled={createMode==='instructor' ? createInstructorMutation.isPending : createStudentMutation.isPending}
-                  data-testid="button-save-user"
+                  onClick={handleCreateInstructor}
+                  disabled={createInstructorMutation.isPending}
+                  data-testid="button-save-instructor"
                 >
-                  {(createInstructorMutation.isPending || createStudentMutation.isPending) ? 'Creating...' : 'Create User'}
+                  {createInstructorMutation.isPending ? 'Creating...' : 'Create Instructor'}
                 </Button>
               </div>
             </div>
@@ -470,16 +348,10 @@ const UserManagement = () => {
         </Dialog>
       </div>
 
-      {/* Filters + Tabs */}
+      {/* Filters */}
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex gap-2">
-              <Button variant={activeTab==='all'?'default':'outline'} onClick={()=>{ setActiveTab('all'); setSelectedRole('all'); }}>All</Button>
-              <Button variant={activeTab==='student'?'default':'outline'} onClick={()=>{ setActiveTab('student'); setSelectedRole('student'); }}>Students</Button>
-              <Button variant={activeTab==='instructor'?'default':'outline'} onClick={()=>{ setActiveTab('instructor'); setSelectedRole('instructor'); }}>Instructors</Button>
-              <Button variant={activeTab==='admin'?'default':'outline'} onClick={()=>{ setActiveTab('admin'); setSelectedRole('admin'); }}>Admins</Button>
-            </div>
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -548,17 +420,10 @@ const UserManagement = () => {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <CardTitle>Users ({users.length})</CardTitle>
-              <CardDescription>
-                Manage all users in the system
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setColumnsOpen(true)}>Columns</Button>
-            </div>
-          </div>
+          <CardTitle>Users ({users.length})</CardTitle>
+          <CardDescription>
+            Manage all users in the system
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -570,25 +435,6 @@ const UserManagement = () => {
               <p className="text-gray-500">No users found matching your criteria</p>
             </div>
           ) : (
-            <>
-            <div className="flex justify-end pb-3">
-              <Button variant="outline" onClick={() => {
-                const rows = users.map(u => ({
-                  id: u._id,
-                  username: u.username,
-                  email: u.email,
-                  role: u.role,
-                  status: u.status,
-                  createdAt: u.createdAt
-                }));
-                const header = Object.keys(rows[0] || {}).join(',');
-                const body = rows.map(r => Object.values(r).map(v => typeof v === 'string' && v.includes(',') ? `"${v.replaceAll('"','""')}"` : v).join(',')).join('\n');
-                const csv = header + '\n' + body;
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = 'users.csv'; a.click(); URL.revokeObjectURL(url);
-              }}>Export CSV</Button>
-            </div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -598,24 +444,24 @@ const UserManagement = () => {
                   >
                     User {sortBy === 'username' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                   </TableHead>
-                  {visibleCols.role && (<TableHead
+                  <TableHead
                     className="cursor-pointer"
                     onClick={() => { setSortBy('role'); setSortDir(d => (sortBy === 'role' && d === 'asc') ? 'desc' : 'asc'); }}
                   >
                     Role {sortBy === 'role' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
-                  </TableHead>)}
-                  {visibleCols.status && (<TableHead
+                  </TableHead>
+                  <TableHead
                     className="cursor-pointer"
                     onClick={() => { setSortBy('status'); setSortDir(d => (sortBy === 'status' && d === 'asc') ? 'desc' : 'asc'); }}
                   >
                     Status {sortBy === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
-                  </TableHead>)}
-                  {visibleCols.joined && (<TableHead
+                  </TableHead>
+                  <TableHead
                     className="cursor-pointer"
                     onClick={() => { setSortBy('createdAt'); setSortDir(d => (sortBy === 'createdAt' && d === 'asc') ? 'desc' : 'asc'); }}
                   >
                     Joined {sortBy === 'createdAt' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
-                  </TableHead>)}
+                  </TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -636,25 +482,19 @@ const UserManagement = () => {
                         )}
                       </div>
                     </TableCell>
-                    {visibleCols.role && (
-                      <TableCell>
-                        <Badge className={getRoleColor(user.role)}>
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleCols.status && (
-                      <TableCell>
-                        <Badge className={getStatusColor(user.status)}>
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleCols.joined && (
-                      <TableCell>
-                        {formatDate(user.createdAt)}
-                      </TableCell>
-                    )}
+                    <TableCell>
+                      <Badge className={getRoleColor(user.role)}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(user.status)}>
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(user.createdAt)}
+                    </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
                         <Button
@@ -670,7 +510,7 @@ const UserManagement = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => requestStatusChange(user, 'banned')}
+                            onClick={() => handleUpdateStatus(user._id, 'banned')}
                             data-testid={`button-ban-${user._id}`}
                           >
                             <Ban className="w-3 h-3 mr-1" />
@@ -680,21 +520,12 @@ const UserManagement = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => requestStatusChange(user, 'active')}
+                            onClick={() => handleUpdateStatus(user._id, 'active')}
                             data-testid={`button-activate-${user._id}`}
                           >
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Activate
                           </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => deleteUserMutation.mutate({ userId: user._id, mode: 'deactivate' })}><XCircle className="w-3 h-3 mr-1"/>Deactivate</Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteUserMutation.mutate({ userId: user._id, mode: 'delete' })}><Trash2 className="w-3 h-3 mr-1"/>Delete</Button>
-                        {user.role === 'instructor' && (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => approveInstructorMutation.mutate({ userId: user._id, approvalStatus: 'approved' })}><ThumbsUp className="w-3 h-3 mr-1"/>Approve</Button>
-                            <Button size="sm" variant="outline" onClick={() => approveInstructorMutation.mutate({ userId: user._id, approvalStatus: 'rejected' })}><ThumbsDown className="w-3 h-3 mr-1"/>Reject</Button>
-                            {user.approvalStatus && (<Badge>{user.approvalStatus}</Badge>)}
-                          </>
                         )}
                       </div>
                     </TableCell>
@@ -702,46 +533,9 @@ const UserManagement = () => {
                 ))}
               </TableBody>
             </Table>
-            </>
           )}
         </CardContent>
       </Card>
-
-      {/* Columns chooser */}
-      <Dialog open={columnsOpen} onOpenChange={setColumnsOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Choose columns</DialogTitle>
-            <DialogDescription>Toggle visibility for table columns.</DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              ['role','Role'],
-              ['status','Status'],
-              ['joined','Joined'],
-            ].map(([key,label]) => (
-              <label key={key} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!visibleCols[key]} onChange={(e)=> setVisibleCols(v => ({...v, [key]: e.target.checked}))} />
-                {label}
-              </label>
-            ))}
-          </div>
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setColumnsOpen(false)}>Close</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirm user status change */}
-      <ConfirmDialog
-        open={confirmStatusOpen}
-        onOpenChange={setConfirmStatusOpen}
-        title={nextStatus === 'banned' ? 'Ban user?' : 'Activate user?'}
-        description={statusTarget ? `User @${statusTarget.username} will be set to "${nextStatus}".` : ''}
-        confirmLabel={nextStatus === 'banned' ? 'Ban' : 'Activate'}
-        destructive={nextStatus === 'banned'}
-        onConfirm={() => statusTarget && handleUpdateStatus(statusTarget._id, nextStatus)}
-      />
 
       {/* Pagination */}
       <div className="flex items-center justify-between">

@@ -10,11 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, BookOpen } from 'lucide-react';
-import { useLocation } from 'wouter';
 
 const InstructorManagement = () => {
   const { accessToken, authenticatedFetch } = useAuth();
-  const [, setLocation] = useLocation();
   const { authLoading } = useAuthRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -197,7 +195,7 @@ const InstructorManagement = () => {
                       <Button size="sm" variant="outline" className="mr-2" onClick={() => { setSelectedInstructor(instructor); setCoursesOpen(true); }}>
                         <BookOpen className="w-3 h-3 mr-1" /> Courses
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setLocation(`/admin/instructors/${instructor._id}`)}>View</Button>
+                      <Button size="sm" variant="outline" onClick={() => window.location.assign(`/admin/instructors/${instructor._id}`)}>View</Button>
                       <Button size="sm" className="ml-2" variant="outline" onClick={async () => {
                         setSelectedInstructor(instructor);
                         setAssignOpen(true);

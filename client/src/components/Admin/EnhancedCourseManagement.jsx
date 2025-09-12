@@ -18,7 +18,6 @@ import {
   Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload, ListPlus
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import ConfirmDialog from '@/components/Common/ConfirmDialog.jsx';
 
 const EnhancedCourseManagement = () => {
   const { accessToken, authenticatedFetch } = useAuth();
@@ -37,16 +36,6 @@ const EnhancedCourseManagement = () => {
   const [sortDir, setSortDir] = useState('desc');
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [columnsOpen, setColumnsOpen] = useState(false);
-  const [visibleCols, setVisibleCols] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('admin.courses.columns') || 'null');
-      return saved || { thumbnail: true, instructor: true, level: true, status: true, price: true, enrollments: true, rating: true, created: true };
-    } catch { return { thumbnail: true, instructor: true, level: true, status: true, price: true, enrollments: true, rating: true, created: true }; }
-  });
-  useEffect(() => {
-    try { localStorage.setItem('admin.courses.columns', JSON.stringify(visibleCols)); } catch {}
-  }, [visibleCols]);
 
   // Fetch courses from API
   const { data: courseList, isLoading } = useQuery({
@@ -154,14 +143,11 @@ const EnhancedCourseManagement = () => {
     onError: () => toast({ title: 'Error', description: 'Failed to delete course', variant: 'destructive' })
   });
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState(null);
-  const openDeleteConfirm = (course) => {
-    setPendingDelete(course);
-    setConfirmOpen(true);
-  };
-  const confirmDelete = () => {
-    if (pendingDelete?._id) deleteCourseMutation.mutate(pendingDelete._id);
+  const confirmAndDelete = (course) => {
+    const token = course.title ? course.title.slice(0, 6) : course._id?.slice(-6);
+    const input = window.prompt(`Type the first 6 chars of the course title to confirm delete: \n${token}`);
+    if (!input || input !== token) return;
+    deleteCourseMutation.mutate(course._id);
   };
 
   // Create/Update Dialog state
@@ -372,7 +358,7 @@ const EnhancedCourseManagement = () => {
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setConfirmOpen(true)} disabled={bulkPublishMutation.isPending}>
+                <Button size="sm" onClick={() => handleBulkAction('publish')} disabled={bulkPublishMutation.isPending}>
                   <Play className="w-4 h-4 mr-1" /> Publish All
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => handleBulkAction('archive')} disabled={bulkArchiveMutation.isPending}>
@@ -393,32 +379,10 @@ const EnhancedCourseManagement = () => {
               <CardTitle>All Courses ({pagination.total || courses.length})</CardTitle>
               <CardDescription>Manage courses with advanced filtering and bulk operations</CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setColumnsOpen(true)}>Columns</Button>
-              <Button variant="outline" onClick={() => {
-                const rows = courses.map(c => ({
-                  id: c._id,
-                  title: c.title,
-                  category: c.category,
-                  level: c.level,
-                  status: c.status,
-                  price: c.price,
-                  enrollments: c.enrollmentCount || 0,
-                  rating: (c.rating?.average ?? c.rating ?? 0),
-                  createdAt: c.createdAt
-                }));
-                const header = Object.keys(rows[0] || {}).join(',');
-                const body = rows.map(r => Object.values(r).map(v => typeof v === 'string' && v.includes(',') ? `"${v.replaceAll('"','""')}"` : v).join(',')).join('\n');
-                const csv = header + '\n' + body;
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = 'courses.csv'; a.click(); URL.revokeObjectURL(url);
-              }}>Export CSV</Button>
-              <Button onClick={openCreate}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Course
-              </Button>
-            </div>
+            <Button onClick={openCreate}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Course
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -436,34 +400,34 @@ const EnhancedCourseManagement = () => {
                   <TableHead className="w-16 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">
                     <Checkbox checked={selectAll} onCheckedChange={setSelectAll} />
                   </TableHead>
-                  {visibleCols.thumbnail && (<TableHead className="w-20 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Thumbnail</TableHead>)}
+                  <TableHead className="w-20 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Thumbnail</TableHead>
                   <TableHead 
                     className="w-64 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
                     onClick={() => { setSortBy('title'); setSortDir(d => (sortBy==='title' && d==='asc') ? 'desc' : 'asc'); }}
                   >
                     Course {sortBy==='title' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
-                  {visibleCols.instructor && (<TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Instructor</TableHead>)}
-                  {visibleCols.level && (<TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Level</TableHead>)}
-                  {visibleCols.status && (<TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Status</TableHead>)}
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Instructor</TableHead>
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Level</TableHead>
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Status</TableHead>
                   <TableHead 
                     className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
                     onClick={() => { setSortBy('price'); setSortDir(d => (sortBy==='price' && d==='asc') ? 'desc' : 'asc'); }}
                   >
-                    {visibleCols.price && (<>Price {sortBy==='price' ? (sortDir==='asc' ? '↑' : '↓') : ''}</>)}
+                    Price {sortBy==='price' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
                   <TableHead 
                     className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
                     onClick={() => { setSortBy('enrollmentCount'); setSortDir(d => (sortBy==='enrollmentCount' && d==='asc') ? 'desc' : 'asc'); }}
                   >
-                    {visibleCols.enrollments && (<>Enrollments {sortBy==='enrollmentCount' ? (sortDir==='asc' ? '↑' : '↓') : ''}</>)}
+                    Enrollments {sortBy==='enrollmentCount' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
-                  {visibleCols.rating && (<TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Rating</TableHead>)}
+                  <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Rating</TableHead>
                   <TableHead 
                     className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
                     onClick={() => { setSortBy('createdAt'); setSortDir(d => (sortBy==='createdAt' && d==='asc') ? 'desc' : 'asc'); }}
                   >
-                    {visibleCols.created && (<>Created {sortBy==='createdAt' ? (sortDir==='asc' ? '↑' : '↓') : ''}</>)}
+                    Created {sortBy==='createdAt' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
                   <TableHead className="w-48 px-4 py-3 text-left font-bold text-gray-800">Actions</TableHead>
                 </TableRow>
@@ -480,27 +444,25 @@ const EnhancedCourseManagement = () => {
                         }}
                       />
                     </TableCell>
-                    {visibleCols.thumbnail && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-md">
-                          {(course.coverUrl || course.cover) ? (
-                            <img 
-                              src={getImageUrl(course.coverUrl || course.cover, buildApiUrl(''))} 
-                              alt={course.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
-                              <BookOpen className="w-8 h-8" />
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-md">
+                        {(course.coverUrl || course.cover) ? (
+                          <img 
+                            src={getImageUrl(course.coverUrl || course.cover, buildApiUrl(''))} 
+                            alt={course.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                            <BookOpen className="w-8 h-8" />
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="px-4 py-3 border-r border-gray-200">
                       <div className="w-64">
                         <div className="font-bold text-gray-900 truncate text-lg mb-2">{course.title}</div>
@@ -519,69 +481,55 @@ const EnhancedCourseManagement = () => {
                         </div>
                       </div>
                     </TableCell>
-                    {visibleCols.instructor && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        {course.assignedInstructor ? (
-                          <div>
-                            <div className="font-medium">
-                              {course.assignedInstructor.username}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Assigned
-                            </div>
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      {course.assignedInstructor ? (
+                        <div>
+                          <div className="font-medium">
+                            {course.assignedInstructor.username}
                           </div>
-                        ) : (
-                          <span className="text-sm text-red-600">Not assigned</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleCols.level && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        <Badge className={`${getLevelColor(course.level)} px-3 py-1.5 font-semibold shadow-sm`}>
-                          {course.level || 'Beginner'}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleCols.status && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        <Badge className={`${getStatusColor(course.status || 'draft')} px-3 py-1.5 font-semibold shadow-sm`}>
-                          {course.status || 'Draft'}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleCols.price && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        <div className="font-medium">{formatPrice(course.price)}</div>
-                        <div className="text-xs text-gray-500">{course.duration}</div>
-                      </TableCell>
-                    )}
-                    {visibleCols.enrollments && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        <div className="flex items-center">
-                          <Users className="w-4 h-4 mr-1 text-gray-500" />
-                          {course.enrollmentCount || 0}
+                          <div className="text-sm text-gray-500">
+                            Assigned
+                          </div>
                         </div>
-                      </TableCell>
-                    )}
-                    {visibleCols.rating && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        <div className="flex items-center">
-                          <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
-                          <span className="text-sm">{(course.rating?.average ?? course.rating ?? 0)}</span>
-                        </div>
-                      </TableCell>
-                    )}
-                    {visibleCols.created && (
-                      <TableCell className="px-4 py-3 border-r border-gray-200">
-                        {formatDate(course.createdAt)}
-                      </TableCell>
-                    )}
+                      ) : (
+                        <span className="text-sm text-red-600">Not assigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      <Badge className={`${getLevelColor(course.level)} px-3 py-1.5 font-semibold shadow-sm`}>
+                        {course.level || 'Beginner'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      <Badge className={`${getStatusColor(course.status || 'draft')} px-3 py-1.5 font-semibold shadow-sm`}>
+                        {course.status || 'Draft'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      <div className="font-medium">{formatPrice(course.price)}</div>
+                      <div className="text-xs text-gray-500">{course.duration}</div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      <div className="flex items-center">
+                        <Users className="w-4 h-4 mr-1 text-gray-500" />
+                        {course.enrollmentCount || 0}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      <div className="flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
+                        <span className="text-sm">{(course.rating?.average ?? course.rating ?? 0)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 border-r border-gray-200">
+                      {formatDate(course.createdAt)}
+                    </TableCell>
                     <TableCell className="px-4 py-3">
                       <div className="flex flex-col sm:flex-row gap-1 lg:gap-2">
                         <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setLocation(`/admin/courses/${course._id}`)}><Eye className="w-3 h-3" /></Button>
                         <Button size="sm" variant="outline" className="h-8 p-2" onClick={() => openEdit(course)}><Edit className="w-3 h-3 mr-1" /><span className="hidden sm:inline">Edit</span></Button>
                         <Button size="sm" variant="outline" className="h-8 p-2" onClick={() => openStructure(course)}>Structure</Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => openDeleteConfirm(course)}><Trash2 className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => confirmAndDelete(course)}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -631,50 +579,6 @@ const EnhancedCourseManagement = () => {
         courseId={editingCourse?._id}
         saving={updateStructureMutation.isPending}
       />
-
-      {/* Confirm Delete Dialog */}
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title={pendingDelete ? 'Delete course?' : 'Publish selected courses?'}
-        description={pendingDelete?.title ? `This will permanently delete "${pendingDelete.title}" and its data.` : `This will publish ${selectedCourses.length} course(s).`}
-        confirmLabel={pendingDelete ? 'Delete' : 'Publish'}
-        destructive={!!pendingDelete}
-        onConfirm={() => {
-          if (pendingDelete) return confirmDelete();
-          handleBulkAction('publish');
-        }}
-      />
-
-      {/* Columns chooser */}
-      <Dialog open={columnsOpen} onOpenChange={setColumnsOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Choose columns</DialogTitle>
-            <DialogDescription>Toggle visibility for table columns.</DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              ['thumbnail','Thumbnail'],
-              ['instructor','Instructor'],
-              ['level','Level'],
-              ['status','Status'],
-              ['price','Price'],
-              ['enrollments','Enrollments'],
-              ['rating','Rating'],
-              ['created','Created'],
-            ].map(([key,label]) => (
-              <label key={key} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!visibleCols[key]} onChange={(e)=> setVisibleCols(v => ({...v, [key]: e.target.checked}))} />
-                {label}
-              </label>
-            ))}
-          </div>
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setColumnsOpen(false)}>Close</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

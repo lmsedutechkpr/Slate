@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
@@ -27,7 +26,6 @@ import {
 
 const StudentAnalytics = () => {
   const { accessToken } = useAuth();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,23 +60,6 @@ const StudentAnalytics = () => {
     },
     enabled: !!accessToken,
   });
-
-  // Fetch course options for filter
-  const { data: coursesList } = useQuery({
-    queryKey: ['/api/courses', 'student-analytics-filter'],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append('page', '1');
-      params.append('limit', '100');
-      params.append('isPublished', 'true');
-      const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`));
-      if (!res.ok) throw new Error('Failed to fetch courses');
-      return res.json();
-    },
-    enabled: !!accessToken,
-    staleTime: 300000
-  });
-  const courseOptions = (coursesList?.courses || []).map((c) => ({ id: c._id, title: c.title }));
 
   const students = studentsData?.students || [];
   const pagination = studentsData?.pagination || { page, limit, total: 0 };
@@ -205,9 +186,7 @@ const StudentAnalytics = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Courses</SelectItem>
-                  {courseOptions.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
-                  ))}
+                  {/* Course options would be populated from API */}
                 </SelectContent>
               </Select>
             </div>
@@ -224,29 +203,6 @@ const StudentAnalytics = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 sm:p-6">
-          {students.length > 0 && (
-            <div className="flex justify-end px-4 sm:px-0 pb-3">
-              <Button variant="outline" onClick={() => {
-                const rows = students.map(s => ({
-                  id: s._id,
-                  username: s.username,
-                  email: s.email,
-                  status: s.status,
-                  totalCourses: s.analytics?.totalCourses || 0,
-                  completedCourses: s.analytics?.completedCourses || 0,
-                  avgProgress: s.analytics?.avgProgress || 0,
-                  totalXP: s.analytics?.totalXP || 0,
-                  lastActivity: s.analytics?.lastActivity || ''
-                }));
-                const header = Object.keys(rows[0] || {}).join(',');
-                const body = rows.map(r => Object.values(r).map(v => typeof v === 'string' && v.includes(',') ? `"${v.replaceAll('"','""')}"` : v).join(',')).join('\n');
-                const csv = header + '\n' + body;
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = 'students.csv'; a.click(); URL.revokeObjectURL(url);
-              }}>Export CSV</Button>
-            </div>
-          )}
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
@@ -380,7 +336,7 @@ const StudentAnalytics = () => {
                               <Eye className="h-3 w-3 mr-1" />
                               Details
                             </Button>
-                            <Button size="sm" variant="outline" className="text-xs" onClick={() => setLocation(`/admin/students/${student._id}`)}>View</Button>
+                            <Button size="sm" variant="outline" className="text-xs" onClick={() => window.location.assign(`/admin/students/${student._id}`)}>View</Button>
                             <Button
                               size="sm"
                               variant="outline"

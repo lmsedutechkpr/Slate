@@ -235,13 +235,6 @@ function AppRoutes() {
             </AdminLayout>
           </ProtectedRoute>
         </Route>
-        <Route path="/admin/logs">
-          <ProtectedRoute requiredRole="admin">
-            <AdminLayout>
-              <AdminAuditLogs />
-            </AdminLayout>
-          </ProtectedRoute>
-        </Route>
         
         <Route path="/admin/settings">
           <ProtectedRoute requiredRole="admin">

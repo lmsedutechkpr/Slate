@@ -13,9 +13,6 @@ import * as productController from './controllers/productController.js';
 import * as recommendationService from './services/recommendationService.js';
 import * as analyticsController from './controllers/analyticsController.js';
 import * as notificationController from './controllers/notificationController.js';
-import * as orderController from './controllers/orderController.js';
-import * as settingsController from './controllers/settingsController.js';
-import * as reportController from './controllers/reportController.js';
 
 // Import middleware
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
@@ -73,18 +70,10 @@ export async function registerRoutes(app) {
   app.post('/api/users/email/verify', authenticateToken, userController.verifyEmailChange);
   app.post('/api/users/avatar', authenticateToken, userController.uploadAvatarMiddleware, userController.uploadAvatar);
   
-  // Admin settings
-  app.get('/api/admin/settings', authenticateToken, requireAdmin, settingsController.getSettings);
-  app.put('/api/admin/settings', authenticateToken, requireAdmin, settingsController.upsertSettings);
-  app.put('/api/admin/settings/roles', authenticateToken, requireAdmin, settingsController.updateRoles);
-  
   // Admin user management
   app.post('/api/admin/instructors', authenticateToken, requireAdmin, userController.createInstructor);
-  app.post('/api/admin/users', authenticateToken, requireAdmin, userController.createStudent);
   app.get('/api/admin/users', authenticateToken, requireAdmin, userController.getAllUsers);
   app.put('/api/admin/users/:userId/status', authenticateToken, requireAdmin, userController.updateUserStatus);
-  app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, userController.deleteOrDeactivateUser);
-  app.put('/api/admin/instructors/:userId/approval', authenticateToken, requireAdmin, userController.updateInstructorApproval);
   app.get('/api/admin/users/:userId/progress', authenticateToken, requireAdmin, userController.getUserProgress);
   
   // Course routes - Specific routes first (with parameters)
@@ -101,13 +90,6 @@ export async function registerRoutes(app) {
   app.get('/api/courses', optionalAuth, courseController.getAllCourses);
   app.get('/api/courses/:courseId', optionalAuth, courseController.getCourseById);
   
-  // Admin course approvals and feature toggles
-  app.put('/api/admin/courses/:courseId/approve', authenticateToken, requireAdmin, courseController.approveCourse);
-  app.put('/api/admin/courses/:courseId/reject', authenticateToken, requireAdmin, courseController.rejectCourse);
-  app.put('/api/admin/courses/:courseId/featured', authenticateToken, requireAdmin, courseController.toggleFeatured);
-  app.post('/api/admin/courses/bulk/approve', authenticateToken, requireAdmin, courseController.bulkApproveCourses);
-  app.post('/api/admin/courses/bulk/category', authenticateToken, requireAdmin, courseController.bulkAssignCategories);
-  
   app.post('/api/admin/courses/bulk/publish', authenticateToken, requireAdmin, courseController.bulkPublishCourses);
   app.post('/api/admin/courses/bulk/archive', authenticateToken, requireAdmin, courseController.bulkArchiveCourses);
   app.get('/api/enrollments', authenticateToken, requireStudent, courseController.getMyEnrollments);
@@ -116,9 +98,6 @@ export async function registerRoutes(app) {
   // Course Reviews
   app.get('/api/courses/:courseId/reviews', optionalAuth, courseController.getCourseReviews);
   app.post('/api/courses/:courseId/reviews', authenticateToken, requireStudent, courseController.createCourseReview);
-  
-  // Course analytics
-  app.get('/api/admin/courses/:courseId/analytics/enrollments-vs-completions', authenticateToken, requireAdmin, courseController.getEnrollmentsVsCompletions);
   
   // Assignment routes
   app.post('/api/assignments', authenticateToken, requireInstructorOrAdmin, assignmentController.createAssignment);
@@ -144,32 +123,15 @@ export async function registerRoutes(app) {
   app.post('/api/products', authenticateToken, requireAdmin, productController.createProduct);
   app.get('/api/products', productController.getAllProducts);
   app.get('/api/products/categories', productController.getProductCategories);
-  app.get('/api/products/trending', productController.getTrendingProducts);
   app.get('/api/products/:productId', productController.getProductById);
   app.put('/api/products/:productId', authenticateToken, requireAdmin, productController.updateProduct);
   app.delete('/api/products/:productId', authenticateToken, requireAdmin, productController.deleteProduct);
-  // Bundles
-  app.post('/api/products/bundles', authenticateToken, requireAdmin, productController.createBundle);
-  app.get('/api/products/bundles', productController.listBundles);
-  app.put('/api/products/bundles/:bundleId', authenticateToken, requireAdmin, productController.updateBundle);
-  app.delete('/api/products/bundles/:bundleId', authenticateToken, requireAdmin, productController.deleteBundle);
-  
-  // Order & payment routes (minimal for analytics)
-  app.post('/api/orders', authenticateToken, orderController.createOrder);
-  app.post('/api/orders/:orderId/capture', authenticateToken, requireAdmin, orderController.capturePayment);
-  app.get('/api/orders', authenticateToken, requireAdmin, orderController.listOrders);
   
   // Admin analytics
   app.get('/api/admin/analytics/overview', authenticateToken, requireAdmin, analyticsController.getOverview);
   app.get('/api/admin/analytics/students', authenticateToken, requireAdmin, analyticsController.getStudentAnalytics);
   app.get('/api/admin/analytics/courses/:courseId', authenticateToken, requireAdmin, analyticsController.getCourseAnalytics);
   app.get('/api/admin/analytics/instructors/:instructorId', authenticateToken, requireAdmin, analyticsController.getInstructorAnalytics);
-
-  // Reports
-  app.get('/api/admin/reports/sales', authenticateToken, requireAdmin, reportController.salesReport);
-  app.get('/api/admin/reports/activity', authenticateToken, requireAdmin, reportController.userActivityReport);
-  app.get('/api/admin/reports/export/sales.csv', authenticateToken, requireAdmin, reportController.exportSalesCsv);
-  app.get('/api/admin/reports/export/activity.csv', authenticateToken, requireAdmin, reportController.exportActivityCsv);
 
   // Audit logs
   app.get('/api/admin/audit-logs', authenticateToken, requireAdmin, async (req, res) => {

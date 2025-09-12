@@ -271,31 +271,13 @@ const CourseDetail = () => {
   useEffect(() => {
     if (!accessToken || !courseId) return;
     const socket = getSocket(accessToken);
-    const progressHandler = (evt) => {
+    const handler = (evt) => {
       if (evt.courseId === courseId) {
         queryClient.invalidateQueries(['/api/enrollments', courseId]);
       }
     };
-    const enrollmentHandler = (evt) => {
-      if (evt.courseId === courseId) {
-        queryClient.invalidateQueries(['/api/enrollments', courseId]);
-        queryClient.invalidateQueries(['/api/courses', courseId]);
-      }
-    };
-    const reviewHandler = (evt) => {
-      if (evt.courseId === courseId) {
-        queryClient.invalidateQueries(['/api/courses', courseId, 'reviews']);
-        queryClient.invalidateQueries(['/api/courses', courseId]);
-      }
-    };
-    socket.on('student:progress:update', progressHandler);
-    socket.on('student:enrollment:update', enrollmentHandler);
-    socket.on('student:review:update', reviewHandler);
-    return () => { 
-      socket.off('student:progress:update', progressHandler);
-      socket.off('student:enrollment:update', enrollmentHandler);
-      socket.off('student:review:update', reviewHandler);
-    };
+    socket.on('student:progress:update', handler);
+    return () => { socket.off('student:progress:update', handler); };
   }, [accessToken, courseId, queryClient]);
 
   return (

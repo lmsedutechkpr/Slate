@@ -1,6 +1,4 @@
-import { User, Course, Enrollment, AuditLog, Order } from '../models/index.js';
-import mongoose from 'mongoose';
-import { getIo } from '../realtime.js';
+import { User, Course, Enrollment, AuditLog } from '../models/index.js';
 
 export const getOverview = async (req, res) => {
   try {
@@ -13,89 +11,20 @@ export const getOverview = async (req, res) => {
       User.countDocuments({ status: 'active' })
     ]);
 
-    // Revenue: sum of paid orders
-    const revenueAgg = await Order.aggregate([
-      { $match: { status: { $in: ['paid', 'refunded'] } } },
-      { $group: { _id: null, gross: { $sum: '$total' } } }
-    ]);
-    const totalRevenue = revenueAgg[0]?.gross || 0;
-    const payoutPct = Math.min(0.95, Math.max(0, parseFloat(process.env.INSTRUCTOR_PAYOUT_PCT || '0.7')));
-    const instructorPayout = Math.round(totalRevenue * payoutPct);
-    const platformRevenue = Math.max(0, totalRevenue - instructorPayout);
+    // Calculate revenue and growth
+    const totalRevenue = 0; // Placeholder for future implementation
+    const monthlyGrowth = 0; // Placeholder for future implementation
 
-    const ordersCount = await Order.countDocuments({ status: { $in: ['paid', 'refunded'] } });
-
-    // Revenue by month (last 12 months)
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
-    twelveMonthsAgo.setDate(1);
-    twelveMonthsAgo.setHours(0,0,0,0);
-
-    const revenueByMonth = await Order.aggregate([
-      { $match: { status: { $in: ['paid', 'refunded'] }, createdAt: { $gte: twelveMonthsAgo } } },
-      { $group: {
-        _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
-        total: { $sum: '$total' },
-        count: { $sum: 1 }
-      } },
-      { $sort: { '_id.y': 1, '_id.m': 1 } }
-    ]);
-
-    // Daily active users over last 30 days (based on Enrollment.lastActivityAt)
-    const thirtyDaysAgo = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000);
-    const dau = await Enrollment.aggregate([
-      { $match: { lastActivityAt: { $gte: thirtyDaysAgo } } },
-      { $group: {
-        _id: {
-          y: { $year: '$lastActivityAt' },
-          m: { $month: '$lastActivityAt' },
-          d: { $dayOfMonth: '$lastActivityAt' }
-        },
-        users: { $addToSet: '$studentId' }
-      } },
-      { $project: { date: '$_id', count: { $size: '$users' } } },
-      { $sort: { 'date.y': 1, 'date.m': 1, 'date.d': 1 } }
-    ]);
-
-    // Top courses by enrollments (last 30 days)
-    const topCoursesAgg = await Enrollment.aggregate([
-      { $match: { createdAt: { $gte: thirtyDaysAgo } } },
-      { $group: { _id: '$courseId', enrollments: { $sum: 1 } } },
-      { $sort: { enrollments: -1 } },
-      { $limit: 10 }
-    ]);
-    const courseIds = topCoursesAgg.map(c => c._id);
-    const courses = await Course.find({ _id: { $in: courseIds } }).select('title category');
-    const courseIdToTitle = new Map(courses.map(c => [String(c._id), c.title]));
-    const topCourses = topCoursesAgg.map(c => ({ courseId: c._id, title: courseIdToTitle.get(String(c._id)) || 'Unknown', enrollments: c.enrollments }));
-
-    const result = {
+    res.json({
       totalUsers,
       totalStudents,
       totalInstructors,
       totalCourses,
       totalEnrollments,
       totalRevenue,
-      monthlyGrowth: 0,
-      activeUsers,
-      revenueByMonth,
-      dau,
-      topCourses
-    };
-
-    // Emit realtime analytics update for admins
-    try {
-      const io = getIo && getIo();
-      if (io) io.emit('analytics:update', result);
-    } catch (_) {}
-
-    // Funnel: visitors ~ active users (proxy), enrollments last 30d, orders last 30d
-    const enrollments30 = await Enrollment.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
-    const orders30 = await Order.countDocuments({ status: { $in: ['paid','refunded'] }, createdAt: { $gte: thirtyDaysAgo } });
-
-    const enriched = { ...result, ordersCount, platformRevenue, instructorPayout, funnel: { visitors: activeUsers, enrollments: enrollments30, orders: orders30 } };
-
-    res.json(enriched);
+      monthlyGrowth,
+      activeUsers
+    });
   } catch (error) {
     res.status(500).json({ message: 'Failed to get analytics overview', error: error.message });
   }

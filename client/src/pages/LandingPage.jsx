@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { buildApiUrl } from '@/lib/utils.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,15 +35,6 @@ import {
 
 const LandingPage = () => {
   const [isVisible, setIsVisible] = useState(false);
-  const { data: featuredData } = useQuery({
-    queryKey: ['/api/courses', { isFeatured: 'true', isPublished: 'true', limit: 12 }],
-    queryFn: async () => {
-      const params = new URLSearchParams({ isFeatured: 'true', isPublished: 'true', limit: '12' });
-      const res = await fetch(buildApiUrl(`/api/courses?${params.toString()}`));
-      if (!res.ok) throw new Error('Failed to load featured');
-      return res.json();
-    }
-  });
 
   useEffect(() => {
     setIsVisible(true);
@@ -271,30 +260,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Featured Courses Carousel */}
-      <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Featured Courses</h2>
-            <Link href="/courses"><a className="text-primary-600">View all</a></Link>
-          </div>
-          <div className="overflow-x-auto">
-            <div className="flex gap-4 min-w-full">
-              {(featuredData?.courses || []).map(c => (
-                <div key={c._id} className="min-w-[260px] max-w-[260px] bg-white border rounded-lg p-4 shadow hover:shadow-md transition">
-                  <div className="h-36 w-full bg-gray-100 rounded mb-3 overflow-hidden">
-                    {c.coverUrl ? <img src={c.coverUrl} alt={c.title} className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-gray-400">No image</div>}
-                  </div>
-                  <div className="text-sm text-primary-600 font-medium">{c.category || 'General'}</div>
-                  <div className="font-semibold text-gray-900 line-clamp-2">{c.title}</div>
-                  <div className="text-xs text-gray-500 mt-1">{c.level || 'Beginner'}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Stats Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -416,21 +381,25 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA Section (dark mac style) */}
-      <section className="py-20 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-primary-600 to-primary-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-semibold text-white mb-6">Ready to start your learning journey?</h2>
-          <p className="text-lg lg:text-xl text-slate-300 mb-8">Join thousands advancing their careers with a refined, distraction‑free experience.</p>
+          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
+            Ready to Start Your Learning Journey?
+          </h2>
+          <p className="text-xl text-primary-100 mb-8">
+            Join thousands of students who are already advancing their careers with EduTech
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
-              <Button size="lg" className="bg-white text-slate-900 hover:bg-slate-100 px-8 py-4 text-lg">
-                Get started free
+              <Button size="lg" className="bg-white text-primary-600 hover:bg-gray-50 px-8 py-4 text-lg">
+                Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link href="/login">
-              <Button variant="outline" size="lg" className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg">
-                Sign in
+              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-primary-600 px-8 py-4 text-lg">
+                Sign In
               </Button>
             </Link>
           </div>
@@ -438,27 +407,27 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-950 text-white/90 py-16">
+      <footer className="bg-gray-900 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
                   <GraduationCap className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-xl font-bold">EduTech</h3>
               </div>
-              <p className="text-slate-400 mb-6 max-w-md">
+              <p className="text-gray-400 mb-6 max-w-md">
                 Empowering learners worldwide with cutting-edge education technology and expert instruction.
               </p>
               <div className="flex space-x-4">
-                <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
+                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer">
                   <Globe className="w-5 h-5" />
                 </div>
-                <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
+                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer">
                   <MessageSquare className="w-5 h-5" />
                 </div>
-                <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
+                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer">
                   <Bell className="w-5 h-5" />
                 </div>
               </div>
@@ -466,17 +435,17 @@ const LandingPage = () => {
             
             <div>
               <h4 className="font-semibold mb-4">Platform</h4>
-              <ul className="space-y-2 text-slate-400">
-                <li><a href="#features" className="hover:text-white transition-colors">Courses</a></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Instructors</a></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Certificates</a></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Live Sessions</a></li>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors">Courses</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Instructors</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Certificates</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Live Sessions</a></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-slate-400">
+              <ul className="space-y-2 text-gray-400">
                 <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
@@ -485,33 +454,11 @@ const LandingPage = () => {
             </div>
           </div>
           
-          <div className="border-t border-white/10 mt-12 pt-8 text-center text-slate-400">
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
             <p>&copy; 2024 EduTech. All rights reserved.</p>
           </div>
         </div>
       </footer>
-
-      {/* macOS Dock */}
-      <div className="pointer-events-none fixed bottom-6 inset-x-0 z-50 flex justify-center">
-        <div className="pointer-events-auto flex items-end gap-3 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-2xl px-4 py-2 shadow-[0_10px_50px_-10px_rgba(0,0,0,0.6)]">
-          {[
-            { Icon: BookOpen, label: 'Courses' },
-            { Icon: Calendar, label: 'Sessions' },
-            { Icon: FileText, label: 'Assignments' },
-            { Icon: Award, label: 'Certificates' },
-            { Icon: Settings, label: 'Settings' }
-          ].map(({ Icon, label }, idx) => (
-            <button key={idx} className="group relative grid place-items-center transition-transform hover:scale-110">
-              <span className="absolute -top-7 translate-y-1 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all text-[11px] bg-white/10 text-white px-2 py-0.5 rounded-md border border-white/10">
-                {label}
-              </span>
-              <div className="h-12 w-12 rounded-xl bg-white/10 border border-white/10 grid place-items-center text-white">
-                <Icon className="h-6 w-6" />
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

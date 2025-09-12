@@ -79,7 +79,7 @@ const Dashboard = () => {
     staleTime: 30000
   });
 
-  // Realtime: listen to all student updates to refresh dashboard
+  // Realtime: listen to progress and assignment updates to refresh dashboard
   useEffect(() => {
     if (!accessToken) return;
     const socket = getSocket(accessToken);
@@ -89,15 +89,9 @@ const Dashboard = () => {
     };
     socket.on('student:progress:update', refresh);
     socket.on('student:assignments:update', refresh);
-    socket.on('student:enrollment:update', refresh);
-    socket.on('student:review:update', refresh);
-    socket.on('student:profile:update', refresh);
     return () => {
       socket.off('student:progress:update', refresh);
       socket.off('student:assignments:update', refresh);
-      socket.off('student:enrollment:update', refresh);
-      socket.off('student:review:update', refresh);
-      socket.off('student:profile:update', refresh);
     };
   }, [accessToken]);
 

@@ -1,4 +1,4 @@
-import { User, UserActivity } from '../models/index.js';
+import { User } from '../models/index.js';
 import { generateTokens, verifyRefreshToken } from '../utils/jwt.js';
 import { UserRoles } from '../constants.js';
 
@@ -96,7 +96,7 @@ export const login = async (req, res) => {
       user,
       ...tokens
     };
-    try { await UserActivity.create({ userId: user._id, type: 'login', occurredAt: new Date() }); } catch {}
+    
     res.json(responseData);
   } catch (error) {
     res.status(500).json({

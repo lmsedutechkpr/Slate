@@ -92,10 +92,6 @@ const courseSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  isFeatured: {
-    type: Boolean,
-    default: false
-  },
   price: {
     type: Number,
     default: 0
@@ -123,8 +119,6 @@ const courseSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
-courseSchema.index({ isFeatured: 1, isPublished: 1, createdAt: -1 });
 
 // Generate slug before saving
 courseSchema.pre('save', function(next) {

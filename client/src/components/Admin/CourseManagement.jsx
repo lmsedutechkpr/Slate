@@ -16,9 +16,8 @@ import { buildApiUrl, getImageUrl } from '../../lib/utils.js';
 import { 
   BookOpen, Search, Users, UserCheck, Plus, Eye, Edit, 
   Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload,
-  ListPlus, Video, User, ThumbsUp, ThumbsDown, Star
+  ListPlus, Video, User
 } from 'lucide-react';
-import { getSocket } from '@/lib/realtime.js';
 
 const CourseManagement = () => {
   const { accessToken, user, isAuthenticated, authenticatedFetch } = useAuth();
@@ -45,9 +44,6 @@ const CourseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
-  const [featuredFilter, setFeaturedFilter] = useState('all'); // all | featured | non
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [bulkCategory, setBulkCategory] = useState('');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -76,15 +72,13 @@ const CourseManagement = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
-    queryKey: ['/api/courses', { isPublished: 'false', search: searchTerm, category: selectedCategory, level: selectedLevel, featuredFilter, page, limit }],
+    queryKey: ['/api/courses', { isPublished: 'false', search: searchTerm, category: selectedCategory, level: selectedLevel, page, limit }],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append('isPublished', 'false'); // Get all courses, including unpublished
       if (searchTerm) params.append('search', searchTerm);
       if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
       if (selectedLevel && selectedLevel !== 'all') params.append('level', selectedLevel);
-      if (featuredFilter === 'featured') params.append('isFeatured', 'true');
-      if (featuredFilter === 'non') params.append('isFeatured', 'false');
       params.append('page', String(page));
       params.append('limit', String(limit));
       
@@ -102,15 +96,6 @@ const CourseManagement = () => {
     },
     enabled: !!accessToken && !authLoading,
   });
-
-  // Realtime refresh on course updates
-  useEffect(() => {
-    const socket = getSocket(accessToken);
-    if (!socket) return;
-    const handler = () => queryClient.invalidateQueries(['/api/courses']);
-    socket.on('admin:courses:update', handler);
-    return () => { try { socket.off('admin:courses:update', handler); } catch {} };
-  }, [accessToken, queryClient]);
 
   // Fetch instructors for assignment
   const { data: instructorsData } = useQuery({
@@ -166,57 +151,6 @@ const CourseManagement = () => {
         variant: "destructive",
       });
     },
-  });
-
-  const approveMutation = useMutation({
-    mutationFn: async (courseId) => {
-      const res = await authenticatedFetch(buildApiUrl(`/api/admin/courses/${courseId}/approve`), { method: 'PUT' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Approve failed');
-      return data;
-    },
-    onSuccess: () => { toast({ title: 'Approved' }); queryClient.invalidateQueries(['/api/courses']); },
-    onError: (e) => toast({ title: 'Error', description: e.message, variant: 'destructive' })
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: async (courseId) => {
-      const res = await authenticatedFetch(buildApiUrl(`/api/admin/courses/${courseId}/reject`), { method: 'PUT' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Reject failed');
-      return data;
-    },
-    onSuccess: () => { toast({ title: 'Moved to review' }); queryClient.invalidateQueries(['/api/courses']); },
-    onError: (e) => toast({ title: 'Error', description: e.message, variant: 'destructive' })
-  });
-
-  const featureMutation = useMutation({
-    mutationFn: async ({ courseId, isFeatured }) => {
-      const res = await authenticatedFetch(buildApiUrl(`/api/admin/courses/${courseId}/featured`), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isFeatured }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Feature toggle failed');
-      return data;
-    },
-    onSuccess: () => { toast({ title: 'Updated' }); queryClient.invalidateQueries(['/api/courses']); },
-    onError: (e) => toast({ title: 'Error', description: e.message, variant: 'destructive' })
-  });
-
-  const bulkApproveMutation = useMutation({
-    mutationFn: async (ids) => {
-      const res = await authenticatedFetch(buildApiUrl('/api/admin/courses/bulk/approve'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
-      const data = await res.json(); if (!res.ok) throw new Error(data.message || 'Bulk approve failed'); return data;
-    },
-    onSuccess: () => { toast({ title: 'Approved selected' }); setSelectedIds([]); queryClient.invalidateQueries(['/api/courses']); },
-    onError: (e) => toast({ title: 'Error', description: e.message, variant: 'destructive' })
-  });
-
-  const bulkCategoryMutation = useMutation({
-    mutationFn: async ({ ids, category }) => {
-      const res = await authenticatedFetch(buildApiUrl('/api/admin/courses/bulk/category'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, category }) });
-      const data = await res.json(); if (!res.ok) throw new Error(data.message || 'Bulk category failed'); return data;
-    },
-    onSuccess: () => { toast({ title: 'Category assigned' }); setSelectedIds([]); setBulkCategory(''); queryClient.invalidateQueries(['/api/courses']); },
-    onError: (e) => toast({ title: 'Error', description: e.message, variant: 'destructive' })
   });
 
   const courses = coursesData?.courses || [];
@@ -417,30 +351,8 @@ const CourseManagement = () => {
                   <SelectItem value="advanced">Advanced</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={featuredFilter} onValueChange={setFeaturedFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Featured" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="featured">Featured</SelectItem>
-                  <SelectItem value="non">Non-featured</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
-          {selectedIds.length > 0 && (
-            <div className="mt-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-              <div className="text-sm text-gray-700">Selected: {selectedIds.length}</div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => bulkApproveMutation.mutate(selectedIds)} disabled={bulkApproveMutation.isPending}>Approve Selected</Button>
-                <div className="flex gap-2 items-center">
-                  <Input placeholder="Category" value={bulkCategory} onChange={(e)=> setBulkCategory(e.target.value)} className="w-40" />
-                  <Button size="sm" variant="outline" onClick={() => bulkCategory && bulkCategoryMutation.mutate({ ids: selectedIds, category: bulkCategory })} disabled={!bulkCategory || bulkCategoryMutation.isPending}>Assign Category</Button>
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -485,13 +397,11 @@ const CourseManagement = () => {
             <Table className="w-full border-collapse border border-gray-200 rounded-xl overflow-hidden shadow-lg">
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
-                  <TableHead className="w-8 px-2"><input type="checkbox" checked={selectedIds.length>0 && selectedIds.length===courses.length} onChange={(e)=> setSelectedIds(e.target.checked ? courses.map(c=>c._id) : [])} /></TableHead>
                   <TableHead className="w-20 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Thumbnail</TableHead>
                   <TableHead className="w-64 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Course</TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Instructor</TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Level</TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Status</TableHead>
-                  <TableHead className="w-24 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Featured</TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Enrollments</TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">Created</TableHead>
                   <TableHead className="w-48 px-4 py-3 text-left font-bold text-gray-800 hover:bg-gray-100 transition-colors cursor-pointer">Actions</TableHead>
@@ -500,7 +410,6 @@ const CourseManagement = () => {
               <TableBody>
                 {courses.map((course) => (
                   <TableRow key={course._id} data-testid={`course-row-${course._id}`} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 hover:shadow-md hover:scale-[1.01] transform">
-                    <TableCell className="px-2"><input type="checkbox" checked={selectedIds.includes(course._id)} onChange={(e)=> setSelectedIds(s => e.target.checked ? [...new Set([...s, course._id])] : s.filter(id=>id!==course._id))} /></TableCell>
                     <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
                       <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105">
                         {(course.coverUrl || course.cover) ? (
@@ -562,9 +471,6 @@ const CourseManagement = () => {
                         {course.isPublished ? 'Published' : 'Draft'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-4 py-3 border-r border-gray-200">
-                      {course.isFeatured ? <span className="text-yellow-600 font-medium">Yes</span> : <span className="text-gray-500">No</span>}
-                    </TableCell>
                     <TableCell className="px-4 py-3 border-r border-gray-200 hover:bg-blue-50 transition-colors">
                       <div className="flex items-center">
                         <Users className="w-4 h-4 mr-1 text-gray-500" />
@@ -614,9 +520,6 @@ const CourseManagement = () => {
                           <ListPlus className="w-3 h-3 mr-1" />
                           Structure
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => approveMutation.mutate(course._id)}><ThumbsUp className="w-3 h-3 mr-1"/>Approve</Button>
-                        <Button size="sm" variant="outline" onClick={() => rejectMutation.mutate(course._id)}><ThumbsDown className="w-3 h-3 mr-1"/>Reject</Button>
-                        <Button size="sm" variant={course.isFeatured ? 'default' : 'outline'} onClick={() => featureMutation.mutate({ courseId: course._id, isFeatured: !course.isFeatured })}><Star className="w-3 h-3 mr-1"/>{course.isFeatured ? 'Unfeature' : 'Feature'}</Button>
                       </div>
                     </TableCell>
                   </TableRow>
