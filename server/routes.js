@@ -15,6 +15,7 @@ import * as recommendationService from './services/recommendationService.js';
 import * as analyticsController from './controllers/analyticsController.js';
 import * as notificationController from './controllers/notificationController.js';
 import * as roleController from './controllers/roleController.js';
+import * as instructorController from './controllers/instructorController.js';
 
 // Import middleware
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
@@ -95,6 +96,14 @@ export async function registerRoutes(app) {
   app.post('/api/admin/roles/:roleId/permissions', authenticateToken, requireAdmin, roleController.updateRolePermissions);
   app.get('/api/admin/roles/:roleId/users', authenticateToken, requireAdmin, roleController.getRoleUsers);
   app.post('/api/admin/roles/initialize', authenticateToken, requireAdmin, roleController.initializeSystemRoles);
+  
+  // Instructor management routes
+  app.get('/api/admin/instructors', authenticateToken, requireAdmin, instructorController.getAllInstructors);
+  app.get('/api/admin/instructors/kpis', authenticateToken, requireAdmin, instructorController.getInstructorKPIs);
+  app.get('/api/admin/instructors/:instructorId', authenticateToken, requireAdmin, instructorController.getInstructorById);
+  app.put('/api/admin/instructors/:instructorId/status', authenticateToken, requireAdmin, instructorController.updateInstructorStatus);
+  app.post('/api/admin/instructors/:instructorId/assign-courses', authenticateToken, requireAdmin, instructorController.assignCoursesToInstructor);
+  app.put('/api/admin/instructors/:instructorId/payout-settings', authenticateToken, requireAdmin, instructorController.updateInstructorPayoutSettings);
   
   // Course routes - Specific routes first (with parameters)
   app.post('/api/courses/:courseId/lectures/upload', authenticateToken, requireInstructorOrAdmin, courseController.uploadLectureVideoMiddleware, courseController.uploadLectureVideo);
