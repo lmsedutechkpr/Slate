@@ -1,5 +1,6 @@
 import { useAuth } from '../../hooks/useAuth.js';
 import { Badge } from '@/components/ui/badge';
+import AnimatedCounter from './AnimatedCounter.jsx';
 import { TrendingUp, Zap, Award } from 'lucide-react';
 
 const CompactWelcome = ({ stats = {} }) => {
@@ -60,7 +61,11 @@ const CompactWelcome = ({ stats = {} }) => {
           <div className="text-center">
             <div className="flex items-center gap-1 mb-1">
               <TrendingUp className="w-4 h-4 text-primary-200" />
-              <span className="text-lg font-bold">{currentStreak}</span>
+              <AnimatedCounter 
+                value={currentStreak} 
+                className="text-lg font-bold text-white"
+                duration={1500}
+              />
             </div>
             <div className="text-xs text-primary-200">Day Streak</div>
           </div>
@@ -68,7 +73,11 @@ const CompactWelcome = ({ stats = {} }) => {
           <div className="text-center">
             <div className="flex items-center gap-1 mb-1">
               <Award className="w-4 h-4 text-primary-200" />
-              <span className="text-lg font-bold">{totalXP.toLocaleString()}</span>
+              <AnimatedCounter 
+                value={totalXP} 
+                className="text-lg font-bold text-white"
+                duration={2000}
+              />
             </div>
             <div className="text-xs text-primary-200">XP Points</div>
           </div>
@@ -78,7 +87,11 @@ const CompactWelcome = ({ stats = {} }) => {
               <div className="w-4 h-4 rounded-full bg-primary-200 flex items-center justify-center">
                 <span className="text-xs font-bold text-primary-800">✓</span>
               </div>
-              <span className="text-lg font-bold">{completedCourses}</span>
+              <AnimatedCounter 
+                value={completedCourses} 
+                className="text-lg font-bold text-white"
+                duration={1000}
+              />
             </div>
             <div className="text-xs text-primary-200">Completed</div>
           </div>

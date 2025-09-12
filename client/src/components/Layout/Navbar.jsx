@@ -28,7 +28,8 @@ const Navbar = () => {
     { name: 'Dashboard', href: '/dashboard', role: 'student', icon: Home },
     { name: 'Courses', href: '/courses', role: 'student', icon: BookOpen },
     { name: 'Assignments', href: '/assignments', role: 'student', icon: FileText },
-    { name: 'Progress', href: '/progress', role: 'student', icon: TrendingUp },
+    { name: 'My Progress', href: '/progress', role: 'student', icon: TrendingUp },
+    { name: 'Store', href: '/store', role: 'student', icon: BarChart3 },
     { name: 'Admin Dashboard', href: '/admin', role: 'admin', icon: Shield },
     { name: 'Instructor Dashboard', href: '/instructor', role: 'instructor', icon: Users }
   ];
@@ -156,15 +157,18 @@ const Navbar = () => {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-xl ${
+                        className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-xl relative ${
                           isActiveTab(item.href)
-                            ? 'bg-primary-50 text-primary-700 shadow-sm'
+                            ? 'bg-primary-100 text-primary-700 shadow-md border border-primary-200'
                             : 'text-gray-600 hover:text-primary-600 hover:bg-primary-50/50'
                         }`}
                         data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                       >
-                        <Icon className="w-4 h-4" />
-                        <span>{item.name}</span>
+                        <Icon className={`w-4 h-4 ${isActiveTab(item.href) ? 'text-primary-600' : ''}`} />
+                        <span className={isActiveTab(item.href) ? 'font-semibold' : ''}>{item.name}</span>
+                        {isActiveTab(item.href) && (
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary-600 rounded-full"></div>
+                        )}
                       </Link>
                     );
                   })}
@@ -324,15 +328,18 @@ const Navbar = () => {
                       key={item.name}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center space-x-3 px-3 py-3 text-base font-medium rounded-xl transition-all duration-200 ${
+                      className={`flex items-center space-x-3 px-3 py-3 text-base font-medium rounded-xl transition-all duration-200 relative ${
                         isActiveTab(item.href)
-                          ? 'bg-primary-50 text-primary-700'
+                          ? 'bg-primary-100 text-primary-700 shadow-md border border-primary-200'
                           : 'text-gray-600 hover:bg-primary-50/50 hover:text-primary-600'
                       }`}
                       data-testid={`mobile-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.name}</span>
+                      <Icon className={`w-5 h-5 ${isActiveTab(item.href) ? 'text-primary-600' : ''}`} />
+                      <span className={isActiveTab(item.href) ? 'font-semibold' : ''}>{item.name}</span>
+                      {isActiveTab(item.href) && (
+                        <div className="absolute right-3 w-2 h-2 bg-primary-600 rounded-full"></div>
+                      )}
                     </Link>
                   );
                 })}

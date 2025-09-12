@@ -16,6 +16,10 @@ import CompactWelcome from '../components/Dashboard/CompactWelcome.jsx';
 import CircularProgress from '../components/Dashboard/CircularProgress.jsx';
 import RecommendedGear from '../components/Dashboard/RecommendedGear.jsx';
 import DiscoverWhatsNext from '../components/Dashboard/DiscoverWhatsNext.jsx';
+import GearUpForSuccess from '../components/Dashboard/GearUpForSuccess.jsx';
+import EnhancedContinueLearning from '../components/Dashboard/EnhancedContinueLearning.jsx';
+import LiveNotifications from '../components/Dashboard/LiveNotifications.jsx';
+import AnimatedCounter from '../components/Dashboard/AnimatedCounter.jsx';
 import { 
   EmptyAssignments, 
   EmptyLiveSessions, 
@@ -282,9 +286,12 @@ const Dashboard = () => {
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-gray-600 mt-1">Welcome back! Here's your learning overview</p>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Live updates</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Live updates</span>
+              </div>
+              <LiveNotifications />
             </div>
           </div>
         </div>
@@ -300,7 +307,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Enrolled Courses</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    {enrollments.length}
+                    <AnimatedCounter value={enrollments.length} />
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
@@ -332,7 +339,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pending Tasks</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    {assignments.filter(a => !a.submitted).length}
+                    <AnimatedCounter value={assignments.filter(a => !a.submitted).length} />
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
@@ -348,7 +355,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Live Sessions</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    {liveData?.sessions?.length || 0}
+                    <AnimatedCounter value={liveSessions?.length || 0} />
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
@@ -361,49 +368,8 @@ const Dashboard = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Current Learning */}
-          <Card className="border-0 shadow-sm bg-white lg:col-span-2">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl">Continue Learning</CardTitle>
-              <CardDescription>Pick up where you left off</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {enrollments.length > 0 ? (
-                <div className="space-y-4">
-                  {enrollments.slice(0, 3).map((enrollment) => (
-                    <div key={enrollment._id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-primary-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{enrollment.course?.title}</h4>
-                        <p className="text-sm text-gray-600">{enrollment.course?.instructor}</p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <div className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                            <span className="text-xs text-gray-500">
-                              {Math.round(enrollment.progress || 0)}% complete
-                            </span>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {formatTime(enrollment.timeSpent || 0)} spent
-                          </span>
-                        </div>
-                      </div>
-                      <Link href={`/courses/${enrollment.course?._id || enrollment.courseId}`}>
-                        <Button size="sm" className="flex-shrink-0">
-                          <Play className="w-4 h-4 mr-2" />
-                          Continue
-                        </Button>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyCourses />
-              )}
-            </CardContent>
-          </Card>
+          {/* Enhanced Continue Learning */}
+          <EnhancedContinueLearning enrollments={enrollments} />
 
           {/* This Week Progress - Circular */}
           <CircularProgress
@@ -495,9 +461,9 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Recommended Gear Section */}
+        {/* Gear Up for Success Section */}
         <div className="mb-8">
-          <RecommendedGear 
+          <GearUpForSuccess 
             products={recommendations.products || []} 
             enrollments={enrollments}
           />
