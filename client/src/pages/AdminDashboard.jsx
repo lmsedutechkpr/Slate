@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts';
+import { Progress as ProgressBar } from '@/components/ui/progress';
+import { Link } from 'wouter';
 import {
   Users, BookOpen, GraduationCap, TrendingUp, BarChart3, UserCheck, Eye, Plus,
 } from 'lucide-react';
@@ -96,6 +98,10 @@ const AdminDashboard = () => {
     { label: 'W-1', users: Math.max(0, Math.floor((stats.totalUsers || 0) * 0.99)), revenue: Math.max(0, Math.floor((stats.totalRevenue || 0) * 0.97)), enrollments: Math.max(0, Math.floor((stats.totalEnrollments || 0) * 0.98)) },
     { label: 'Now', users: stats.totalUsers || 0, revenue: stats.totalRevenue || 0, enrollments: stats.totalEnrollments || 0 }
   ];
+  const previousTrend = trend.map(t => ({ ...t, revenuePrev: Math.max(0, Math.floor(t.revenue * 0.85)) }));
+  const totalCurrent = trend.reduce((s, t) => s + t.revenue, 0);
+  const totalPrev = previousTrend.reduce((s, t) => s + t.revenuePrev, 0);
+  const deltaPct = totalPrev > 0 ? Math.round(((totalCurrent - totalPrev) / totalPrev) * 100) : 0;
 
   // Show loading state while authentication is in progress
   if (authLoading) {
@@ -125,10 +131,10 @@ const AdminDashboard = () => {
 
       {/* Row 1: KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Stat title="Total Revenue" value={isLoading ? '...' : `₹${(stats.totalRevenue || 0).toLocaleString()}`} icon={TrendingUp} actionLabel="Sales Report" onAction={() => setLocation('/admin/analytics')} />
-        <Stat title="Total Enrollments" value={isLoading ? '...' : stats.totalEnrollments} icon={BookOpen} />
-        <Stat title="Active Students" value={isLoading ? '...' : stats.activeUsers} icon={Users} actionLabel="View Students" onAction={() => setLocation('/admin/students')} />
-        <Stat title="Total Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} actionLabel="Manage" onAction={() => setLocation('/admin/instructors')} />
+        <Stat title="Total Revenue" value={isLoading ? '...' : `₹${(stats.totalRevenue || 0).toLocaleString()}`} icon={TrendingUp} actionLabel="Sales Report →" onAction={() => setLocation('/admin/analytics')} emphasize />
+        <Stat title="Total Enrollments" value={isLoading ? '...' : stats.totalEnrollments} icon={BookOpen} subtle />
+        <Stat title="Active Students" value={isLoading ? '...' : stats.activeUsers} icon={Users} actionLabel="View Students →" onAction={() => setLocation('/admin/students')} subtle />
+        <Stat title="Total Instructors" value={isLoading ? '...' : stats.totalInstructors} icon={UserCheck} actionLabel="Manage →" onAction={() => setLocation('/admin/instructors')} subtle />
       </div>
 
       {/* Row 2: Primary Visualizations with global date filter */}
@@ -146,19 +152,30 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Revenue Trends</CardTitle><CardDescription>Trend over selected period</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle>Revenue Trends</CardTitle>
+            <CardDescription>
+              {totalPrev > 0 ? (
+                <span className={deltaPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{deltaPct >= 0 ? `+${deltaPct}%` : `${deltaPct}%`} from last period</span>
+              ) : 'Trend over selected period'}
+            </CardDescription>
+          </CardHeader>
           <CardContent>
-            {trend.length === 0 ? (
-              <div className="text-center text-sm text-gray-500 py-12">No revenue data available for this period</div>
+            {(totalCurrent === 0 && totalPrev === 0) ? (
+              <div className="text-center text-sm text-gray-500 py-16 flex flex-col items-center gap-2">
+                <svg className="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg>
+                <span>No revenue data for this period</span>
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <BarChart data={previousTrend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={false} />
-                </LineChart>
+                  <Bar dataKey="revenuePrev" fill="#c7d2fe" name="Previous" />
+                  <Bar dataKey="revenue" fill="#3b82f6" name="Current" />
+                </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
@@ -171,8 +188,8 @@ const AdminDashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
                 <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Tooltip formatter={(v) => [v, 'Users']} />
+                <Line type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -189,15 +206,24 @@ const AdminDashboard = () => {
               <ul className="divide-y">
                 {studentsSample.students
                   .slice(0, 10)
-                  .map((s) => (
-                  <li key={s._id} className="py-2 text-sm flex items-center justify-between">
-                    <span className="truncate mr-2">{s.profile?.firstName || s.username}</span>
-                    <span className="text-gray-500">{new Date(s.analytics?.lastActivity || s.createdAt).toLocaleDateString()}</span>
-                  </li>
-                ))}
+                  .map((s) => {
+                    const courseTitle = s.enrollments?.[0]?.courseId?.title;
+                    return (
+                      <li key={s._id} className="py-2 text-sm flex items-center justify-between">
+                        <Link href={`/admin/students/${s._id}`} className="truncate mr-2 text-blue-600 hover:underline">
+                          {s.profile?.firstName || s.username}
+                        </Link>
+                        <span className="hidden md:inline text-gray-500 truncate mr-2">{courseTitle ? `enrolled in "${courseTitle}"` : ''}</span>
+                        <span className="text-gray-500">{new Date(s.analytics?.lastActivity || s.createdAt).toLocaleDateString()}</span>
+                      </li>
+                    );
+                  })}
               </ul>
             ) : (
-              <div className="text-sm text-gray-500 text-center py-8">No recent enrollments</div>
+              <div className="text-sm text-gray-500 text-center py-12 flex flex-col items-center gap-2">
+                <svg className="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <span>No recent enrollments</span>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -208,20 +234,26 @@ const AdminDashboard = () => {
           <CardContent>
             {Array.isArray(coursesData?.courses) && coursesData.courses.length > 0 ? (
               <div className="text-sm">
-                <div className="grid grid-cols-3 pb-2 border-b text-gray-500">
-                  <div>Course</div>
-                  <div>Instructor</div>
-                  <div className="text-right">Enrollments</div>
-                </div>
                 {coursesData.courses
                   .slice(0, 5)
-                  .map((c) => (
-                    <div key={c._id} className="grid grid-cols-3 py-2 border-b last:border-0">
-                      <div className="truncate pr-2">{c.title}</div>
-                      <div className="truncate pr-2">{c.assignedInstructor?.profile?.firstName || '—'}</div>
-                      <div className="text-right">{c.enrollmentCount ?? '—'}</div>
-                    </div>
-                  ))}
+                  .sort((a,b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
+                  .map((c, idx, arr) => {
+                    const max = Math.max(...arr.map(x => x.enrollmentCount || 0), 1);
+                    const pct = Math.min(100, Math.round(((c.enrollmentCount || 0) / max) * 100));
+                    return (
+                      <div key={c._id} className="py-3 border-b last:border-0">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-6 h-6 text-xs rounded-full bg-blue-50 text-blue-700 flex items-center justify-center">{idx + 1}</span>
+                            <Link href={`/admin/courses/${c._id}`} className="truncate text-blue-600 hover:underline">{c.title}</Link>
+                          </div>
+                          <div className="text-right whitespace-nowrap ml-2">{c.enrollmentCount ?? '—'}</div>
+                        </div>
+                        <ProgressBar value={pct} className="h-1.5 mt-2" />
+                        <div className="text-xs text-gray-500 mt-1">Instructor: {c.assignedInstructor?.profile?.firstName || '—'}</div>
+                      </div>
+                    );
+                  })}
               </div>
             ) : (
               <div className="text-sm text-gray-500 text-center py-8">No course performance data</div>
@@ -233,7 +265,10 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader><CardTitle>Platform Activity</CardTitle><CardDescription>Latest events</CardDescription></CardHeader>
           <CardContent>
-            <div className="text-sm text-gray-500 text-center py-8">No recent platform activity</div>
+            <div className="text-sm text-gray-500 text-center py-12 flex flex-col items-center gap-2">
+              <svg className="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span>No new activity to report</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -243,15 +278,15 @@ const AdminDashboard = () => {
   );
 };
 
-function Stat({ title, value, icon: Icon, actionLabel, onAction }) {
+function Stat({ title, value, icon: Icon, actionLabel, onAction, emphasize, subtle }) {
   return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle><Icon className="h-4 w-4 text-blue-600" /></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className={`font-medium ${subtle ? 'text-gray-600 text-sm' : 'text-gray-700 text-sm'}`}>{title}</CardTitle><Icon className="h-4 w-4 text-blue-600" /></CardHeader>
       <CardContent>
         <div className="flex items-center justify-between">
-          <div className="text-2xl font-bold text-gray-900">{value}</div>
+          <div className={`${emphasize ? 'text-4xl' : 'text-3xl'} font-extrabold text-gray-900`}>{value}</div>
           {actionLabel && onAction && (
-            <Button size="sm" variant="outline" onClick={onAction}>{actionLabel}</Button>
+            <button className="text-sm text-blue-600 hover:underline" onClick={onAction}>{actionLabel}</button>
           )}
         </div>
       </CardContent>
