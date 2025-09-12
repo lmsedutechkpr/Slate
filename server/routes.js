@@ -247,7 +247,7 @@ export async function registerRoutes(app) {
       const userId = req.user._id;
       
       // Get user's enrollments with progress
-      const { Enrollment } = await import('./models/index.js');
+      const { Enrollment, Assignment, Product, LiveSession } = await import('./models/index.js');
       const enrollments = await Enrollment.find({ studentId: userId })
         .populate({
           path: 'courseId',
@@ -260,7 +260,6 @@ export async function registerRoutes(app) {
         .limit(5);
       
       // Get upcoming assignments
-      const { Assignment } = await import('./models/index.js');
       const courseIds = enrollments
         .map(e => (e && e.courseId ? e.courseId._id : null))
         .filter(Boolean);
@@ -287,28 +286,89 @@ export async function registerRoutes(app) {
         };
       });
       
-      // Get recommendations
+      // Get live sessions
+      const liveSessions = await LiveSession.find({
+        isPublished: true,
+        startTime: { $gte: new Date() }
+      })
+      .populate('instructorId', 'username profile')
+      .sort({ startTime: 1 })
+      .limit(3);
+      
+      // Get course-specific product recommendations
+      const courseCategories = enrollments
+        .map(e => e.courseId?.category)
+        .filter(Boolean);
+      
+      const courseTags = enrollments
+        .flatMap(e => e.courseId?.tags || [])
+        .filter(Boolean);
+      
+      // Map course categories to product categories
+      const categoryMapping = {
+        'web-development': ['keyboard', 'mouse', 'monitor', 'headphones'],
+        'mobile-development': ['stylus', 'headphones', 'camera'],
+        'data-science': ['monitor', 'headphones', 'stylus'],
+        'ai-ml': ['headphones', 'monitor', 'stylus'],
+        'design': ['stylus', 'monitor', 'tablet', 'camera'],
+        'photography': ['camera', 'tripod', 'lens', 'memory-card'],
+        'video-editing': ['monitor', 'headphones', 'camera', 'microphone'],
+        'podcasting': ['microphone', 'headphones', 'audio-interface'],
+        'music': ['microphone', 'headphones', 'audio-interface', 'midi-keyboard']
+      };
+      
+      let relevantProductCategories = new Set();
+      courseCategories.forEach(category => {
+        const mapped = categoryMapping[category?.toLowerCase()] || [];
+        mapped.forEach(cat => relevantProductCategories.add(cat));
+      });
+      
+      // Add general study accessories
+      relevantProductCategories.add('headphones', 'stylus', 'notebook', 'chargers');
+      
+      const recommendedProducts = await Product.find({
+        isActive: true,
+        category: { $in: Array.from(relevantProductCategories) }
+      })
+      .sort({ rating: -1, createdAt: -1 })
+      .limit(6);
+      
+      // Get general recommendations
       let recommendations = { courses: [], products: [] };
       try {
         const rec = await recommendationService.updateUserRecommendations(userId);
         recommendations = rec || recommendations;
       } catch {}
       
-      // Calculate stats
+      // Calculate enhanced stats
       const totalXP = (enrollments || []).reduce((sum, e) => sum + (e.xp || 0), 0);
       const completedCourses = (enrollments || []).filter(e => e.isCompleted).length;
       const streaks = (enrollments || []).map(e => e.streakCount || 0);
       const currentStreak = streaks.length ? Math.max(...streaks) : 0;
       
+      // Calculate weekly study time (mock data for now)
+      const weeklyStudyTime = (enrollments || []).reduce((sum, e) => sum + (e.timeSpent || 0), 0);
+      const dailyAverage = weeklyStudyTime / 7;
+      const studyDays = (enrollments || []).filter(e => e.lastActivityAt && 
+        new Date(e.lastActivityAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      ).length;
+      
       res.json({
         enrollments,
         assignments: assignmentsWithStatus,
-        recommendations,
+        liveSessions,
+        recommendations: {
+          courses: recommendations.courses || [],
+          products: recommendedProducts
+        },
         stats: {
           totalXP,
           completedCourses,
           currentStreak,
-          weeklyHours: 12.5 // This would come from actual activity tracking
+          weeklyStudyTime: Math.round(weeklyStudyTime / 60), // Convert to hours
+          dailyAverage: Math.round(dailyAverage / 60), // Convert to hours
+          studyDays,
+          totalStudyTime: weeklyStudyTime
         }
       });
     } catch (error) {
@@ -316,8 +376,17 @@ export async function registerRoutes(app) {
       res.json({
         enrollments: [],
         assignments: [],
+        liveSessions: [],
         recommendations: { courses: [], products: [] },
-        stats: { totalXP: 0, completedCourses: 0, currentStreak: 0, weeklyHours: 0 }
+        stats: { 
+          totalXP: 0, 
+          completedCourses: 0, 
+          currentStreak: 0, 
+          weeklyStudyTime: 0,
+          dailyAverage: 0,
+          studyDays: 0,
+          totalStudyTime: 0
+        }
       });
     }
   });

@@ -10,6 +10,18 @@ import { Progress as ProgressBar } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Import new dashboard components
+import CompactWelcome from '../components/Dashboard/CompactWelcome.jsx';
+import CircularProgress from '../components/Dashboard/CircularProgress.jsx';
+import RecommendedGear from '../components/Dashboard/RecommendedGear.jsx';
+import DiscoverWhatsNext from '../components/Dashboard/DiscoverWhatsNext.jsx';
+import { 
+  EmptyAssignments, 
+  EmptyLiveSessions, 
+  EmptyCourses 
+} from '../components/Dashboard/EnhancedEmptyStates.jsx';
+
 import { 
   BookOpen, 
   Clock, 
@@ -66,16 +78,48 @@ const Dashboard = () => {
     staleTime: 30000
   });
 
-  // Realtime: invalidate dashboard on any API update
+  // Realtime: invalidate dashboard on specific updates
   useEffect(() => {
-    let unsub = () => {};
+    let unsubs = [];
     (async () => {
-      unsub = await subscribe('api:update', () => {
+      // General API updates
+      const unsubApi = await subscribe('api:update', () => {
         queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
         queryClient.invalidateQueries({ queryKey: ['/api/live-sessions/mine'] });
       });
+      unsubs.push(unsubApi);
+
+      // Course-specific updates
+      const unsubCourses = await subscribe('courses:update', () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      });
+      unsubs.push(unsubCourses);
+
+      // Product updates
+      const unsubProducts = await subscribe('products:update', () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      });
+      unsubs.push(unsubProducts);
+
+      // Live session updates
+      const unsubLiveSessions = await subscribe('live-sessions:update', () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/live-sessions/mine'] });
+      });
+      unsubs.push(unsubLiveSessions);
+
+      // Assignment updates
+      const unsubAssignments = await subscribe('assignments:update', () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      });
+      unsubs.push(unsubAssignments);
     })();
-    return () => { try { unsub(); } catch {} };
+    
+    return () => {
+      unsubs.forEach(unsub => {
+        try { unsub(); } catch {}
+      });
+    };
   }, [queryClient]);
 
   // Fetch live sessions with real-time updates
@@ -95,6 +139,7 @@ const Dashboard = () => {
   const {
     enrollments = [],
     assignments = [],
+    liveSessions = [],
     recommendations = { courses: [], products: [] },
     stats = {}
   } = dashboardData || {};
@@ -244,44 +289,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Welcome Card */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white mb-8 overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-600/90 to-primary-800/90"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
-          
-          <CardContent className="p-8 relative z-10">
-            <div className="flex-1">
-              <div className="mb-4">
-                <h2 className="text-3xl font-bold mb-2">
-                  {getGreeting()}, {userName}!
-                </h2>
-                <p className="text-primary-100 text-lg">
-                  Ready to continue your learning journey?
-                </p>
-      </div>
-
-              <p className="text-primary-100 mb-6 text-lg">
-                You're making great progress. Keep up the momentum!
-              </p>
-              
-              <div className="grid grid-cols-3 gap-6">
-                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                  <div className="text-3xl font-bold mb-1">{stats.currentStreak || 0}</div>
-                  <div className="text-sm text-primary-200">Day Streak</div>
-                </div>
-                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                  <div className="text-3xl font-bold mb-1">{stats.totalXP?.toLocaleString() || 0}</div>
-                  <div className="text-sm text-primary-200">XP Points</div>
-                </div>
-                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                  <div className="text-3xl font-bold mb-1">{stats.completedCourses || 0}</div>
-                  <div className="text-sm text-primary-200">Completed</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Compact Welcome Banner */}
+        <CompactWelcome stats={stats} />
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -391,72 +400,20 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No courses enrolled yet</h3>
-                  <p className="text-gray-600 mb-4">Start your learning journey by enrolling in a course</p>
-                  <Button>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Browse Courses
-                  </Button>
-                </div>
+                <EmptyCourses />
               )}
             </CardContent>
           </Card>
 
-          {/* This Week Progress */}
-          <Card className="border-0 shadow-sm bg-white">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl">This Week</CardTitle>
-              <CardDescription>Study Hours</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">
-                    {formatTime(stats.weeklyStudyTime || 0)}
-                  </div>
-                  <div className="text-sm text-gray-600 flex items-center justify-center gap-2">
-                    <span>Goal: {weeklyGoalHours}h per week</span>
-                    <Button variant="ghost" size="sm" onClick={() => setIsEditingGoal((v) => !v)} className="h-6 px-2">Edit</Button>
-                  </div>
-                  {isEditingGoal && (
-                    <div className="mt-2 flex items-center justify-center gap-2">
-                      <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        defaultValue={weeklyGoalHours}
-                        className="w-20 border rounded px-2 py-1 text-sm"
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveWeeklyGoal(e.currentTarget.value); }}
-                        onBlur={(e) => handleSaveWeeklyGoal(e.currentTarget.value)}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Progress</span>
-                    <span>{Math.round(((stats.weeklyStudyTime || 0) / (weeklyGoalHours * 60)) * 100)}%</span>
-                  </div>
-                  <ProgressBar 
-                    value={Math.min(((stats.weeklyStudyTime || 0) / (weeklyGoalHours * 60)) * 100, 100)} 
-                    className="h-3 bg-gray-100"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="font-semibold text-gray-900">{stats.dailyAverage || 0}h</div>
-                    <div className="text-gray-600">Daily avg</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="font-semibold text-gray-900">{stats.studyDays || 0}</div>
-                    <div className="text-gray-600">Study days</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* This Week Progress - Circular */}
+          <CircularProgress
+            current={stats.weeklyStudyTime || 0}
+            goal={weeklyGoalHours}
+            onGoalChange={handleSaveWeeklyGoal}
+            unit="hours"
+            label="This Week"
+            className="lg:col-span-1"
+          />
       </div>
 
         {/* Bottom Grid */}
@@ -496,11 +453,7 @@ const Dashboard = () => {
                     ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-600">No upcoming assignments</p>
-                  <p className="text-sm text-gray-500 mt-1">You're all caught up!</p>
-                </div>
+                <EmptyAssignments />
               )}
             </CardContent>
           </Card>
@@ -512,16 +465,16 @@ const Dashboard = () => {
               <CardDescription>Join interactive sessions</CardDescription>
             </CardHeader>
             <CardContent>
-              {liveData?.sessions && liveData.sessions.length > 0 ? (
+              {liveSessions && liveSessions.length > 0 ? (
                 <div className="space-y-4">
-                  {liveData.sessions.slice(0, 3).map((session) => (
+                  {liveSessions.slice(0, 3).map((session) => (
                     <div key={session._id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
                       <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
                         <Video className="w-5 h-5 text-green-600" />
                       </div>
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">{session.title}</h4>
-                        <p className="text-sm text-gray-600">{session.instructor}</p>
+                        <p className="text-sm text-gray-600">{session.instructorId?.username || 'Instructor'}</p>
                         <div className="flex items-center space-x-2 mt-1">
                           <Clock className="w-4 h-4 text-gray-400" />
                           <span className="text-xs text-gray-500">
@@ -536,48 +489,27 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Video className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-600">No live sessions scheduled</p>
-                  <p className="text-sm text-gray-500 mt-1">Check back later for updates</p>
-                </div>
+                <EmptyLiveSessions />
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Recommended Next */}
+        {/* Recommended Gear Section */}
+        <div className="mb-8">
+          <RecommendedGear 
+            products={recommendations.products || []} 
+            enrollments={enrollments}
+          />
+        </div>
+
+        {/* Discover What's Next */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-          <Card className="border-0 shadow-sm bg-white lg:col-span-1">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl">Recommended Next</CardTitle>
-              <CardDescription>Resume where you left off</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recommendedEnrollment ? (
-                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-primary-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate">{recommendedEnrollment.course?.title || 'Course'}</h4>
-                    <p className="text-xs text-gray-600 truncate">Last activity: {recommendedEnrollment.lastActivityAt ? new Date(recommendedEnrollment.lastActivityAt).toLocaleString() : '—'}</p>
-                  </div>
-                  <Link href={`/courses/${recommendedEnrollment.course?._id || recommendedEnrollment.courseId}`}>
-                    <Button size="sm" className="flex-shrink-0">
-                      <Play className="w-4 h-4 mr-2" />
-                      Resume
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <BookOpen className="mx-auto h-10 w-10 text-gray-400 mb-3" />
-                  <p className="text-gray-600 text-sm">No recent activity. Start learning from your courses.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <DiscoverWhatsNext 
+            recommendations={recommendations}
+            liveSessions={liveSessions}
+            enrollments={enrollments}
+          />
         </div>
       </div>
     </div>
