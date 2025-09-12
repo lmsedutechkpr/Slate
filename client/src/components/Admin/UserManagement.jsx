@@ -24,7 +24,8 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState(() => localStorage.getItem('adminUsers.role') || 'all');
+  const [selectedRole, setSelectedRole] = useState(() => new URLSearchParams(window.location.search).get('role') || localStorage.getItem('adminUsers.role') || 'all');
+  const [activeTab, setActiveTab] = useState(() => (['student','instructor','admin'].includes(new URLSearchParams(window.location.search).get('role')||'') ? new URLSearchParams(window.location.search).get('role') : 'all'));
   const [selectedStatus, setSelectedStatus] = useState(() => localStorage.getItem('adminUsers.status') || 'all');
   const [savedViews, setSavedViews] = useState(() => {
     try { return JSON.parse(localStorage.getItem('adminUsers.savedViews') || '[]'); } catch { return []; }
@@ -469,10 +470,16 @@ const UserManagement = () => {
         </Dialog>
       </div>
 
-      {/* Filters */}
+      {/* Filters + Tabs */}
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex gap-2">
+              <Button variant={activeTab==='all'?'default':'outline'} onClick={()=>{ setActiveTab('all'); setSelectedRole('all'); }}>All</Button>
+              <Button variant={activeTab==='student'?'default':'outline'} onClick={()=>{ setActiveTab('student'); setSelectedRole('student'); }}>Students</Button>
+              <Button variant={activeTab==='instructor'?'default':'outline'} onClick={()=>{ setActiveTab('instructor'); setSelectedRole('instructor'); }}>Instructors</Button>
+              <Button variant={activeTab==='admin'?'default':'outline'} onClick={()=>{ setActiveTab('admin'); setSelectedRole('admin'); }}>Admins</Button>
+            </div>
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />

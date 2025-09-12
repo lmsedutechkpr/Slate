@@ -19,6 +19,11 @@ export const getOverview = async (req, res) => {
       { $group: { _id: null, gross: { $sum: '$total' } } }
     ]);
     const totalRevenue = revenueAgg[0]?.gross || 0;
+    const payoutPct = Math.min(0.95, Math.max(0, parseFloat(process.env.INSTRUCTOR_PAYOUT_PCT || '0.7')));
+    const instructorPayout = Math.round(totalRevenue * payoutPct);
+    const platformRevenue = Math.max(0, totalRevenue - instructorPayout);
+
+    const ordersCount = await Order.countDocuments({ status: { $in: ['paid', 'refunded'] } });
 
     // Revenue by month (last 12 months)
     const twelveMonthsAgo = new Date();
@@ -84,7 +89,13 @@ export const getOverview = async (req, res) => {
       if (io) io.emit('analytics:update', result);
     } catch (_) {}
 
-    res.json(result);
+    // Funnel: visitors ~ active users (proxy), enrollments last 30d, orders last 30d
+    const enrollments30 = await Enrollment.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
+    const orders30 = await Order.countDocuments({ status: { $in: ['paid','refunded'] }, createdAt: { $gte: thirtyDaysAgo } });
+
+    const enriched = { ...result, ordersCount, platformRevenue, instructorPayout, funnel: { visitors: activeUsers, enrollments: enrollments30, orders: orders30 } };
+
+    res.json(enriched);
   } catch (error) {
     res.status(500).json({ message: 'Failed to get analytics overview', error: error.message });
   }

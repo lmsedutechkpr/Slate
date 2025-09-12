@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { Button } from '@/components/ui/button';
 import { TrendingUp, Users, BookOpen, DollarSign } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 
@@ -102,6 +103,17 @@ const Analytics = () => {
     },
     enabled: !!accessToken && !authLoading
   });
+
+  // Trending accessories
+  const { data: trendingData } = useQuery({
+    queryKey: ['/api/products/trending', cmpKey],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl('/api/products/trending'));
+      if (!res.ok) return { products: [] };
+      return res.json();
+    }
+  });
+  const trendingAccessories = trendingData?.products || [];
 
   const studentList = studentsData?.students || [];
   const courseList = coursesData?.courses || [];
@@ -284,6 +296,84 @@ const Analytics = () => {
                   <Bar dataKey="completions" fill="#a855f7" />
                 </BarChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Top tables */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Performing Courses</CardTitle>
+              <CardDescription>Sorted by enrollments</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-600"><th className="py-2 pr-6">Course</th><th className="py-2 pr-6">Category</th><th className="py-2 pr-6">Enrollments</th></tr>
+                  </thead>
+                  <tbody>
+                    {([...courseList].sort((a,b)=>(b.enrollmentCount||0)-(a.enrollmentCount||0)).slice(0,10)).map(c => (
+                      <tr key={c._id} className="border-t"><td className="py-2 pr-6">{c.title}</td><td className="py-2 pr-6">{c.category||'-'}</td><td className="py-2 pr-6">{c.enrollmentCount||0}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3"><Button variant="outline" onClick={() => {
+                const rows = ([...courseList].sort((a,b)=>(b.enrollmentCount||0)-(a.enrollmentCount||0))).map(c => ({ title:c.title, category:c.category||'', enrollments:c.enrollmentCount||0 }));
+                if (rows.length===0) return;
+                const header = Object.keys(rows[0]).join(',');
+                const body = rows.map(r => Object.values(r).join(',')).join('\n');
+                const blob = new Blob([header+'\n'+body], { type:'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='top-courses.csv'; a.click(); URL.revokeObjectURL(url);
+              }}>Export CSV</Button></div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Instructors</CardTitle>
+              <CardDescription>By total enrollments across their courses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const byInstructor = new Map();
+                courseList.forEach(c => {
+                  const id = c.assignedInstructor?._id || 'unassigned';
+                  const name = c.assignedInstructor?.username || 'Unassigned';
+                  const prev = byInstructor.get(id) || { name, enrollments:0, courses:0 };
+                  prev.enrollments += (c.enrollmentCount||0); prev.courses += 1; byInstructor.set(id, prev);
+                });
+                const rows = Array.from(byInstructor.values()).filter(r=>r.name!=='Unassigned').sort((a,b)=>b.enrollments-a.enrollments).slice(0,10);
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead><tr className="text-left text-gray-600"><th className="py-2 pr-6">Instructor</th><th className="py-2 pr-6">Enrollments</th><th className="py-2 pr-6">Courses</th></tr></thead>
+                      <tbody>
+                        {rows.map((r,i)=>(<tr key={i} className="border-t"><td className="py-2 pr-6">{r.name}</td><td className="py-2 pr-6">{r.enrollments}</td><td className="py-2 pr-6">{r.courses}</td></tr>))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Trending Accessories</CardTitle>
+              <CardDescription>Top products by sales and rating</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead><tr className="text-left text-gray-600"><th className="py-2 pr-6">Product</th><th className="py-2 pr-6">Category</th><th className="py-2 pr-6">Sales</th><th className="py-2 pr-6">Rating</th></tr></thead>
+                  <tbody>
+                    {trendingAccessories.slice(0,10).map(p => (
+                      <tr key={p._id} className="border-t"><td className="py-2 pr-6">{p.title}</td><td className="py-2 pr-6">{p.category}</td><td className="py-2 pr-6">{p.salesCount||0}</td><td className="py-2 pr-6">{p.rating?.average?.toFixed?.(1) || 0}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -15,7 +15,10 @@ import {
   Bell,
   Home,
   Menu,
-  X
+  X,
+  Package,
+  ShoppingCart,
+  Tags
 } from 'lucide-react';
 
 const AdminLayout = ({ children }) => {
@@ -24,19 +27,33 @@ const AdminLayout = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
 
-  const navigationItems = [
-    { title: 'Overview', href: '/admin', icon: Home, description: 'Dashboard overview', roles: ['admin', 'super-admin'] },
-    { title: 'Courses', href: '/admin/courses', icon: BookOpen, description: 'Manage courses', roles: ['admin', 'course-admin', 'super-admin'] },
-    { title: 'Instructors', href: '/admin/instructors', icon: UserCheck, description: 'Manage instructors', roles: ['admin', 'instructor-admin', 'super-admin'] },
-    { title: 'Students', href: '/admin/students', icon: Users, description: 'Student management', roles: ['admin', 'student-admin', 'super-admin'] },
-    { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, description: 'Reports & insights', roles: ['admin', 'analytics-admin', 'super-admin'] },
-    { title: 'Users', href: '/admin/users', icon: Users, description: 'User management', roles: ['admin', 'user-admin', 'super-admin'] },
-    { title: 'Audit Logs', href: '/admin/logs', icon: BarChart3, description: 'System audit trail', roles: ['admin', 'super-admin'] },
-    { title: 'Settings', href: '/admin/settings', icon: Settings, description: 'System configuration', roles: ['super-admin'] }
+  const navigationGroups = [
+    { label: 'Overview', items: [
+      { title: 'Dashboard', href: '/admin', icon: Home, description: 'Dashboard overview', roles: ['admin','super-admin'] }
+    ]},
+    { label: 'Learning Management', items: [
+      { title: 'Courses', href: '/admin/courses', icon: BookOpen, description: 'Manage courses', roles: ['admin','course-admin','super-admin'] },
+      { title: 'Instructors', href: '/admin/instructors', icon: UserCheck, description: 'Manage instructors', roles: ['admin','instructor-admin','super-admin'] },
+      { title: 'Students', href: '/admin/students', icon: Users, description: 'Student management', roles: ['admin','student-admin','super-admin'] },
+    ]},
+    { label: 'Commerce', items: [
+      { title: 'Products', href: '/store', icon: Package, description: 'Accessories & products', roles: ['admin','super-admin'] },
+      { title: 'Orders', href: '/admin/analytics', icon: ShoppingCart, description: 'Order analytics', roles: ['admin','super-admin'] },
+      { title: 'Discounts', href: '/admin/settings', icon: Tags, description: 'Coupons & offers', roles: ['super-admin'] },
+    ]},
+    { label: 'Reports', items: [
+      { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, description: 'Reports & insights', roles: ['admin','analytics-admin','super-admin'] },
+    ]},
+    { label: 'System', items: [
+      { title: 'Users', href: '/admin/users', icon: Users, description: 'User management', roles: ['admin','user-admin','super-admin'] },
+      { title: 'Audit Logs', href: '/admin/logs', icon: BarChart3, description: 'System audit trail', roles: ['admin','super-admin'] },
+      { title: 'Settings', href: '/admin/settings', icon: Settings, description: 'System configuration', roles: ['super-admin'] }
+    ]}
   ];
 
   const currentPath = location;
-  const currentItem = navigationItems.find(item => item.href === currentPath);
+  const flatItems = navigationGroups.flatMap(g => g.items);
+  const currentItem = flatItems.find(item => item.href === currentPath);
 
   const handleLogout = () => {
     logout();
@@ -129,31 +146,32 @@ const AdminLayout = ({ children }) => {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 px-3 lg:px-4 py-4 space-y-1 overflow-y-auto">
-          {navigationItems.map((item) => {
-            const isActive = currentPath === item.href;
-            const Icon = item.icon;
-            
-            return (
-              <Button
-                key={item.href}
-                variant={isActive ? "default" : "ghost"}
-                className={`
-                  w-full justify-start h-auto py-3 px-3 text-left
-                  ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
-                `}
-                onClick={() => handleNavigation(item.href)}
-              >
-                <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{item.title}</div>
-                  <div className={`text-xs truncate ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
-                    {item.description}
-                  </div>
-                </div>
-              </Button>
-            );
-          })}
+        <nav className="flex-1 px-3 lg:px-4 py-4 space-y-3 overflow-y-auto">
+          {navigationGroups.map(group => (
+            <div key={group.label}>
+              <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-gray-400">{group.label}</div>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = currentPath === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.href}
+                      variant={isActive ? "default" : "ghost"}
+                      className={`w-full justify-start h-auto py-3 px-3 text-left ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                      onClick={() => handleNavigation(item.href)}
+                    >
+                      <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{item.title}</div>
+                        <div className={`text-xs truncate ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>{item.description}</div>
+                      </div>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer */}
@@ -188,7 +206,7 @@ const AdminLayout = ({ children }) => {
                   for (let i = 0; i < segments.length; i++) {
                     const segment = segments[i];
                     href += `/${segment}`;
-                    const matchedNav = navigationItems.find(n => n.href === href);
+                    const matchedNav = flatItems.find(n => n.href === href);
                     const looksLikeId = /^[a-f\d]{24}$/i.test(segment);
                     const baseLabel = matchedNav?.title || segment.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
                     const label = looksLikeId ? 'Detail' : (baseLabel || 'Admin');
@@ -216,6 +234,12 @@ const AdminLayout = ({ children }) => {
 
             {/* Right side */}
             <div className="flex items-center space-x-2 lg:space-x-3 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => {
+                const root = document.documentElement;
+                const next = root.classList.contains('dark') ? 'light' : 'dark';
+                if (next === 'dark') root.classList.add('dark'); else root.classList.remove('dark');
+                try { localStorage.setItem('theme', next); } catch {}
+              }}>Theme</Button>
               <NotificationsBell />
               <div className="hidden md:flex items-center space-x-2 text-xs lg:text-sm text-gray-600">
                 <span>Last login:</span>
