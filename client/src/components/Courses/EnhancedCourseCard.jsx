@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,20 @@ const EnhancedCourseCard = ({
   enrollment = null,
   onWishlistToggle = null,
   isWishlisted = false,
-  onEnroll = null
+  onEnroll = null,
+  liveUpdate = null
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showLiveUpdate, setShowLiveUpdate] = useState(false);
+
+  // Handle live updates
+  useEffect(() => {
+    if (liveUpdate && liveUpdate.courseId === course._id) {
+      setShowLiveUpdate(true);
+      const timer = setTimeout(() => setShowLiveUpdate(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [liveUpdate, course._id]);
 
   if (!course) return null;
 
@@ -109,13 +120,30 @@ const EnhancedCourseCard = ({
         />
       </button>
 
+      {/* Trending Badge */}
+      {course.isTrending && (
+        <div className="absolute top-3 left-3 z-10">
+          <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-xs animate-pulse">
+            <Zap className="w-3 h-3 mr-1" />
+            🔥 Trending
+          </Badge>
+        </div>
+      )}
+
       {/* Recommended Gear Teaser */}
-      {hasRecommendedGear() && (
+      {hasRecommendedGear() && !course.isTrending && (
         <div className="absolute top-3 left-3 z-10">
           <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
             <ShoppingBag className="w-3 h-3 mr-1" />
             Gear Available
           </Badge>
+        </div>
+      )}
+
+      {/* Live Update Indicator */}
+      {showLiveUpdate && (
+        <div className="absolute top-3 right-12 z-10">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
         </div>
       )}
 
@@ -136,7 +164,9 @@ const EnhancedCourseCard = ({
             
             {/* Star Rating */}
             {course.rating?.average > 0 && (
-              <div className="flex items-center space-x-2 mb-2">
+              <div className={`flex items-center space-x-2 mb-2 transition-all duration-300 ${
+                showLiveUpdate && liveUpdate?.type === 'review' ? 'text-yellow-600' : ''
+              }`}>
                 <div className="flex items-center space-x-1">
                   {renderStars(course.rating.average)}
                 </div>
@@ -161,7 +191,9 @@ const EnhancedCourseCard = ({
             <Award className="w-4 h-4 text-gray-400" />
             <span>{course.level || 'Beginner'}</span>
           </div>
-          <div className="flex items-center space-x-1">
+          <div className={`flex items-center space-x-1 transition-all duration-300 ${
+            showLiveUpdate && liveUpdate?.type === 'enrollment' ? 'text-green-600 font-semibold' : ''
+          }`}>
             <Users className="w-4 h-4 text-gray-400" />
             <span>{(course.enrollmentCount || 0).toLocaleString()} students</span>
           </div>

@@ -18,6 +18,9 @@ import EnhancedCourseCard from '../components/Courses/EnhancedCourseCard.jsx';
 import SortDropdown from '../components/Courses/SortDropdown.jsx';
 import PersonalizedRecommendations from '../components/Courses/PersonalizedRecommendations.jsx';
 import { WishlistProvider, useWishlist } from '../contexts/WishlistContext.jsx';
+import CourseCardSkeleton from '../components/Common/CourseCardSkeleton.jsx';
+import LiveUpdateToast from '../components/Common/LiveUpdateToast.jsx';
+import { useRealtimeCourseUpdates } from '../hooks/useRealtimeCourseUpdates.js';
 
 import { 
   Search, 
@@ -37,6 +40,7 @@ import {
 const CoursesContent = () => {
   const { accessToken, authenticatedFetch } = useAuth();
   const { toggleWishlist, isWishlisted } = useWishlist();
+  const { liveUpdates } = useRealtimeCourseUpdates();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -44,12 +48,31 @@ const CoursesContent = () => {
   const [sortBy, setSortBy] = useState('popular');
   const [activeTab, setActiveTab] = useState('all');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [toasts, setToasts] = useState([]);
 
   // Debounce search term to avoid refetch on every keystroke
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearchTerm(searchTerm), 700);
     return () => clearTimeout(id);
   }, [searchTerm]);
+
+  // Handle live updates and show toasts
+  useEffect(() => {
+    Object.entries(liveUpdates).forEach(([courseId, update]) => {
+      if (update.timestamp > Date.now() - 1000) { // Only show recent updates
+        setToasts(prev => [...prev, { id: `${courseId}-${update.timestamp}`, courseId, ...update }]);
+      }
+    });
+  }, [liveUpdates]);
+
+  // Remove toasts after they expire
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setToasts(prev => prev.filter(toast => Date.now() - toast.timestamp < 3000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Fetch all courses with real-time updates
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
@@ -95,6 +118,18 @@ const CoursesContent = () => {
     refetchInterval: 30000,
   });
 
+  // Fetch dynamic categories and levels
+  const { data: filtersData } = useQuery({
+    queryKey: ['/api/courses/filters', accessToken],
+    queryFn: async () => {
+      const response = await authenticatedFetch(buildApiUrl('/api/courses/filters'));
+      if (!response.ok) return { categories: [], levels: [] };
+      return response.json();
+    },
+    enabled: !!accessToken,
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   useRealtimeInvalidate([
     ['/api/courses'],
     ['/api/enrollments'],
@@ -104,6 +139,8 @@ const CoursesContent = () => {
   const courses = coursesData?.courses || [];
   const enrollments = enrollmentsData?.enrollments || [];
   const recommendations = recommendationsData?.courses || [];
+  const categories = filtersData?.categories || [];
+  const levels = filtersData?.levels || [];
 
   // Sort courses based on selected sort option
   const getSortedCourses = (coursesList) => {
@@ -201,12 +238,11 @@ const CoursesContent = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="programming">Programming</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
-                <SelectItem value="data-science">Data Science</SelectItem>
-                <SelectItem value="cybersecurity">Cybersecurity</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="marketing">Marketing</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             
@@ -216,9 +252,11 @@ const CoursesContent = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
+                {levels.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -233,12 +271,16 @@ const CoursesContent = () => {
 
       {/* Course Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-fit bg-white shadow-sm">
+          <TabsList className="grid grid-cols-4 w-fit bg-white shadow-sm">
             <TabsTrigger value="all" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
             All Courses
           </TabsTrigger>
             <TabsTrigger value="enrolled" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
             My Courses ({enrollments.length})
+          </TabsTrigger>
+            <TabsTrigger value="wishlist" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+            <Heart className="w-4 h-4 mr-1" />
+            Wishlist
           </TabsTrigger>
             <TabsTrigger value="recommended" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
             Recommended
@@ -247,7 +289,13 @@ const CoursesContent = () => {
 
         {/* All Courses */}
         <TabsContent value="all" className="space-y-6">
-          {sortedCourses.length === 0 ? (
+          {coursesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <CourseCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : sortedCourses.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -268,6 +316,7 @@ const CoursesContent = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedCourses.map((course) => {
                 const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
+                const liveUpdate = liveUpdates[course._id];
                 return (
                   <EnhancedCourseCard
                     key={course._id}
@@ -277,6 +326,7 @@ const CoursesContent = () => {
                     isWishlisted={isWishlisted(course._id)}
                     onWishlistToggle={toggleWishlist}
                     onEnroll={handleEnroll}
+                    liveUpdate={liveUpdate}
                   />
                 );
               })}
@@ -286,7 +336,13 @@ const CoursesContent = () => {
 
         {/* Enrolled Courses */}
         <TabsContent value="enrolled" className="space-y-6">
-          {enrollments.length === 0 ? (
+          {enrollmentsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <CourseCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : enrollments.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -300,19 +356,68 @@ const CoursesContent = () => {
               </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrollments.map((enrollment) => (
-                <EnhancedCourseCard
-                  key={enrollment._id}
-                  course={enrollment.courseId}
-                  isEnrolled={true}
-                  enrollment={enrollment}
-                  isWishlisted={isWishlisted(enrollment.courseId?._id)}
-                  onWishlistToggle={toggleWishlist}
-                  onEnroll={handleEnroll}
-                />
-              ))}
+              {enrollments.map((enrollment) => {
+                const liveUpdate = liveUpdates[enrollment.courseId?._id];
+                return (
+                  <EnhancedCourseCard
+                    key={enrollment._id}
+                    course={enrollment.courseId}
+                    isEnrolled={true}
+                    enrollment={enrollment}
+                    isWishlisted={isWishlisted(enrollment.courseId?._id)}
+                    onWishlistToggle={toggleWishlist}
+                    onEnroll={handleEnroll}
+                    liveUpdate={liveUpdate}
+                  />
+                );
+              })}
             </div>
           )}
+        </TabsContent>
+
+        {/* Wishlist Tab */}
+        <TabsContent value="wishlist" className="space-y-6">
+          {coursesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <CourseCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : (() => {
+            const wishlistedCourses = courses.filter(course => isWishlisted(course._id));
+            return wishlistedCourses.length === 0 ? (
+              <Card className="border-0 shadow-sm bg-white">
+                <CardContent className="p-12 text-center">
+                  <Heart className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Your wishlist is empty</h3>
+                  <p className="text-gray-600 mb-4">Save courses you're interested in for later</p>
+                  <Button onClick={() => setActiveTab('all')}>
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Browse Courses
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {wishlistedCourses.map((course) => {
+                  const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
+                  const liveUpdate = liveUpdates[course._id];
+                  return (
+                    <EnhancedCourseCard
+                      key={course._id}
+                      course={course}
+                      isEnrolled={!!enrollment}
+                      enrollment={enrollment}
+                      isWishlisted={true}
+                      onWishlistToggle={toggleWishlist}
+                      onEnroll={handleEnroll}
+                      liveUpdate={liveUpdate}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         {/* Recommended Courses */}
@@ -320,7 +425,13 @@ const CoursesContent = () => {
           {/* Personalized Recommendations Header */}
           <PersonalizedRecommendations enrollments={enrollments} />
           
-          {sortedRecommendations.length === 0 ? (
+          {coursesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <CourseCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : sortedRecommendations.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <TrendingUp className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -336,6 +447,7 @@ const CoursesContent = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedRecommendations.map((course) => {
                 const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
+                const liveUpdate = liveUpdates[course._id];
                 return (
                   <EnhancedCourseCard
                     key={course._id}
@@ -345,6 +457,7 @@ const CoursesContent = () => {
                     isWishlisted={isWishlisted(course._id)}
                     onWishlistToggle={toggleWishlist}
                     onEnroll={handleEnroll}
+                    liveUpdate={liveUpdate}
                   />
                 );
               })}
@@ -352,6 +465,15 @@ const CoursesContent = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Live Update Toasts */}
+      {toasts.map((toast) => (
+        <LiveUpdateToast
+          key={toast.id}
+          update={toast}
+          onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+        />
+      ))}
       </div>
     </div>
   );

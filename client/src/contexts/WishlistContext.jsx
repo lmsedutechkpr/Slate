@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
-import { buildApiUrl } from '../lib/utils.js';
+import { wishlistService } from '../services/wishlistService.js';
 
 const WishlistContext = createContext();
 
@@ -42,45 +42,34 @@ export const WishlistProvider = ({ children }) => {
     try {
       const isCurrentlyWishlisted = wishlist.has(courseId);
       
+      // Optimistically update UI
       if (isCurrentlyWishlisted) {
-        // Remove from wishlist
         setWishlist(prev => {
           const newWishlist = new Set(prev);
           newWishlist.delete(courseId);
           return newWishlist;
         });
-        
-        // Optionally sync with backend
-        if (accessToken) {
-          try {
-            await authenticatedFetch(buildApiUrl(`/api/wishlist/${courseId}`), {
-              method: 'DELETE',
-            });
-          } catch (error) {
-            console.error('Error removing from wishlist:', error);
-            // Revert local state if backend fails
-            setWishlist(prev => new Set([...prev, courseId]));
-          }
-        }
       } else {
-        // Add to wishlist
         setWishlist(prev => new Set([...prev, courseId]));
-        
-        // Optionally sync with backend
-        if (accessToken) {
-          try {
-            await authenticatedFetch(buildApiUrl(`/api/wishlist/${courseId}`), {
-              method: 'POST',
-            });
-          } catch (error) {
-            console.error('Error adding to wishlist:', error);
-            // Revert local state if backend fails
+      }
+      
+      // Sync with backend
+      if (accessToken) {
+        try {
+          await wishlistService.toggleWishlist(courseId, isCurrentlyWishlisted, accessToken);
+        } catch (error) {
+          console.error('Error syncing wishlist:', error);
+          // Revert local state if backend fails
+          if (isCurrentlyWishlisted) {
+            setWishlist(prev => new Set([...prev, courseId]));
+          } else {
             setWishlist(prev => {
               const newWishlist = new Set(prev);
               newWishlist.delete(courseId);
               return newWishlist;
             });
           }
+          throw error;
         }
       }
     } catch (error) {
