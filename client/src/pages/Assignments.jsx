@@ -55,7 +55,11 @@ const Assignments = () => {
       setTimeout(() => window.dispatchEvent(new Event('focus')), 0);
     };
     socket.on('student:assignments:update', handler);
-    return () => { socket.off('student:assignments:update', handler); };
+    socket.on('student:enrollment:update', handler);
+    return () => { 
+      socket.off('student:assignments:update', handler);
+      socket.off('student:enrollment:update', handler);
+    };
   }, [accessToken]);
 
   const getStatusInfo = (assignment) => {

@@ -24,6 +24,7 @@ import {
   Eye,
   Zap
 } from 'lucide-react';
+import { getSocket } from '@/lib/realtime.js';
 
 const Store = () => {
   const { accessToken, authenticatedFetch } = useAuth();
@@ -77,6 +78,28 @@ const Store = () => {
     refetchInterval: 30000,
   });
 
+  // Trending products
+  const { data: trendingData, refetch: refetchTrending } = useQuery({
+    queryKey: ['/api/products/trending'],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl('/api/products/trending'));
+      if (!res.ok) throw new Error('Failed to load trending');
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  // Bundles
+  const { data: bundlesData, refetch: refetchBundles } = useQuery({
+    queryKey: ['/api/products/bundles'],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl('/api/products/bundles'));
+      if (!res.ok) throw new Error('Failed to load bundles');
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
   // Fetch recommended products with real-time updates
   const { data: recommendationsData } = useQuery({
     queryKey: ['/api/recommendations'],
@@ -92,6 +115,8 @@ const Store = () => {
   const products = productsData?.products || [];
   const categories = categoriesData?.categories || [];
   const recommendedProducts = recommendationsData?.products || [];
+  const trending = trendingData?.products || [];
+  const bundles = bundlesData?.bundles || [];
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
@@ -219,6 +244,16 @@ const Store = () => {
     );
   };
 
+  // Realtime updates for bundles/products
+  useEffect(() => {
+    const socket = getSocket(accessToken);
+    if (!socket) return;
+    const handler = () => { refetchTrending(); refetchBundles(); };
+    socket.on('admin:products:update', handler);
+    socket.on('admin:inventory:low', handler);
+    return () => { try { socket.off('admin:products:update', handler); socket.off('admin:inventory:low', handler); } catch {} };
+  }, [accessToken, refetchTrending, refetchBundles]);
+
   if (productsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -327,12 +362,18 @@ const Store = () => {
 
         {/* Product Tabs */}
         <Tabs defaultValue="all" className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-fit bg-white shadow-sm">
+          <TabsList className="grid grid-cols-5 w-fit bg-white shadow-sm">
             <TabsTrigger value="all" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
               All Products
             </TabsTrigger>
             <TabsTrigger value="recommended" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
               Recommended ({recommendedProducts.length})
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+              Trending
+            </TabsTrigger>
+            <TabsTrigger value="bundles" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
+              Bundles
             </TabsTrigger>
             <TabsTrigger value="categories" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
               Categories
@@ -385,6 +426,67 @@ const Store = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {recommendedProducts.map((product) => (
                   <ProductCard key={product._id} product={product} isRecommended={true} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Trending */}
+          <TabsContent value="trending" className="space-y-6">
+            {trending.length === 0 ? (
+              <Card className="border-0 shadow-sm bg-white">
+                <CardContent className="p-12 text-center">
+                  <TrendingUp className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No trending products</h3>
+                  <p className="text-gray-600 mb-4">Check back later</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {trending.map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Bundles */}
+          <TabsContent value="bundles" className="space-y-6">
+            {bundles.length === 0 ? (
+              <Card className="border-0 shadow-sm bg-white">
+                <CardContent className="p-12 text-center">
+                  <Gift className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No bundles available</h3>
+                  <p className="text-gray-600 mb-4">Bundles appear here when available</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {bundles.map((b) => (
+                  <Card key={b._id} className="border-0 shadow-sm bg-white">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold">{b.title}</CardTitle>
+                      <CardDescription>{b.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm text-gray-600 mb-2">{b.courseId?.title ? `For course: ${b.courseId.title}` : 'General bundle'}</div>
+                      <ul className="text-sm list-disc pl-4 mb-3">
+                        {(b.products || []).map((p, idx) => (
+                          <li key={idx}>{p.productId?.title} × {p.quantity}</li>
+                        ))}
+                      </ul>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold text-gray-900">{formatPrice(b.discountPrice ?? b.price)}</span>
+                        {b.discountPrice != null && (
+                          <span className="text-sm text-gray-500 line-through">{formatPrice(b.price)}</span>
+                        )}
+                      </div>
+                      <Button className="mt-3 w-full">
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Add Bundle to Cart
+                      </Button>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}

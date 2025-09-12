@@ -93,6 +93,16 @@ export const updateStudentProfile = async (req, res) => {
       message: 'Profile updated successfully',
       user
     });
+
+    // Emit realtime event to update user profile across the app
+    try {
+      const { getIo } = await import('../realtime.js');
+      const io = getIo();
+      io?.to(`user:${userId.toString()}`).emit('student:profile:update', {
+        type: 'profile_updated',
+        user
+      });
+    } catch {}
   } catch (error) {
     res.status(500).json({
       message: 'Failed to update profile',
@@ -128,6 +138,16 @@ export const updateAdminProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
     try { await AuditLog.create({ action: 'admin:profile:update', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'User', targetId: String(user._id) }); } catch {}
     res.json({ message: 'Profile updated successfully', user });
+
+    // Emit realtime event to update user profile across the app
+    try {
+      const { getIo } = await import('../realtime.js');
+      const io = getIo();
+      io?.to(`user:${userId.toString()}`).emit('student:profile:update', {
+        type: 'profile_updated',
+        user
+      });
+    } catch {}
   } catch (error) {
     res.status(500).json({ message: 'Failed to update profile', error: error.message });
   }
@@ -286,6 +306,76 @@ export const createInstructor = async (req, res) => {
       message: 'Failed to create instructor',
       error: error.message
     });
+  }
+};
+
+export const createStudent = async (req, res) => {
+  try {
+    const { username, email, password, firstName, lastName } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'username, email, and password are required' });
+    }
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) return res.status(400).json({ message: 'User with this email or username already exists' });
+    const user = new User({
+      username,
+      email,
+      password,
+      role: 'student',
+      approvalStatus: 'approved',
+      profile: { firstName, lastName }
+    });
+    await user.save();
+    try { await AuditLog.create({ action: 'admin:user:create-student', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'User', targetId: String(user._id) }); } catch {}
+    // Realtime notify admins
+    try { const { getIo } = await import('../realtime.js'); getIo()?.emit('admin:users:update', { type: 'created', userId: user._id }); } catch {}
+    res.status(201).json({ message: 'Student created successfully', user: user.toObject({ getters: true, virtuals: false }) });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to create student', error: error.message });
+  }
+};
+
+export const deleteOrDeactivateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { mode = 'deactivate' } = req.query; // 'deactivate' | 'delete'
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (mode === 'delete') {
+      // Soft delete: set status inactive and add deleted flag
+      user.status = 'inactive';
+      user.deletedAt = new Date();
+      await user.save();
+    } else {
+      // Deactivate only
+      user.status = 'inactive';
+      await user.save();
+    }
+    try { await AuditLog.create({ action: mode === 'delete' ? 'admin:user:soft-delete' : 'admin:user:deactivate', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'User', targetId: String(user._id) }); } catch {}
+    try { const { getIo } = await import('../realtime.js'); getIo()?.emit('admin:users:update', { type: mode === 'delete' ? 'deleted' : 'deactivated', userId: user._id }); } catch {}
+    res.json({ message: mode === 'delete' ? 'User soft-deleted' : 'User deactivated', user: user.toObject() });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update user', error: error.message });
+  }
+};
+
+export const updateInstructorApproval = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { approvalStatus } = req.body; // pending | approved | rejected
+    if (!['pending','approved','rejected'].includes(String(approvalStatus))) {
+      return res.status(400).json({ message: 'Invalid approval status' });
+    }
+    const user = await User.findById(userId).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role !== 'instructor') return res.status(400).json({ message: 'Only instructors can be approved' });
+    user.approvalStatus = approvalStatus;
+    await user.save();
+    try { await AuditLog.create({ action: 'admin:instructor:approval', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'User', targetId: String(user._id), meta: { approvalStatus } }); } catch {}
+    try { const { getIo } = await import('../realtime.js'); getIo()?.emit('admin:users:update', { type: 'approval', userId: user._id, approvalStatus }); } catch {}
+    res.json({ message: 'Instructor approval updated', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update approval', error: error.message });
   }
 };
 
@@ -459,6 +549,7 @@ export const updateUserStatus = async (req, res) => {
       message: 'User status updated successfully',
       user
     });
+    try { const { getIo } = await import('../realtime.js'); getIo()?.emit('admin:users:update', { type: 'status', userId }); } catch {}
   } catch (error) {
     res.status(500).json({
       message: 'Failed to update user status',

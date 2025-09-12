@@ -39,9 +39,17 @@ const productSchema = new mongoose.Schema({
       default: 0
     }
   },
+  salesCount: {
+    type: Number,
+    default: 0
+  },
   isActive: {
     type: Boolean,
     default: true
+  },
+  lowStockThreshold: {
+    type: Number,
+    default: 5
   },
   weight: Number,
   dimensions: {
@@ -52,6 +60,8 @@ const productSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+productSchema.index({ salesCount: -1, 'rating.average': -1 });
 
 // Generate slug before saving
 productSchema.pre('save', function(next) {

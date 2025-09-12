@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
     enum: Object.values(UserRoles),
     default: UserRoles.STUDENT
   },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved'
+  },
   googleEmail: {
     type: String,
     sparse: true
@@ -68,10 +73,14 @@ const userSchema = new mongoose.Schema({
     pendingEmail: String,
     code: String,
     expiresAt: Date
-  }
+  },
+  deletedAt: Date
 }, {
   timestamps: true
 });
+
+// Indexes for admin queries
+userSchema.index({ role: 1, approvalStatus: 1, status: 1, createdAt: -1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {

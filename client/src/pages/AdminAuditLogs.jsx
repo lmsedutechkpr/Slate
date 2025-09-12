@@ -146,10 +146,13 @@ const AdminAuditLogs = () => {
                     </TableCell>
                     <TableCell>{log.targetType}{log.targetId ? `: ${log.targetId}` : ''}</TableCell>
                     <TableCell className="hidden md:table-cell text-xs text-gray-600">
-                      <div className="space-y-1">
-                        <div>{log.meta ? JSON.stringify(log.meta) : '-'}</div>
-                        <div className="text-gray-400">{log.ip || ''} {log.userAgent ? `• ${log.userAgent}` : ''}</div>
-                      </div>
+                      <details className="group">
+                        <summary className="cursor-pointer text-blue-600 hover:underline">{log.meta ? 'View meta' : '-'}</summary>
+                        {log.meta && (
+                          <pre className="mt-2 max-h-40 overflow-auto rounded bg-gray-50 p-2 border text-[11px] leading-snug whitespace-pre-wrap">{JSON.stringify(log.meta, null, 2)}</pre>
+                        )}
+                        <div className="text-gray-400 mt-1">{log.ip || ''} {log.userAgent ? `• ${log.userAgent}` : ''}</div>
+                      </details>
                     </TableCell>
                   </TableRow>
                 ))}

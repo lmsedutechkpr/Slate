@@ -80,6 +80,21 @@ app.use((req, res, next) => {
   const { initIo, getIo } = await import('./realtime.js');
   initIo(server);
 
+  // Add admin room join on auth
+  try {
+    const { getIo } = await import('./realtime.js');
+    const io = getIo();
+    io?.on('connection', (socket) => {
+      socket.on('auth', (token) => {
+        try {
+          const decoded = JSON.parse(Buffer.from(token.split('.')[1] || '', 'base64').toString('utf8'));
+          const role = decoded?.role;
+          if (role === 'admin' || role === 'super-admin') socket.join('admin');
+        } catch {}
+      });
+    });
+  } catch {}
+
   // Patch notificationController.publish to emit
   try {
     const { publish } = await import('./controllers/notificationController.js');

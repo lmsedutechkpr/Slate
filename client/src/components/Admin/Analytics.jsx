@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { getSocket } from '../../lib/realtime.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
 import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
@@ -7,12 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, BookOpen, DollarSign } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 const Analytics = () => {
   const { accessToken, authenticatedFetch } = useAuth();
   const { authLoading } = useAuthRefresh();
   const [timeRange, setTimeRange] = useState('30d');
+  const [courseForCmp, setCourseForCmp] = useState('');
+  const [cmpKey, setCmpKey] = useState(0);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
 
   // Live overview
   const { data: overview } = useQuery({
@@ -24,6 +29,16 @@ const Analytics = () => {
     },
     enabled: !!accessToken && !authLoading
   });
+
+  // Refresh analytics on realtime course updates
+  useEffect(() => {
+    const socket = getSocket(accessToken);
+    if (!socket) return;
+    const handler = () => setCmpKey(k => k + 1);
+    socket.on('admin:courses:update', handler);
+    socket.on('admin:reports:update', handler);
+    return () => { try { socket.off('admin:courses:update', handler); socket.off('admin:reports:update', handler); } catch {} };
+  }, [accessToken]);
 
   // Students sample for growth (derive monthly counts)
   const { data: studentsData } = useQuery({
@@ -49,6 +64,38 @@ const Analytics = () => {
       params.append('isPublished', 'false');
       const res = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
       if (!res.ok) throw new Error('Failed to load courses');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading
+  });
+
+  const { data: cmpData } = useQuery({
+    queryKey: ['/api/admin/courses/analytics/enrollments-vs-completions', courseForCmp, cmpKey],
+    queryFn: async () => {
+      const id = courseForCmp || 'all';
+      const path = courseForCmp ? `/api/admin/courses/${courseForCmp}/analytics/enrollments-vs-completions` : `/api/admin/courses/${courseList[0]?._id || ''}/analytics/enrollments-vs-completions`;
+      const res = await authenticatedFetch(buildApiUrl(path));
+      if (!res.ok) throw new Error('Failed to load chart');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading && (courseList.length > 0)
+  });
+  const { data: salesReport } = useQuery({
+    queryKey: ['/api/admin/reports/sales', from, to, cmpKey],
+    queryFn: async () => {
+      const params = new URLSearchParams(); if (from) params.append('from', from); if (to) params.append('to', to);
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/reports/sales?${params.toString()}`));
+      if (!res.ok) throw new Error('Failed to load sales report');
+      return res.json();
+    },
+    enabled: !!accessToken && !authLoading
+  });
+  const { data: activityReport } = useQuery({
+    queryKey: ['/api/admin/reports/activity', from, to, cmpKey],
+    queryFn: async () => {
+      const params = new URLSearchParams(); if (from) params.append('from', from); if (to) params.append('to', to);
+      const res = await authenticatedFetch(buildApiUrl(`/api/admin/reports/activity?${params.toString()}`));
+      if (!res.ok) throw new Error('Failed to load activity report');
       return res.json();
     },
     enabled: !!accessToken && !authLoading
@@ -208,6 +255,35 @@ const Analytics = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Enrollments vs Completions</CardTitle>
+              <CardDescription>Per-course completion ratio</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-3">
+                <Select value={courseForCmp} onValueChange={setCourseForCmp}>
+                  <SelectTrigger className="w-64"><SelectValue placeholder="Select course" /></SelectTrigger>
+                  <SelectContent>
+                    {courseList.map(c => (
+                      <SelectItem key={c._id} value={c._id}>{c.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={(cmpData?.series || []).map(s => ({ name: 'Course', enrollments: s.enrollments, completions: s.completions }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" hide />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="enrollments" fill="#22c55e" />
+                  <Bar dataKey="completions" fill="#a855f7" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="revenue" className="space-y-6">
@@ -215,6 +291,57 @@ const Analytics = () => {
             <CardHeader><CardTitle>Revenue</CardTitle><CardDescription>From overview (placeholder until revenue tracking implemented)</CardDescription></CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">₹{(overview?.totalRevenue || 0).toLocaleString()}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales Report</CardTitle>
+              <CardDescription>Revenue and orders over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-3">
+                <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="border rounded px-2 py-1" />
+                <input type="date" value={to} onChange={e=>setTo(e.target.value)} className="border rounded px-2 py-1" />
+                <Button variant="outline" onClick={async ()=>{
+                  const params = new URLSearchParams(); if (from) params.append('from', from); if (to) params.append('to', to);
+                  const url = buildApiUrl(`/api/admin/reports/export/sales.csv?${params.toString()}`);
+                  const a=document.createElement('a'); a.href=url; a.download='sales.csv'; a.click();
+                }}>Export CSV</Button>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={(salesReport?.daily || []).map(d => ({ date: `${d._id.y}-${String(d._id.m).padStart(2,'0')}-${String(d._id.d).padStart(2,'0')}`, revenue: d.total, orders: d.count }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="revenue" stroke="#16a34a" />
+                  <Line type="monotone" dataKey="orders" stroke="#2563eb" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>User Activity Report</CardTitle>
+              <CardDescription>Logins, quiz attempts, watch time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-3">
+                <Button variant="outline" onClick={async ()=>{
+                  const params = new URLSearchParams(); if (from) params.append('from', from); if (to) params.append('to', to);
+                  const url = buildApiUrl(`/api/admin/reports/export/activity.csv?${params.toString()}`);
+                  const a=document.createElement('a'); a.href=url; a.download='activity.csv'; a.click();
+                }}>Export CSV</Button>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={(activityReport?.series || []).map(s => ({ name: `${s._id.type} ${s._id.y}-${String(s._id.m).padStart(2,'0')}-${String(s._id.d).padStart(2,'0')}`, value: s.value || s.count }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" hide />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#a855f7" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>

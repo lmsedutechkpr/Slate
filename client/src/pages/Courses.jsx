@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { useLocation } from 'wouter';
+import { getSocket } from '@/lib/realtime.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,18 @@ const Courses = () => {
     const id = setTimeout(() => setDebouncedSearchTerm(searchTerm), 700);
     return () => clearTimeout(id);
   }, [searchTerm]);
+
+  // Realtime: listen for enrollment updates to refresh course list
+  useEffect(() => {
+    if (!accessToken) return;
+    const socket = getSocket(accessToken);
+    const handler = () => {
+      // Trigger a refetch by invalidating via window focus behavior
+      setTimeout(() => window.dispatchEvent(new Event('focus')), 0);
+    };
+    socket.on('student:enrollment:update', handler);
+    return () => { socket.off('student:enrollment:update', handler); };
+  }, [accessToken]);
 
   // Fetch all courses with real-time updates
   const { data: coursesData, isLoading: coursesLoading } = useQuery({

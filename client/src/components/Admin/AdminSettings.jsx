@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
@@ -101,6 +101,28 @@ const AdminSettings = () => {
       manageRoles: true
     }
   });
+
+  // Load settings from server on mount
+  const { data: loadedSettings, isLoading: loadingSettings } = useQuery({
+    queryKey: ['/api/admin/settings'],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl('/api/admin/settings'), {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (!res.ok) throw new Error('Failed to load settings');
+      return res.json();
+    },
+    enabled: !!accessToken
+  });
+
+  useEffect(() => {
+    if (!loadedSettings) return;
+    const { general, security, notifications, roles } = loadedSettings;
+    if (general) setGeneralSettings(prev => ({ ...prev, ...general }));
+    if (security) setSecuritySettings(prev => ({ ...prev, ...security }));
+    if (notifications) setNotificationSettings(prev => ({ ...prev, ...notifications }));
+    if (roles) setRolePermissions(prev => ({ ...prev, ...roles }));
+  }, [loadedSettings]);
 
   // Save settings mutation
   const saveSettingsMutation = useMutation({

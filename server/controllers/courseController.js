@@ -3,6 +3,7 @@ import multer from 'multer';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
 import fs from 'fs';
 import { UserRoles } from '../constants.js';
+import { getIo } from '../realtime.js';
 
 // Multer for handling optional cover upload
 const uploadsDir = 'uploads';
@@ -215,6 +216,7 @@ export const getAllCourses = async (req, res) => {
       page = 1, 
       limit = 10,
       isPublished,
+      isFeatured,
       sortBy = 'createdAt',
       sortDir = 'desc'
     } = req.query;
@@ -229,6 +231,10 @@ export const getAllCourses = async (req, res) => {
     
     if (category) filter.category = category;
     if (level) filter.level = level;
+    if (isFeatured !== undefined && isFeatured !== null) {
+      if (String(isFeatured) === 'true') filter.isFeatured = true;
+      else if (String(isFeatured) === 'false') filter.isFeatured = false;
+    }
     if (req.query.status) {
       const allowed = ['draft','review','published','archived'];
       const st = String(req.query.status);
@@ -297,6 +303,78 @@ export const getAllCourses = async (req, res) => {
       error: error.message
     });
   }
+};
+
+export const approveCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await Course.findByIdAndUpdate(courseId, { $set: { status: 'published', isPublished: true } }, { new: true });
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    try { await AuditLog.create({ action: 'course:approve', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id) }); } catch {}
+    try { getIo()?.emit('admin:courses:update', { type: 'approved', courseId }); } catch {}
+    res.json({ message: 'Course approved', course });
+  } catch (error) { res.status(500).json({ message: 'Failed to approve course', error: error.message }); }
+};
+
+export const rejectCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await Course.findByIdAndUpdate(courseId, { $set: { status: 'review', isPublished: false } }, { new: true });
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    try { await AuditLog.create({ action: 'course:reject', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id) }); } catch {}
+    try { getIo()?.emit('admin:courses:update', { type: 'rejected', courseId }); } catch {}
+    res.json({ message: 'Course set to review', course });
+  } catch (error) { res.status(500).json({ message: 'Failed to reject course', error: error.message }); }
+};
+
+export const toggleFeatured = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { isFeatured } = req.body;
+    const course = await Course.findByIdAndUpdate(courseId, { $set: { isFeatured: !!isFeatured } }, { new: true });
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    try { await AuditLog.create({ action: 'course:feature:toggle', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(course._id), meta: { isFeatured: !!isFeatured } }); } catch {}
+    try { getIo()?.emit('admin:courses:update', { type: 'featured', courseId, isFeatured: !!isFeatured }); } catch {}
+    res.json({ message: 'Feature status updated', course });
+  } catch (error) { res.status(500).json({ message: 'Failed to update feature status', error: error.message }); }
+};
+
+export const bulkApproveCourses = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ message: 'ids array is required' });
+    await Course.updateMany({ _id: { $in: ids } }, { $set: { status: 'published', isPublished: true } });
+    try { await AuditLog.create({ action: 'course:bulk:approve', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', meta: { ids } }); } catch {}
+    try { getIo()?.emit('admin:courses:update', { type: 'bulk-approved', ids }); } catch {}
+    res.json({ message: 'Courses approved', ids });
+  } catch (error) { res.status(500).json({ message: 'Failed to approve courses', error: error.message }); }
+};
+
+export const bulkAssignCategories = async (req, res) => {
+  try {
+    const { ids, category } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0 || !category) return res.status(400).json({ message: 'ids and category are required' });
+    await Course.updateMany({ _id: { $in: ids } }, { $set: { category } });
+    try { await AuditLog.create({ action: 'course:bulk:category', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', meta: { ids, category } }); } catch {}
+    try { getIo()?.emit('admin:courses:update', { type: 'bulk-category', ids, category }); } catch {}
+    res.json({ message: 'Categories assigned', ids, category });
+  } catch (error) { res.status(500).json({ message: 'Failed to assign categories', error: error.message }); }
+};
+
+export const getEnrollmentsVsCompletions = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const match = courseId ? { courseId } : {};
+    const data = await Enrollment.aggregate([
+      { $match: match },
+      { $group: {
+        _id: '$courseId',
+        enrollments: { $sum: 1 },
+        completions: { $sum: { $cond: ['$isCompleted', 1, 0] } },
+      } },
+    ]);
+    res.json({ series: data });
+  } catch (error) { res.status(500).json({ message: 'Failed to load analytics', error: error.message }); }
 };
 
 export const getCourseById = async (req, res) => {
@@ -414,6 +492,17 @@ export const enrollInCourse = async (req, res) => {
       message: 'Enrolled successfully',
       enrollment
     });
+
+    // Emit realtime event to the student for dashboard/courses updates
+    try {
+      const { getIo } = await import('../realtime.js');
+      const io = getIo();
+      io?.to(`user:${studentId.toString()}`).emit('student:enrollment:update', {
+        type: 'enrollment_created',
+        courseId,
+        enrollment
+      });
+    } catch {}
   } catch (error) {
     res.status(500).json({
       message: 'Failed to enroll in course',
@@ -618,6 +707,17 @@ export const createCourseReview = async (req, res) => {
     }
 
     res.status(201).json({ message: 'Review saved', review: saved });
+
+    // Emit realtime event to update course reviews
+    try {
+      const { getIo } = await import('../realtime.js');
+      const io = getIo();
+      io?.to(`user:${userId.toString()}`).emit('student:review:update', {
+        type: 'review_created',
+        courseId,
+        review: saved
+      });
+    } catch {}
   } catch (error) {
     res.status(500).json({ message: 'Failed to create course review', error: error.message });
   }
