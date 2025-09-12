@@ -16,7 +16,7 @@ import {
 
 const Navbar = () => {
   const { user, logout, accessToken } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -185,7 +185,7 @@ const Navbar = () => {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         const q = e.currentTarget.value.trim();
-                        if (q) window.dispatchEvent(new CustomEvent('global-search', { detail: { q } }));
+                        if (q) setLocation(`/admin/search?q=${encodeURIComponent(q)}`);
                       }
                     }}
                   />

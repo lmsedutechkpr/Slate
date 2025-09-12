@@ -29,6 +29,7 @@ import AdminCourseDetail from "@/pages/AdminCourseDetail.jsx";
 import AdminInstructorDetail from "@/pages/AdminInstructorDetail.jsx";
 import AdminStudentReport from "@/pages/AdminStudentReport.jsx";
 import AdminProfile from "@/pages/AdminProfile.jsx";
+import AdminSearch from "@/pages/AdminSearch.jsx";
 import InstructorDashboard from "@/pages/InstructorDashboard.jsx";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute.jsx";
 import AdminLayout from "@/components/Admin/AdminLayout.jsx";
@@ -158,6 +159,14 @@ function AppRoutes() {
           <ProtectedRoute requiredRole="admin">
             <AdminLayout>
               <AdminDashboard />
+            </AdminLayout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/search">
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminSearch />
             </AdminLayout>
           </ProtectedRoute>
         </Route>
