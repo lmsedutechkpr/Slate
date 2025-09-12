@@ -4,7 +4,12 @@ const PermissionSchema = new mongoose.Schema({
   module: { type: String, required: true },
   actions: [{
     type: String,
-    enum: ['read', 'create', 'update', 'delete', 'publish', 'manage', 'export', 'reset_password', 'ban_user', 'manage_inventory', 'issue_refunds', 'update_status']
+    enum: [
+      'read', 'create', 'update', 'delete', 'publish', 'manage', 'export', 
+      'reset_password', 'ban_user', 'manage_inventory', 'issue_refunds', 
+      'update_status', 'manage_content', 'assign_courses', 'manage_payment', 
+      'configure_email', 'manage_integrations', 'create_reports', 'schedule'
+    ]
   }]
 });
 
