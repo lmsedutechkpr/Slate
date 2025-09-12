@@ -398,51 +398,51 @@ const EnhancedCourseManagement = () => {
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
                   <TableHead className="w-16 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">
-                    <Checkbox checked={selectAll} onCheckedChange={setSelectAll} />
+                      <Checkbox checked={selectAll} onCheckedChange={setSelectAll} />
                   </TableHead>
                   <TableHead className="w-20 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Thumbnail</TableHead>
                   <TableHead 
                     className="w-64 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
-                    onClick={() => { setSortBy('title'); setSortDir(d => (sortBy==='title' && d==='asc') ? 'desc' : 'asc'); }}
-                  >
-                    Course {sortBy==='title' ? (sortDir==='asc' ? '↑' : '↓') : ''}
+                      onClick={() => { setSortBy('title'); setSortDir(d => (sortBy==='title' && d==='asc') ? 'desc' : 'asc'); }}
+                    >
+                      Course {sortBy==='title' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Instructor</TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Level</TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Status</TableHead>
                   <TableHead 
                     className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
-                    onClick={() => { setSortBy('price'); setSortDir(d => (sortBy==='price' && d==='asc') ? 'desc' : 'asc'); }}
-                  >
-                    Price {sortBy==='price' ? (sortDir==='asc' ? '↑' : '↓') : ''}
+                      onClick={() => { setSortBy('price'); setSortDir(d => (sortBy==='price' && d==='asc') ? 'desc' : 'asc'); }}
+                    >
+                      Price {sortBy==='price' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
                   <TableHead 
                     className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
-                    onClick={() => { setSortBy('enrollmentCount'); setSortDir(d => (sortBy==='enrollmentCount' && d==='asc') ? 'desc' : 'asc'); }}
-                  >
-                    Enrollments {sortBy==='enrollmentCount' ? (sortDir==='asc' ? '↑' : '↓') : ''}
+                      onClick={() => { setSortBy('enrollmentCount'); setSortDir(d => (sortBy==='enrollmentCount' && d==='asc') ? 'desc' : 'asc'); }}
+                    >
+                      Enrollments {sortBy==='enrollmentCount' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
                   <TableHead className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200">Rating</TableHead>
                   <TableHead 
                     className="w-32 px-4 py-3 text-left font-bold text-gray-800 border-r border-gray-200 cursor-pointer"
-                    onClick={() => { setSortBy('createdAt'); setSortDir(d => (sortBy==='createdAt' && d==='asc') ? 'desc' : 'asc'); }}
-                  >
-                    Created {sortBy==='createdAt' ? (sortDir==='asc' ? '↑' : '↓') : ''}
+                      onClick={() => { setSortBy('createdAt'); setSortDir(d => (sortBy==='createdAt' && d==='asc') ? 'desc' : 'asc'); }}
+                    >
+                      Created {sortBy==='createdAt' ? (sortDir==='asc' ? '↑' : '↓') : ''}
                   </TableHead>
                   <TableHead className="w-48 px-4 py-3 text-left font-bold text-gray-800">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {courses.map((course) => (
+                  {courses.map((course) => (
                   <TableRow key={course._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <TableCell className="px-4 py-3 border-r border-gray-200">
-                      <Checkbox
-                        checked={selectedCourses.includes(course._id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) setSelectedCourses(prev => [...prev, course._id]);
-                          else setSelectedCourses(prev => prev.filter(id => id !== course._id));
-                        }}
-                      />
+                        <Checkbox
+                          checked={selectedCourses.includes(course._id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedCourses(prev => [...prev, course._id]);
+                            else setSelectedCourses(prev => prev.filter(id => id !== course._id));
+                          }}
+                        />
                     </TableCell>
                     <TableCell className="px-4 py-3 border-r border-gray-200">
                       <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-md">
@@ -482,16 +482,16 @@ const EnhancedCourseManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-3 border-r border-gray-200">
-                      {course.assignedInstructor ? (
-                        <div>
+                        {course.assignedInstructor ? (
+                          <div>
                           <div className="font-medium">
                             {course.assignedInstructor.username}
                           </div>
                           <div className="text-sm text-gray-500">
                             Assigned
                           </div>
-                        </div>
-                      ) : (
+                          </div>
+                        ) : (
                         <span className="text-sm text-red-600">Not assigned</span>
                       )}
                     </TableCell>
@@ -506,7 +506,7 @@ const EnhancedCourseManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-3 border-r border-gray-200">
-                      <div className="font-medium">{formatPrice(course.price)}</div>
+                        <div className="font-medium">{formatPrice(course.price)}</div>
                       <div className="text-xs text-gray-500">{course.duration}</div>
                     </TableCell>
                     <TableCell className="px-4 py-3 border-r border-gray-200">
@@ -525,15 +525,15 @@ const EnhancedCourseManagement = () => {
                       {formatDate(course.createdAt)}
                     </TableCell>
                     <TableCell className="px-4 py-3">
-                      <div className="flex flex-col sm:flex-row gap-1 lg:gap-2">
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setLocation(`/admin/courses/${course._id}`)}><Eye className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="outline" className="h-8 p-2" onClick={() => openEdit(course)}><Edit className="w-3 h-3 mr-1" /><span className="hidden sm:inline">Edit</span></Button>
-                        <Button size="sm" variant="outline" className="h-8 p-2" onClick={() => openStructure(course)}>Structure</Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => confirmAndDelete(course)}><Trash2 className="w-3 h-3" /></Button>
-                      </div>
+                        <div className="flex flex-col sm:flex-row gap-1 lg:gap-2">
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setLocation(`/admin/courses/${course._id}`)}><Eye className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="outline" className="h-8 p-2" onClick={() => openEdit(course)}><Edit className="w-3 h-3 mr-1" /><span className="hidden sm:inline">Edit</span></Button>
+                          <Button size="sm" variant="outline" className="h-8 p-2" onClick={() => openStructure(course)}>Structure</Button>
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => confirmAndDelete(course)}><Trash2 className="w-3 h-3" /></Button>
+                        </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))}
               </TableBody>
             </Table>
           )}

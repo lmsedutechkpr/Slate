@@ -6,6 +6,7 @@ import Product from './Product.js';
 import LiveSession from './LiveSession.js';
 import Review from './Review.js';
 import AuditLog from './AuditLog.js';
+import Role from './Role.js';
 
 export {
   User,
@@ -14,6 +15,7 @@ export {
   Assignment,
   Product,
   LiveSession,
-  Review
-  , AuditLog
+  Review,
+  AuditLog,
+  Role
 };

@@ -268,11 +268,11 @@ const CourseManagement = () => {
         </div>
         
         <div className="flex gap-2">
-
-          <Button onClick={() => setCreateOpen(true)} data-testid="button-create-course">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Course
-          </Button>
+        
+        <Button onClick={() => setCreateOpen(true)} data-testid="button-create-course">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Course
+        </Button>
         </div>
       </div>
 
@@ -439,7 +439,7 @@ const CourseManagement = () => {
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden'
                           }}>
-                            {course.description}
+                          {course.description}
                           </div>
                         </div>
                         <div className="text-xs text-blue-700 font-bold mt-2 bg-gradient-to-r from-blue-100 to-indigo-100 px-3 py-1.5 rounded-full inline-block border border-blue-200 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105">

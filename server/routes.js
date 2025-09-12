@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import connectDB from './db.js';
 import { seedAdmin } from './seed/seedAdmin.js';
+import { seedRoles } from './seed/seedRoles.js';
 
 // Import controllers
 import * as authController from './controllers/authController.js';
@@ -13,6 +14,7 @@ import * as productController from './controllers/productController.js';
 import * as recommendationService from './services/recommendationService.js';
 import * as analyticsController from './controllers/analyticsController.js';
 import * as notificationController from './controllers/notificationController.js';
+import * as roleController from './controllers/roleController.js';
 
 // Import middleware
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
@@ -48,8 +50,9 @@ export async function registerRoutes(app) {
   // Initialize database connection
   await connectDB();
   
-  // Seed admin user
+  // Seed admin user and roles
   await seedAdmin();
+  await seedRoles();
   
   // Auth routes
   app.post('/api/auth/student/register', authController.registerStudent);
@@ -82,6 +85,16 @@ export async function registerRoutes(app) {
   app.post('/api/admin/users/:userId/reset-password', authenticateToken, requireAdmin, userController.resetUserPassword);
   app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, userController.deleteUser);
   app.post('/api/admin/users/:userId/notes', authenticateToken, requireAdmin, userController.updateUserNotes);
+  
+  // Role management routes
+  app.get('/api/admin/roles', authenticateToken, requireAdmin, roleController.getAllRoles);
+  app.get('/api/admin/roles/:roleId', authenticateToken, requireAdmin, roleController.getRoleById);
+  app.post('/api/admin/roles', authenticateToken, requireAdmin, roleController.createRole);
+  app.put('/api/admin/roles/:roleId', authenticateToken, requireAdmin, roleController.updateRole);
+  app.delete('/api/admin/roles/:roleId', authenticateToken, requireAdmin, roleController.deleteRole);
+  app.post('/api/admin/roles/:roleId/permissions', authenticateToken, requireAdmin, roleController.updateRolePermissions);
+  app.get('/api/admin/roles/:roleId/users', authenticateToken, requireAdmin, roleController.getRoleUsers);
+  app.post('/api/admin/roles/initialize', authenticateToken, requireAdmin, roleController.initializeSystemRoles);
   
   // Course routes - Specific routes first (with parameters)
   app.post('/api/courses/:courseId/lectures/upload', authenticateToken, requireInstructorOrAdmin, courseController.uploadLectureVideoMiddleware, courseController.uploadLectureVideo);

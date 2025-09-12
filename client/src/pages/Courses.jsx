@@ -208,11 +208,11 @@ const Courses = () => {
                 (async () => {
                   try {
                     const res = await authenticatedFetch(buildApiUrl(`/api/courses/${course._id}/enroll`), {
-                      method: 'POST',
+                    method: 'POST',
                     });
                     if (!res.ok) throw new Error('Enroll failed');
                     window.location.reload();
-                  } catch (e) {
+                } catch (e) {
                     console.error(e);
                   }
                 })();
@@ -246,9 +246,9 @@ const Courses = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Courses</h1>
@@ -259,74 +259,74 @@ const Courses = () => {
               <span>Live updates</span>
             </div>
           </div>
-        </div>
+      </div>
 
-        {/* Search and Filters */}
+      {/* Search and Filters */}
         <Card className="border-0 shadow-sm bg-white mb-8">
           <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
                     placeholder="Search courses by title, instructor, or topic..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                    data-testid="input-search-courses"
-                  />
-                </div>
-              </div>
-              
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-courses"
+              />
+            </div>
+          </div>
+          
               <div className="flex gap-3">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="programming">Programming</SelectItem>
-                    <SelectItem value="design">Design</SelectItem>
-                    <SelectItem value="data-science">Data Science</SelectItem>
-                    <SelectItem value="cybersecurity">Cybersecurity</SelectItem>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="programming">Programming</SelectItem>
+                <SelectItem value="design">Design</SelectItem>
+                <SelectItem value="data-science">Data Science</SelectItem>
+                <SelectItem value="cybersecurity">Cybersecurity</SelectItem>
                     <SelectItem value="business">Business</SelectItem>
                     <SelectItem value="marketing">Marketing</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Levels</SelectItem>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="beginner">Beginner</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="advanced">Advanced</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
           </CardContent>
         </Card>
 
-        {/* Course Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      {/* Course Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid grid-cols-3 w-fit bg-white shadow-sm">
             <TabsTrigger value="all" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
-              All Courses
-            </TabsTrigger>
+            All Courses
+          </TabsTrigger>
             <TabsTrigger value="enrolled" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
-              My Courses ({enrollments.length})
-            </TabsTrigger>
+            My Courses ({enrollments.length})
+          </TabsTrigger>
             <TabsTrigger value="recommended" className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700">
-              Recommended
-            </TabsTrigger>
-          </TabsList>
+            Recommended
+          </TabsTrigger>
+        </TabsList>
 
-          {/* All Courses */}
-          <TabsContent value="all" className="space-y-6">
-            {courses.length === 0 ? (
+        {/* All Courses */}
+        <TabsContent value="all" className="space-y-6">
+          {courses.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -342,82 +342,82 @@ const Courses = () => {
                   </Button>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.map((course) => {
-                  const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
-                  return (
-                    <CourseCard
-                      key={course._id}
-                      course={course}
-                      isEnrolled={!!enrollment}
-                      enrollment={enrollment}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courses.map((course) => {
+                const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
+                return (
+                  <CourseCard
+                    key={course._id}
+                    course={course}
+                    isEnrolled={!!enrollment}
+                    enrollment={enrollment}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
 
-          {/* Enrolled Courses */}
-          <TabsContent value="enrolled" className="space-y-6">
-            {enrollments.length === 0 ? (
+        {/* Enrolled Courses */}
+        <TabsContent value="enrolled" className="space-y-6">
+          {enrollments.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-4" />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No enrolled courses</h3>
-                  <p className="text-gray-600 mb-4">Start learning by enrolling in a course</p>
-                  <Button onClick={() => setActiveTab('all')}>
+              <p className="text-gray-600 mb-4">Start learning by enrolling in a course</p>
+              <Button onClick={() => setActiveTab('all')}>
                     <Eye className="w-4 h-4 mr-2" />
-                    Browse Courses
-                  </Button>
+                Browse Courses
+              </Button>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {enrollments.map((enrollment) => (
-                  <CourseCard
-                    key={enrollment._id}
-                    course={enrollment.courseId}
-                    isEnrolled={true}
-                    enrollment={enrollment}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {enrollments.map((enrollment) => (
+                <CourseCard
+                  key={enrollment._id}
+                  course={enrollment.courseId}
+                  isEnrolled={true}
+                  enrollment={enrollment}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
-          {/* Recommended Courses */}
-          <TabsContent value="recommended" className="space-y-6">
-            {recommendations.length === 0 ? (
+        {/* Recommended Courses */}
+        <TabsContent value="recommended" className="space-y-6">
+          {recommendations.length === 0 ? (
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-12 text-center">
                   <TrendingUp className="mx-auto h-16 w-16 text-gray-400 mb-4" />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No recommendations yet</h3>
-                  <p className="text-gray-600 mb-4">Complete your profile to get personalized recommendations</p>
-                  <Button onClick={() => window.location.href = '/profile'}>
+              <p className="text-gray-600 mb-4">Complete your profile to get personalized recommendations</p>
+              <Button onClick={() => window.location.href = '/profile'}>
                     <Award className="w-4 h-4 mr-2" />
-                    Update Profile
-                  </Button>
+                Update Profile
+              </Button>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recommendations.map((course) => {
-                  const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
-                  return (
-                    <CourseCard
-                      key={course._id}
-                      course={course}
-                      isEnrolled={!!enrollment}
-                      enrollment={enrollment}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recommendations.map((course) => {
+                const enrollment = enrollments.find(e => e && e.courseId && e.courseId._id === course._id);
+                return (
+                  <CourseCard
+                    key={course._id}
+                    course={course}
+                    isEnrolled={!!enrollment}
+                    enrollment={enrollment}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
       </div>
     </div>
   );
