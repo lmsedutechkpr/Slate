@@ -12,7 +12,7 @@ import {
   Monitor,
   Keyboard,
   Mouse,
-  Stylus,
+  PenTool,
   Camera,
   Mic
 } from 'lucide-react';
@@ -32,7 +32,7 @@ const RecommendedGear = ({ products = [], enrollments = [] }) => {
       'monitor': Monitor,
       'keyboard': Keyboard,
       'mouse': Mouse,
-      'stylus': Stylus,
+      'stylus': PenTool,
       'camera': Camera,
       'microphone': Mic,
       'default': ShoppingBag

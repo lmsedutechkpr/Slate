@@ -12,9 +12,7 @@ import {
   ArrowRight,
   Zap,
   TrendingUp,
-  Calendar,
-  Headphones,
-  Monitor
+  Calendar
 } from 'lucide-react';
 
 const DiscoverWhatsNext = ({ 
