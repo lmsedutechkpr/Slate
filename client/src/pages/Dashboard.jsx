@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { subscribe } from '@/lib/realtime.js';
 import { Link } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
 import { buildApiUrl } from '../lib/utils.js';
@@ -31,6 +32,7 @@ import {
 
 const Dashboard = () => {
   const { user, accessToken, authenticatedFetch, authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(15);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
 
@@ -63,6 +65,18 @@ const Dashboard = () => {
     refetchInterval: false,
     staleTime: 30000
   });
+
+  // Realtime: invalidate dashboard on any API update
+  useEffect(() => {
+    let unsub = () => {};
+    (async () => {
+      unsub = await subscribe('api:update', () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/live-sessions/mine'] });
+      });
+    })();
+    return () => { try { unsub(); } catch {} };
+  }, [queryClient]);
 
   // Fetch live sessions with real-time updates
   const { data: liveData } = useQuery({

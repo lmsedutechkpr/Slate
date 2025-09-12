@@ -95,6 +95,19 @@ app.use((req, res, next) => {
       }
 
       log(logLine);
+
+      // Emit realtime events for non-GET API calls
+      try {
+        const io = req.app.get('io');
+        if (io && req.method !== 'GET') {
+          io.emit('api:update', { path, method: req.method, status: res.statusCode });
+          // Emit topic-specific update based on first segment, e.g., /api/courses -> courses:update
+          const first = (path.replace(/^\/api\//, '').split('/')[0] || '').trim();
+          if (first) {
+            io.emit(`${first}:update`, { path, method: req.method, status: res.statusCode });
+          }
+        }
+      } catch {}
     }
   });
 
@@ -106,6 +119,7 @@ app.use((req, res, next) => {
   // Socket.io for realtime notifications
   const { Server } = await import('socket.io');
   const io = new Server(server, { cors: { origin: '*' } });
+  app.set('io', io);
 
   io.on('connection', (socket) => {
     socket.on('notifications:subscribe', () => {

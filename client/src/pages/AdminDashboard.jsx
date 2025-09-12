@@ -10,11 +10,15 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth.js';
 import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 import { buildApiUrl } from '../lib/utils.js';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { subscribe } from '@/lib/realtime.js';
 
 const AdminDashboard = () => {
   const [location, setLocation] = useLocation();
   const { accessToken, authenticatedFetch } = useAuth();
   const { authLoading } = useAuthRefresh();
+  const queryClient = useQueryClient();
 
   const { data: overview, isLoading } = useQuery({
     queryKey: ['/api/admin/analytics/overview'],
@@ -32,6 +36,19 @@ const AdminDashboard = () => {
     retry: 3,
     retryDelay: 1000
   });
+
+  // Realtime: invalidate overview on updates
+  useEffect(() => {
+    let unsub = () => {};
+    (async () => {
+      unsub = await subscribe('api:update', (evt) => {
+        if (evt && evt.path && evt.path.startsWith('/api')) {
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/analytics/overview'] });
+        }
+      });
+    })();
+    return () => { try { unsub(); } catch {} };
+  }, [queryClient]);
 
   // Debug: Log query state
   console.log('=== DASHBOARD QUERY STATE ===');
