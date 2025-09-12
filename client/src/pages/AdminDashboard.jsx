@@ -9,7 +9,7 @@ import {
   Users, BookOpen, GraduationCap, TrendingUp, BarChart3, UserCheck, Eye, Plus,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../hooks/useAuth.js';
 import { useAuthRefresh } from '../hooks/useAuthRefresh.js';
 import { buildApiUrl } from '../lib/utils.js';
