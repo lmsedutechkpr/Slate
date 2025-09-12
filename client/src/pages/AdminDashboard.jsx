@@ -190,26 +190,26 @@ const AdminDashboard = () => {
       {/* Header */}
       <section className="rounded-xl bg-white/80 border border-gray-200 p-4 lg:p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
+        <div>
             <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-gray-900">Admin Control Center</h1>
             <p className="text-gray-600 mt-1">Measure, manage, and grow your learning business in one place</p>
-          </div>
+        </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Select value={range} onValueChange={setRange}>
               <SelectTrigger className="w-32"><SelectValue placeholder="Range" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => {
+            <SelectContent>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="90d">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => {
               const rows = [{ totalUsers: stats.totalUsers, totalStudents: stats.totalStudents, totalInstructors: stats.totalInstructors, totalCourses: stats.totalCourses, totalEnrollments: stats.totalEnrollments, totalRevenue: stats.totalRevenue, ordersCount: stats.ordersCount||0 }];
-              const header = Object.keys(rows[0] || {}).join(',');
-              const body = rows.map(r => Object.values(r).join(',')).join('\n');
+            const header = Object.keys(rows[0] || {}).join(',');
+            const body = rows.map(r => Object.values(r).join(',')).join('\n');
               const csv = header + '\n' + body; const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
               const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `overview-${range}.csv`; a.click(); URL.revokeObjectURL(url);
-            }}>Export CSV</Button>
+          }}>Export CSV</Button>
             <Button variant="outline" onClick={() => {
               import('jspdf').then(({ default: jsPDF }) => {
                 const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
