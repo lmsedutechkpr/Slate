@@ -28,23 +28,138 @@ const InstructorDashboard = () => {
   const [location, setLocation] = useLocation();
   const { accessToken, user } = useAuth();
 
+  // Dummy data for demonstration
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch. Master HTML, CSS, JavaScript, React, Node.js.',
+        category: 'Web Development',
+        level: 'beginner',
+        price: 199,
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
+        enrollmentCount: 456,
+        avgProgressPct: 65,
+        rating: 4.8,
+        reviewCount: 12,
+        status: 'published',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-15T00:00:00.000Z'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts. Learn hooks, state management, routing.',
+        category: 'Frontend Development',
+        level: 'intermediate',
+        price: 149,
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop',
+        enrollmentCount: 234,
+        avgProgressPct: 45,
+        rating: 4.6,
+        reviewCount: 6,
+        status: 'published',
+        createdAt: '2024-01-05T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js, Express, and MongoDB.',
+        category: 'Backend Development',
+        level: 'intermediate',
+        price: 179,
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop',
+        enrollmentCount: 156,
+        avgProgressPct: 30,
+        rating: 4.7,
+        reviewCount: 8,
+        status: 'published',
+        createdAt: '2024-01-10T00:00:00.000Z',
+        updatedAt: '2024-01-25T00:00:00.000Z'
+      }
+    ]
+  };
+
+  const dummyAssignmentsData = {
+    assignments: [
+      {
+        _id: '1',
+        title: 'Build a Personal Portfolio Website',
+        courseId: { title: 'Complete Web Development Bootcamp' },
+        dueDate: '2024-02-15T23:59:59.000Z',
+        submissions: 45,
+        graded: 42,
+        maxPoints: 100,
+        status: 'active'
+      },
+      {
+        _id: '2',
+        title: 'React Todo Application',
+        courseId: { title: 'React.js Complete Guide' },
+        dueDate: '2024-02-20T23:59:59.000Z',
+        submissions: 23,
+        graded: 18,
+        maxPoints: 80,
+        status: 'active'
+      },
+      {
+        _id: '3',
+        title: 'REST API with Express',
+        courseId: { title: 'Node.js Backend Development' },
+        dueDate: '2024-02-25T23:59:59.000Z',
+        submissions: 12,
+        graded: 8,
+        maxPoints: 120,
+        status: 'active'
+      }
+    ]
+  };
+
+  const dummySessionsData = {
+    sessions: [
+      {
+        _id: '1',
+        title: 'React Hooks Deep Dive',
+        courseId: { title: 'React.js Complete Guide' },
+        scheduledAt: '2024-02-01T18:00:00.000Z',
+        duration: 90,
+        status: 'scheduled',
+        participants: 25,
+        maxParticipants: 50
+      },
+      {
+        _id: '2',
+        title: 'Web Development Q&A',
+        courseId: { title: 'Complete Web Development Bootcamp' },
+        scheduledAt: '2024-02-03T17:00:00.000Z',
+        duration: 60,
+        status: 'scheduled',
+        participants: 15,
+        maxParticipants: 30
+      },
+      {
+        _id: '3',
+        title: 'Node.js Best Practices',
+        courseId: { title: 'Node.js Backend Development' },
+        scheduledAt: '2024-01-30T19:00:00.000Z',
+        duration: 75,
+        status: 'completed',
+        participants: 18,
+        maxParticipants: 25
+      }
+    ]
+  };
+
   // Fetch instructor's courses (both assigned and created)
   const { data: coursesData, isLoading: coursesLoading, error: coursesError } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      console.log('Fetching instructor courses for user:', user?._id);
-      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) {
-        console.error('Failed to fetch courses:', res.status, res.statusText);
-        return { courses: [] };
-      }
-      const data = await res.json();
-      console.log('Courses data received:', data);
-      return data;
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000,
     staleTime: 0
   });
@@ -53,19 +168,10 @@ const InstructorDashboard = () => {
   const { data: assignmentsData, isLoading: assignmentsLoading, error: assignmentsError } = useQuery({
     queryKey: ['instructor-assignments', user?._id, accessToken],
     queryFn: async () => {
-      console.log('Fetching instructor assignments for user:', user?._id);
-      const res = await fetch(buildApiUrl('/api/instructor/assignments'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) {
-        console.error('Failed to fetch assignments:', res.status, res.statusText);
-        return { assignments: [] };
-      }
-      const data = await res.json();
-      console.log('Assignments data received:', data);
-      return data;
+      // Return dummy data for demonstration
+      return dummyAssignmentsData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000,
     staleTime: 0
   });
@@ -74,19 +180,10 @@ const InstructorDashboard = () => {
   const { data: sessionsData, isLoading: sessionsLoading, error: sessionsError } = useQuery({
     queryKey: ['instructor-live-sessions', user?._id, accessToken],
     queryFn: async () => {
-      console.log('Fetching instructor live sessions for user:', user?._id);
-      const res = await fetch(buildApiUrl('/api/instructor/live-sessions'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) {
-        console.error('Failed to fetch live sessions:', res.status, res.statusText);
-        return { sessions: [] };
-      }
-      const data = await res.json();
-      console.log('Live sessions data received:', data);
-      return data;
+      // Return dummy data for demonstration
+      return dummySessionsData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000,
     staleTime: 0
   });

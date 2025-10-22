@@ -38,6 +38,146 @@ const AdminUsers = () => {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+
+  // Dummy data for demonstration
+  const dummyUsers = [
+    {
+      _id: '1',
+      username: 'admin',
+      email: 'admin@slate.com',
+      role: 'admin',
+      status: 'active',
+      profile: {
+        firstName: 'System',
+        lastName: 'Administrator',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+      },
+      createdAt: '2024-01-01T00:00:00.000Z',
+      lastLoginAt: '2024-01-20T10:30:00.000Z',
+      analytics: {
+        totalEnrollments: 0,
+        totalCourses: 0,
+        lastActivity: '2024-01-20T10:30:00.000Z'
+      }
+    },
+    {
+      _id: '2',
+      username: 'john_doe',
+      email: 'john.doe@example.com',
+      role: 'instructor',
+      status: 'active',
+      profile: {
+        firstName: 'John',
+        lastName: 'Doe',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+      },
+      instructorProfile: {
+        bio: 'Full-stack developer with 10+ years of experience.',
+        expertise: ['JavaScript', 'React', 'Node.js'],
+        hourlyRate: 75
+      },
+      createdAt: '2024-01-01T00:00:00.000Z',
+      lastLoginAt: '2024-01-19T14:20:00.000Z',
+      analytics: {
+        totalEnrollments: 456,
+        totalCourses: 3,
+        lastActivity: '2024-01-19T14:20:00.000Z'
+      }
+    },
+    {
+      _id: '3',
+      username: 'sarah_wilson',
+      email: 'sarah.wilson@example.com',
+      role: 'instructor',
+      status: 'active',
+      profile: {
+        firstName: 'Sarah',
+        lastName: 'Wilson',
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+      },
+      instructorProfile: {
+        bio: 'Data scientist and ML expert.',
+        expertise: ['Python', 'Machine Learning', 'Data Science'],
+        hourlyRate: 90
+      },
+      createdAt: '2024-01-01T00:00:00.000Z',
+      lastLoginAt: '2024-01-18T16:45:00.000Z',
+      analytics: {
+        totalEnrollments: 234,
+        totalCourses: 2,
+        lastActivity: '2024-01-18T16:45:00.000Z'
+      }
+    },
+    {
+      _id: '4',
+      username: 'alice_johnson',
+      email: 'alice.johnson@example.com',
+      role: 'student',
+      status: 'active',
+      profile: {
+        firstName: 'Alice',
+        lastName: 'Johnson',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
+      },
+      studentProfile: {
+        interests: ['webdev', 'mobile'],
+        learningPace: 'moderate'
+      },
+      createdAt: '2024-01-02T00:00:00.000Z',
+      lastLoginAt: '2024-01-20T15:30:00.000Z',
+      analytics: {
+        totalEnrollments: 3,
+        totalCourses: 0,
+        lastActivity: '2024-01-20T15:30:00.000Z'
+      }
+    },
+    {
+      _id: '5',
+      username: 'bob_smith',
+      email: 'bob.smith@example.com',
+      role: 'student',
+      status: 'active',
+      profile: {
+        firstName: 'Bob',
+        lastName: 'Smith',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+      },
+      studentProfile: {
+        interests: ['data', 'ai'],
+        learningPace: 'fast'
+      },
+      createdAt: '2024-01-03T00:00:00.000Z',
+      lastLoginAt: '2024-01-19T11:15:00.000Z',
+      analytics: {
+        totalEnrollments: 2,
+        totalCourses: 0,
+        lastActivity: '2024-01-19T11:15:00.000Z'
+      }
+    },
+    {
+      _id: '6',
+      username: 'charlie_brown',
+      email: 'charlie.brown@example.com',
+      role: 'student',
+      status: 'banned',
+      profile: {
+        firstName: 'Charlie',
+        lastName: 'Brown',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face'
+      },
+      studentProfile: {
+        interests: ['webdev'],
+        learningPace: 'slow'
+      },
+      createdAt: '2024-01-04T00:00:00.000Z',
+      lastLoginAt: '2024-01-15T09:30:00.000Z',
+      analytics: {
+        totalEnrollments: 1,
+        totalCourses: 0,
+        lastActivity: '2024-01-15T09:30:00.000Z'
+      }
+    }
+  ];
   
   const [selectedRole, setSelectedRole] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,43 +199,55 @@ const AdminUsers = () => {
       enrollment: enrollmentFilter
     }, accessToken],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedRole && selectedRole !== 'all') params.append('role', selectedRole);
-      if (joinDateFilter && joinDateFilter !== 'all') params.append('joinDate', joinDateFilter);
-      if (enrollmentFilter && enrollmentFilter !== 'all') params.append('enrollment', enrollmentFilter);
-      params.append('page', String(page));
-      params.append('limit', String(limit));
+      // Return dummy data for demonstration
+      let filteredUsers = [...dummyUsers];
       
-      const response = await fetch(buildApiUrl(`/api/admin/users?${params.toString()}`), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
+      // Apply search filter
+      if (searchTerm) {
+        filteredUsers = filteredUsers.filter(user => 
+          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.profile?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.profile?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
       }
       
-      return response.json();
+      // Apply role filter
+      if (selectedRole && selectedRole !== 'all') {
+        filteredUsers = filteredUsers.filter(user => user.role === selectedRole);
+      }
+      
+      // Apply pagination
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+      
+      return {
+        users: paginatedUsers,
+        pagination: {
+          page,
+          limit,
+          total: filteredUsers.length,
+          totalPages: Math.ceil(filteredUsers.length / limit)
+        }
+      };
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
   });
 
   const users = usersData?.users || [];
   const pagination = usersData?.pagination || { page, limit, total: 0 };
 
-  // Calculate role counts from real data
+  // Calculate role counts from dummy data
   const roleCounts = useMemo(() => {
-    const counts = { all: users.length, student: 0, instructor: 0, admin: 0 };
-    users.forEach(user => {
+    const counts = { all: dummyUsers.length, student: 0, instructor: 0, admin: 0 };
+    dummyUsers.forEach(user => {
       if (user.role === 'student') counts.student++;
       else if (user.role === 'instructor') counts.instructor++;
       else if (user.role === 'admin') counts.admin++;
     });
     return counts;
-  }, [users]);
+  }, []);
 
   // Real-time updates
   useRealtimeInvalidate(
