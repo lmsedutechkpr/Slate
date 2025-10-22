@@ -425,7 +425,7 @@ const ContentManagement = () => {
     return content;
   };
 
-  const courses = coursesData?.courses || [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
   const content = filteredContent();
 
   return (

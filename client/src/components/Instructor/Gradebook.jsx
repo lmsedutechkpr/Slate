@@ -414,8 +414,8 @@ const Gradebook = () => {
     return students;
   };
 
-  const courses = coursesData?.courses || [];
-  const assignments = assignmentsData?.assignments || [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
+  const assignments = Array.isArray(assignmentsData?.assignments) ? assignmentsData.assignments : [];
   const students = filteredStudents();
   const summary = gradebookData?.summary || {};
 

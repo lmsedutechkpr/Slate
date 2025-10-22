@@ -445,7 +445,7 @@ const AttendanceTracker = () => {
     return students;
   };
 
-  const courses = coursesData?.courses || [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
   const students = filteredStudents();
   const records = attendanceData?.records || [];
   const summary = attendanceData?.summary || {};

@@ -46,7 +46,7 @@ const Assignments = () => {
     ['/api/students/assignments']
   ], ['assignments']);
 
-  const assignments = assignmentsData?.assignments || [];
+  const assignments = Array.isArray(assignmentsData?.assignments) ? assignmentsData.assignments : [];
 
   const getStatusInfo = (assignment) => {
     const { submissionStatus, dueAt } = assignment;

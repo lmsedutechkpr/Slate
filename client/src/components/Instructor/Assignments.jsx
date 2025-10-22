@@ -297,8 +297,8 @@ const InstructorAssignments = () => {
     return { totalSubmissions, gradedSubmissions, pendingGrading };
   };
 
-  const assignments = assignmentsData?.assignments || [];
-  const courses = coursesData?.courses || [];
+  const assignments = Array.isArray(assignmentsData?.assignments) ? assignmentsData.assignments : [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
 
   const filterAssignments = (status) => {
     switch (status) {
