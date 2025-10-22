@@ -27,12 +27,260 @@ export async function registerRoutes(app) {
   // Health
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
   
+  // Test route for seeding
+  app.get('/api/test', (_req, res) => res.json({ 
+    message: 'Seeding API is working!', 
+    timestamp: new Date().toISOString(),
+    routes: {
+      seedPage: '/seed',
+      seedAPI: '/api/seed/seed-production',
+      seedStatus: '/api/seed/seed-status'
+    }
+  }));
+  
   // Seed routes for production deployment
   app.use('/api/seed', seedRoutes);
   
   // Serve seeding page
   app.get('/seed', (req, res) => {
-    res.sendFile('seed.html', { root: './public' });
+    res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slate LMS - Production Seeding</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .warning {
+            background: #fef3cd;
+            border: 1px solid #fecaca;
+            color: #92400e;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            color: #1e40af;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+        .credentials {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .credentials h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .credentials ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .credentials li {
+            margin-bottom: 5px;
+        }
+        small {
+            color: #6b7280;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Slate LMS - Production Seeding</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Warning:</strong> This will clear all existing data and replace it with comprehensive seed data. Only use this on a fresh deployment or when you want to reset all data.
+        </div>
+        
+        <div class="info">
+            <strong>ℹ️ Info:</strong> This tool will seed your production database with comprehensive test data including users, courses, materials, live sessions, products, and more.
+        </div>
+        
+        <form id="seedForm">
+            <div class="form-group">
+                <label for="secret">Secret Key:</label>
+                <input type="text" id="secret" name="secret" placeholder="Enter secret key" value="slate-seed-2024" required>
+                <small>Default: slate-seed-2024</small>
+            </div>
+            
+            <button type="submit" id="seedBtn">🚀 Seed Production Database</button>
+        </form>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="credentials" id="credentials" style="display: none;">
+            <h3>📝 Login Credentials After Seeding:</h3>
+            <ul>
+                <li><strong>Admin:</strong> admin@slate.com / Admin@123456</li>
+                <li><strong>Instructor:</strong> john.doe@example.com / Instructor123!</li>
+                <li><strong>Student:</strong> alice.johnson@example.com / Student123!</li>
+            </ul>
+            <p><strong>Note:</strong> There are 5 instructors and 8 students total. All use the same password pattern: Instructor123! for instructors, Student123! for students.</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('seedForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const secret = document.getElementById('secret').value;
+            const seedBtn = document.getElementById('seedBtn');
+            const result = document.getElementById('result');
+            const credentials = document.getElementById('credentials');
+            
+            seedBtn.disabled = true;
+            seedBtn.textContent = '🔄 Seeding Database...';
+            result.style.display = 'none';
+            credentials.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/seed/seed-production', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ secret })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.className = 'result success';
+                    result.innerHTML = \`
+                        <strong>✅ Success!</strong><br>
+                        \${data.message}<br><br>
+                        <strong>Database seeded with:</strong><br>
+                        • 14 Users (1 admin, 5 instructors, 8 students)<br>
+                        • 3 Comprehensive Courses with full content<br>
+                        • 15+ Enrollments with progress tracking<br>
+                        • 3 Assignments with due dates<br>
+                        • 3 Live Sessions scheduled<br>
+                        • 3 Products in store<br>
+                        • 8 Orders with payments<br>
+                        • 12+ Reviews with ratings<br>
+                        • 30+ User Activities tracked<br>
+                        • 30+ Audit Logs for monitoring
+                    \`;
+                    credentials.style.display = 'block';
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = \`<strong>❌ Error:</strong> \${data.message}\`;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = \`<strong>❌ Error:</strong> Failed to connect to server. Make sure your backend is running.\`;
+            }
+            
+            result.style.display = 'block';
+            seedBtn.disabled = false;
+            seedBtn.textContent = '🚀 Seed Production Database';
+        });
+        
+        // Check seeding status on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/api/seed/seed-status');
+                const data = await response.json();
+                
+                if (data.isSeeded) {
+                    document.getElementById('result').className = 'result success';
+                    document.getElementById('result').innerHTML = \`
+                        <strong>✅ Database Status:</strong><br>
+                        Database is already seeded with comprehensive data.<br><br>
+                        <strong>Current Data:</strong><br>
+                        • Users: \${data.counts.users}<br>
+                        • Courses: \${data.counts.courses}<br>
+                        • Products: \${data.counts.products}<br>
+                        • Enrollments: \${data.counts.enrollments}<br>
+                        • Assignments: \${data.counts.assignments}<br>
+                        • Live Sessions: \${data.counts.liveSessions}<br>
+                        • Reviews: \${data.counts.reviews}<br>
+                        • Orders: \${data.counts.orders}
+                    \`;
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('credentials').style.display = 'block';
+                }
+            } catch (error) {
+                console.log('Could not check seeding status:', error);
+            }
+        });
+    </script>
+</body>
+</html>
+    `);
   });
   
 
