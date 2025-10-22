@@ -2,6 +2,8 @@ import express from 'express';
 import { registerRoutes } from './routes.js';
 import { setupVite, serveStatic, log } from './vite.js';
 import cors from 'cors';
+import connectDB from './db.js';
+import { autoSeedDatabase } from './seed/autoSeed.js';
 
 const app = express();
 
@@ -212,6 +214,10 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
+
+  // Connect to database and auto-seed
+  await connectDB();
+  await autoSeedDatabase();
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.

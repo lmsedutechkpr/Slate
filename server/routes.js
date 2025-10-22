@@ -38,6 +38,39 @@ export async function registerRoutes(app) {
     }
   }));
   
+  // Simple verification endpoint
+  app.get('/api/verify-seeding', async (req, res) => {
+    try {
+      const { User, Course, Product } = await import('../models/index.js');
+      
+      const userCount = await User.countDocuments();
+      const courseCount = await Course.countDocuments();
+      const productCount = await Product.countDocuments();
+      const adminExists = await User.findOne({ role: 'admin' });
+      
+      res.json({
+        success: true,
+        seeded: userCount > 0 && courseCount > 0 && productCount > 0,
+        counts: {
+          users: userCount,
+          courses: courseCount,
+          products: productCount
+        },
+        adminExists: !!adminExists,
+        loginCredentials: {
+          admin: 'admin@slate.com / Admin@123456',
+          instructor: 'john.doe@example.com / Instructor123!',
+          student: 'alice.johnson@example.com / Student123!'
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+  
   // Seed routes for production deployment
   app.use('/api/seed', seedRoutes);
   
