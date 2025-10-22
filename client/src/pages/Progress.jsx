@@ -30,15 +30,211 @@ import {
 const Progress = () => {
   const { user, accessToken, authenticatedFetch } = useAuth();
 
+  // Comprehensive dummy data for student progress
+  const dummyProgressData = {
+    stats: {
+      enrolledCourses: 3,
+      completedCourses: 0,
+      studyTime: '15h 30m',
+      achievements: 3,
+      dayStreak: 5,
+      xpPoints: 1250,
+      totalAssignments: 5,
+      completedAssignments: 1,
+      averageGrade: 85
+    },
+    learningProgress: {
+      courseCompletion: 45,
+      assignmentProgress: 60,
+      studyConsistency: 90
+    },
+    streak: {
+      current: 5,
+      longest: 10,
+      last7Days: [
+        { date: '2024-01-14', active: true, hours: 2.5 },
+        { date: '2024-01-15', active: true, hours: 3.0 },
+        { date: '2024-01-16', active: true, hours: 1.5 },
+        { date: '2024-01-17', active: true, hours: 2.0 },
+        { date: '2024-01-18', active: true, hours: 2.5 },
+        { date: '2024-01-19', active: false, hours: 0 },
+        { date: '2024-01-20', active: true, hours: 4.0 }
+      ]
+    },
+    recentActivity: [
+      {
+        _id: '1',
+        type: 'assignment_submitted',
+        title: 'React Todo Application',
+        description: 'Submitted assignment for React.js Complete Guide',
+        timestamp: '2024-01-25T14:30:00.000Z',
+        course: 'React.js Complete Guide',
+        points: 85
+      },
+      {
+        _id: '2',
+        type: 'lesson_completed',
+        title: 'React Hooks Deep Dive',
+        description: 'Completed lesson 8 in Complete Web Development Bootcamp',
+        timestamp: '2024-01-24T16:45:00.000Z',
+        course: 'Complete Web Development Bootcamp',
+        points: 25
+      },
+      {
+        _id: '3',
+        type: 'course_enrolled',
+        title: 'Node.js Backend Development',
+        description: 'Enrolled in new course',
+        timestamp: '2024-01-23T10:20:00.000Z',
+        course: 'Node.js Backend Development',
+        points: 10
+      },
+      {
+        _id: '4',
+        type: 'achievement_earned',
+        title: 'First Assignment',
+        description: 'Completed your first assignment',
+        timestamp: '2024-01-22T18:15:00.000Z',
+        course: 'React.js Complete Guide',
+        points: 50
+      },
+      {
+        _id: '5',
+        type: 'lesson_completed',
+        title: 'CSS Grid Layout',
+        description: 'Completed lesson 12 in Complete Web Development Bootcamp',
+        timestamp: '2024-01-21T14:30:00.000Z',
+        course: 'Complete Web Development Bootcamp',
+        points: 25
+      }
+    ],
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
+        progress: 65,
+        totalLessons: 24,
+        completedLessons: 15,
+        status: 'active',
+        lastAccessed: '2024-01-20T15:30:00.000Z',
+        instructor: 'Sarah Wilson',
+        category: 'Web Development'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop',
+        progress: 45,
+        totalLessons: 18,
+        completedLessons: 8,
+        status: 'active',
+        lastAccessed: '2024-01-19T14:20:00.000Z',
+        instructor: 'John Doe',
+        category: 'Frontend Development'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop',
+        progress: 30,
+        totalLessons: 20,
+        completedLessons: 6,
+        status: 'active',
+        lastAccessed: '2024-01-18T16:45:00.000Z',
+        instructor: 'Mike Johnson',
+        category: 'Backend Development'
+      }
+    ]
+  };
+
+  const dummyAchievementsData = {
+    achievements: [
+      {
+        _id: '1',
+        title: 'First Assignment',
+        description: 'Complete your first assignment',
+        icon: '🎯',
+        earnedAt: '2024-01-22T18:15:00.000Z',
+        points: 50,
+        category: 'milestone'
+      },
+      {
+        _id: '2',
+        title: 'Study Streak',
+        description: 'Study for 5 consecutive days',
+        icon: '🔥',
+        earnedAt: '2024-01-20T00:00:00.000Z',
+        points: 100,
+        category: 'consistency'
+      },
+      {
+        _id: '3',
+        title: 'Quick Learner',
+        description: 'Complete 10 lessons in one week',
+        icon: '⚡',
+        earnedAt: '2024-01-18T12:30:00.000Z',
+        points: 75,
+        category: 'speed'
+      },
+      {
+        _id: '4',
+        title: 'Course Explorer',
+        description: 'Enroll in 3 different courses',
+        icon: '📚',
+        earnedAt: '2024-01-15T10:20:00.000Z',
+        points: 60,
+        category: 'diversity'
+      },
+      {
+        _id: '5',
+        title: 'Night Owl',
+        description: 'Study after 10 PM',
+        icon: '🦉',
+        earnedAt: '2024-01-12T22:45:00.000Z',
+        points: 30,
+        category: 'habits'
+      }
+    ],
+    availableAchievements: [
+      {
+        _id: '6',
+        title: 'Perfect Score',
+        description: 'Get 100% on an assignment',
+        icon: '💯',
+        points: 150,
+        category: 'excellence',
+        progress: 85
+      },
+      {
+        _id: '7',
+        title: 'Social Learner',
+        description: 'Participate in 5 live sessions',
+        icon: '👥',
+        points: 80,
+        category: 'engagement',
+        progress: 2
+      },
+      {
+        _id: '8',
+        title: 'Course Master',
+        description: 'Complete your first course',
+        icon: '🏆',
+        points: 200,
+        category: 'milestone',
+        progress: 65
+      }
+    ]
+  };
+
   // Fetch progress data with real-time updates
   const { data: progressData, isLoading } = useQuery({
     queryKey: ['/api/students/progress', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/students/progress'));
-      if (!response.ok) throw new Error('Failed to fetch progress data');
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyProgressData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
 
@@ -46,11 +242,10 @@ const Progress = () => {
   const { data: achievementsData } = useQuery({
     queryKey: ['/api/students/achievements', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/students/achievements'));
-      if (!response.ok) return { achievements: [] };
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyAchievementsData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000,
   });
 

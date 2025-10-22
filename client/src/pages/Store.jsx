@@ -33,6 +33,156 @@ const Store = () => {
   const [sortBy, setSortBy] = useState('default');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
+  // Comprehensive dummy data for student store
+  const dummyProductsData = {
+    products: [
+      {
+        _id: '1',
+        name: 'Wireless Bluetooth Headphones',
+        description: 'High-quality noise-canceling headphones perfect for online learning. Features 30-hour battery life and crystal-clear audio.',
+        price: 89.99,
+        originalPrice: 119.99,
+        imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop',
+        category: 'Audio',
+        brand: 'TechSound',
+        rating: 4.5,
+        reviews: 128,
+        inStock: true,
+        discount: 25,
+        tags: ['wireless', 'noise-canceling', 'long-battery']
+      },
+      {
+        _id: '2',
+        name: 'Ergonomic Study Chair',
+        description: 'Comfortable chair designed for long study sessions. Adjustable height and lumbar support included.',
+        price: 199.99,
+        originalPrice: 249.99,
+        imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
+        category: 'Furniture',
+        brand: 'ComfortPlus',
+        rating: 4.8,
+        reviews: 89,
+        inStock: true,
+        discount: 20,
+        tags: ['ergonomic', 'adjustable', 'lumbar-support']
+      },
+      {
+        _id: '3',
+        name: 'Mechanical Keyboard',
+        description: 'RGB backlit mechanical keyboard with tactile switches. Perfect for coding and typing assignments.',
+        price: 129.99,
+        originalPrice: 159.99,
+        imageUrl: 'https://images.unsplash.com/photo-1541140532154-b024d705b90a?w=400&h=300&fit=crop',
+        category: 'Accessories',
+        brand: 'KeyMaster',
+        rating: 4.6,
+        reviews: 156,
+        inStock: true,
+        discount: 19,
+        tags: ['mechanical', 'rgb', 'tactile']
+      },
+      {
+        _id: '4',
+        name: 'Gaming Mouse',
+        description: 'High-precision gaming mouse with customizable buttons and RGB lighting. Great for design work.',
+        price: 79.99,
+        originalPrice: 99.99,
+        imageUrl: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=300&fit=crop',
+        category: 'Accessories',
+        brand: 'MousePro',
+        rating: 4.4,
+        reviews: 203,
+        inStock: true,
+        discount: 20,
+        tags: ['gaming', 'precision', 'customizable']
+      },
+      {
+        _id: '5',
+        name: 'Monitor Stand',
+        description: 'Adjustable monitor stand with built-in USB hub and cable management. Improves posture and workspace organization.',
+        price: 59.99,
+        originalPrice: 79.99,
+        imageUrl: 'https://images.unsplash.com/photo-1587560699334-cc4ff634909a?w=400&h=300&fit=crop',
+        category: 'Furniture',
+        brand: 'DeskMaster',
+        rating: 4.7,
+        reviews: 67,
+        inStock: true,
+        discount: 25,
+        tags: ['adjustable', 'usb-hub', 'cable-management']
+      },
+      {
+        _id: '6',
+        name: 'Blue Light Blocking Glasses',
+        description: 'Stylish blue light blocking glasses to reduce eye strain during long study sessions. Available in multiple colors.',
+        price: 39.99,
+        originalPrice: 49.99,
+        imageUrl: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=400&h=300&fit=crop',
+        category: 'Health',
+        brand: 'EyeCare',
+        rating: 4.3,
+        reviews: 94,
+        inStock: true,
+        discount: 20,
+        tags: ['blue-light', 'eye-strain', 'stylish']
+      },
+      {
+        _id: '7',
+        name: 'Portable Laptop Stand',
+        description: 'Lightweight and foldable laptop stand for better ergonomics. Perfect for studying anywhere.',
+        price: 29.99,
+        originalPrice: 39.99,
+        imageUrl: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=300&fit=crop',
+        category: 'Accessories',
+        brand: 'PortableTech',
+        rating: 4.2,
+        reviews: 78,
+        inStock: true,
+        discount: 25,
+        tags: ['portable', 'foldable', 'ergonomic']
+      },
+      {
+        _id: '8',
+        name: 'Desk Lamp with USB',
+        description: 'LED desk lamp with USB charging ports and adjustable brightness. Perfect for focused study sessions.',
+        price: 49.99,
+        originalPrice: 69.99,
+        imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
+        category: 'Lighting',
+        brand: 'BrightStudy',
+        rating: 4.6,
+        reviews: 112,
+        inStock: true,
+        discount: 29,
+        tags: ['led', 'usb-charging', 'adjustable']
+      }
+    ],
+    categories: [
+      { name: 'Audio', count: 1 },
+      { name: 'Furniture', count: 2 },
+      { name: 'Accessories', count: 3 },
+      { name: 'Health', count: 1 },
+      { name: 'Lighting', count: 1 }
+    ],
+    recommended: [
+      {
+        _id: '9',
+        name: 'Student Study Bundle',
+        description: 'Complete study setup including headphones, keyboard, and mouse. Save 30% with this bundle!',
+        price: 199.99,
+        originalPrice: 289.97,
+        imageUrl: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=400&h=300&fit=crop',
+        category: 'Bundle',
+        brand: 'StudyPro',
+        rating: 4.9,
+        reviews: 45,
+        inStock: true,
+        discount: 31,
+        tags: ['bundle', 'complete-setup', 'savings']
+      }
+    ]
+  };
+
   // Debounce search term to avoid refetch on every keystroke
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearchTerm(searchTerm), 400);
@@ -43,23 +193,8 @@ const Store = () => {
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['/api/products', { search: debouncedSearchTerm, category: selectedCategory, priceRange, sortBy }],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
-      if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
-      if (priceRange && priceRange !== 'all') {
-        const [min, max] = priceRange.split('-');
-        if (min) params.append('minPrice', min);
-        if (max) params.append('maxPrice', max);
-      }
-      if (sortBy && sortBy !== 'default') {
-        const [field, order] = sortBy.split('-');
-        params.append('sortBy', field);
-        params.append('sortOrder', order);
-      }
-      
-      const response = await fetch(buildApiUrl(`/api/products?${params.toString()}`));
-      if (!response.ok) throw new Error('Failed to fetch products');
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyProductsData;
     },
     keepPreviousData: true,
     refetchOnWindowFocus: false,
@@ -70,9 +205,8 @@ const Store = () => {
   const { data: categoriesData } = useQuery({
     queryKey: ['/api/products/categories'],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/products/categories'));
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      return response.json();
+      // Return dummy data for demonstration
+      return { categories: dummyProductsData.categories };
     },
     refetchInterval: 30000,
   });
@@ -81,11 +215,10 @@ const Store = () => {
   const { data: recommendationsData } = useQuery({
     queryKey: ['/api/recommendations'],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/recommendations'));
-      if (!response.ok) return { products: [] };
-      return response.json();
+      // Return dummy data for demonstration
+      return { products: dummyProductsData.recommended };
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000,
   });
 

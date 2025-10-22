@@ -48,6 +48,240 @@ const CoursesContent = () => {
   const [sortBy, setSortBy] = useState('popular');
   const [activeTab, setActiveTab] = useState('all');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Comprehensive dummy data for student courses
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch. Master HTML, CSS, JavaScript, React, Node.js, and build real-world projects.',
+        category: 'Web Development',
+        level: 'beginner',
+        price: 199,
+        originalPrice: 299,
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
+        instructor: { 
+          name: 'Sarah Wilson',
+          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b1c1b?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: { average: 4.8, count: 124 },
+        enrollmentCount: 156,
+        lessons: 24,
+        duration: '40 hours',
+        language: 'English',
+        status: 'published',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-15T00:00:00.000Z',
+        tags: ['html', 'css', 'javascript', 'react', 'nodejs'],
+        features: ['Lifetime Access', 'Certificate', 'Mobile App', 'Quizzes']
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts. Learn hooks, state management, routing, and build modern applications.',
+        category: 'Frontend Development',
+        level: 'intermediate',
+        price: 149,
+        originalPrice: 199,
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop',
+        instructor: { 
+          name: 'John Doe',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: { average: 4.6, count: 89 },
+        enrollmentCount: 89,
+        lessons: 18,
+        duration: '30 hours',
+        language: 'English',
+        status: 'published',
+        createdAt: '2024-01-05T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z',
+        tags: ['react', 'javascript', 'hooks', 'state-management'],
+        features: ['Lifetime Access', 'Certificate', 'Source Code', 'Community']
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js, Express, and MongoDB. Learn authentication, APIs, and deployment.',
+        category: 'Backend Development',
+        level: 'intermediate',
+        price: 179,
+        originalPrice: 229,
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop',
+        instructor: { 
+          name: 'Mike Johnson',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: { average: 4.7, count: 67 },
+        enrollmentCount: 67,
+        lessons: 20,
+        duration: '35 hours',
+        language: 'English',
+        status: 'published',
+        createdAt: '2024-01-10T00:00:00.000Z',
+        updatedAt: '2024-01-25T00:00:00.000Z',
+        tags: ['nodejs', 'express', 'mongodb', 'api', 'authentication'],
+        features: ['Lifetime Access', 'Certificate', 'API Documentation', 'Deployment Guide']
+      },
+      {
+        _id: '4',
+        title: 'Python for Data Science',
+        description: 'Learn Python programming for data analysis and visualization. Master pandas, numpy, matplotlib, and machine learning basics.',
+        category: 'Data Science',
+        level: 'beginner',
+        price: 129,
+        originalPrice: 179,
+        coverUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=450&fit=crop',
+        instructor: { 
+          name: 'Dr. Emily Chen',
+          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: { average: 4.9, count: 156 },
+        enrollmentCount: 203,
+        lessons: 22,
+        duration: '32 hours',
+        language: 'English',
+        status: 'published',
+        createdAt: '2024-01-12T00:00:00.000Z',
+        updatedAt: '2024-01-28T00:00:00.000Z',
+        tags: ['python', 'data-science', 'pandas', 'numpy', 'matplotlib'],
+        features: ['Lifetime Access', 'Certificate', 'Jupyter Notebooks', 'Datasets']
+      },
+      {
+        _id: '5',
+        title: 'Machine Learning Fundamentals',
+        description: 'Introduction to machine learning algorithms and applications. Learn supervised and unsupervised learning techniques.',
+        category: 'Machine Learning',
+        level: 'intermediate',
+        price: 199,
+        originalPrice: 249,
+        coverUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=450&fit=crop',
+        instructor: { 
+          name: 'Prof. Alex Kumar',
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: { average: 4.7, count: 203 },
+        enrollmentCount: 145,
+        lessons: 26,
+        duration: '45 hours',
+        language: 'English',
+        status: 'published',
+        createdAt: '2024-01-15T00:00:00.000Z',
+        updatedAt: '2024-01-30T00:00:00.000Z',
+        tags: ['machine-learning', 'python', 'scikit-learn', 'tensorflow', 'algorithms'],
+        features: ['Lifetime Access', 'Certificate', 'ML Models', 'Research Papers']
+      },
+      {
+        _id: '6',
+        title: 'UI/UX Design Masterclass',
+        description: 'Learn user interface and user experience design principles. Create beautiful and functional digital products.',
+        category: 'Design',
+        level: 'beginner',
+        price: 159,
+        originalPrice: 199,
+        coverUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?w=800&h=450&fit=crop',
+        instructor: { 
+          name: 'Lisa Rodriguez',
+          avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: { average: 4.8, count: 98 },
+        enrollmentCount: 78,
+        lessons: 16,
+        duration: '28 hours',
+        language: 'English',
+        status: 'published',
+        createdAt: '2024-01-18T00:00:00.000Z',
+        updatedAt: '2024-02-01T00:00:00.000Z',
+        tags: ['ui-design', 'ux-design', 'figma', 'prototyping', 'user-research'],
+        features: ['Lifetime Access', 'Certificate', 'Design Files', 'Portfolio Review']
+      }
+    ]
+  };
+
+  const dummyEnrollmentsData = {
+    enrollments: [
+      {
+        _id: '1',
+        courseId: {
+          _id: '1',
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        progress: 65,
+        status: 'active',
+        enrolledAt: '2024-01-15T00:00:00.000Z',
+        lastAccessed: '2024-01-20T15:30:00.000Z'
+      },
+      {
+        _id: '2',
+        courseId: {
+          _id: '2',
+          title: 'React.js Complete Guide',
+          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+        },
+        progress: 45,
+        status: 'active',
+        enrolledAt: '2024-01-10T00:00:00.000Z',
+        lastAccessed: '2024-01-19T14:20:00.000Z'
+      },
+      {
+        _id: '3',
+        courseId: {
+          _id: '3',
+          title: 'Node.js Backend Development',
+          coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+        },
+        progress: 30,
+        status: 'active',
+        enrolledAt: '2024-01-05T00:00:00.000Z',
+        lastAccessed: '2024-01-18T16:45:00.000Z'
+      }
+    ]
+  };
+
+  const dummyRecommendationsData = {
+    courses: [
+      {
+        _id: '7',
+        title: 'Advanced JavaScript Concepts',
+        description: 'Deep dive into advanced JavaScript features, closures, prototypes, and modern ES6+ syntax.',
+        category: 'JavaScript',
+        level: 'advanced',
+        price: 99,
+        coverUrl: 'https://images.unsplash.com/photo-1579468118864-70b971495a51?w=800&h=450&fit=crop',
+        instructor: { name: 'David Kim' },
+        rating: { average: 4.9, count: 45 }
+      },
+      {
+        _id: '8',
+        title: 'Database Design & SQL',
+        description: 'Learn database design principles and SQL queries for efficient data management.',
+        category: 'Database',
+        level: 'intermediate',
+        price: 89,
+        coverUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=800&h=450&fit=crop',
+        instructor: { name: 'Maria Garcia' },
+        rating: { average: 4.6, count: 67 }
+      }
+    ]
+  };
+
+  const dummyFiltersData = {
+    categories: [
+      { name: 'Web Development', count: 1 },
+      { name: 'Frontend Development', count: 1 },
+      { name: 'Backend Development', count: 1 },
+      { name: 'Data Science', count: 1 },
+      { name: 'Machine Learning', count: 1 },
+      { name: 'Design', count: 1 }
+    ],
+    levels: [
+      { name: 'beginner', count: 3 },
+      { name: 'intermediate', count: 3 },
+      { name: 'advanced', count: 0 }
+    ]
+  };
   const [toasts, setToasts] = useState([]);
 
   // Debounce search term to avoid refetch on every keystroke
@@ -78,17 +312,10 @@ const CoursesContent = () => {
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
     queryKey: ['/api/courses', { search: debouncedSearchTerm, category: selectedCategory, level: selectedLevel, sort: sortBy }, accessToken],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
-      if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
-      if (selectedLevel && selectedLevel !== 'all') params.append('level', selectedLevel);
-      if (sortBy && sortBy !== 'popular') params.append('sort', sortBy);
-      
-      const response = await authenticatedFetch(buildApiUrl(`/api/courses?${params.toString()}`));
-      if (!response.ok) throw new Error('Failed to fetch courses');
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     keepPreviousData: true,
     refetchOnWindowFocus: false,
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
@@ -98,11 +325,10 @@ const CoursesContent = () => {
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useQuery({
     queryKey: ['/api/enrollments', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/enrollments'));
-      if (!response.ok) throw new Error('Failed to fetch enrollments');
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyEnrollmentsData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000,
   });
 
@@ -110,11 +336,10 @@ const CoursesContent = () => {
   const { data: recommendationsData } = useQuery({
     queryKey: ['/api/recommendations', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/recommendations'));
-      if (!response.ok) return { courses: [] };
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyRecommendationsData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000,
   });
 
@@ -122,11 +347,10 @@ const CoursesContent = () => {
   const { data: filtersData } = useQuery({
     queryKey: ['/api/courses/filters', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/courses/filters'));
-      if (!response.ok) return { categories: [], levels: [] };
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyFiltersData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 60000, // Refetch every minute
   });
 

@@ -28,15 +28,154 @@ const Assignments = () => {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('all');
 
+  // Comprehensive dummy data for student assignments
+  const dummyAssignmentsData = {
+    assignments: [
+      {
+        _id: '1',
+        title: 'Build a Personal Portfolio Website',
+        courseId: { 
+          _id: '1',
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        dueAt: '2024-02-15T23:59:59.000Z',
+        submissionStatus: 'pending',
+        maxPoints: 100,
+        description: 'Create a responsive portfolio website showcasing your projects and skills. Include sections for About, Projects, Skills, and Contact.',
+        instructions: [
+          'Design a responsive layout using HTML5 and CSS3',
+          'Include at least 3 project showcases with descriptions',
+          'Add a contact form with validation',
+          'Ensure mobile responsiveness',
+          'Include a professional headshot and bio'
+        ],
+        createdAt: '2024-01-15T00:00:00.000Z',
+        instructor: { name: 'Sarah Wilson' },
+        attachments: [
+          { name: 'Portfolio Guidelines.pdf', url: '#', size: '2.3 MB' },
+          { name: 'Design Mockups.zip', url: '#', size: '5.1 MB' }
+        ]
+      },
+      {
+        _id: '2',
+        title: 'React Todo Application',
+        courseId: { 
+          _id: '2',
+          title: 'React.js Complete Guide',
+          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+        },
+        dueAt: '2024-02-20T23:59:59.000Z',
+        submissionStatus: 'submitted',
+        maxPoints: 80,
+        grade: 85,
+        description: 'Build a todo application using React hooks and state management. Implement CRUD operations and local storage.',
+        instructions: [
+          'Create a functional todo app with React hooks',
+          'Implement add, edit, delete, and toggle complete functionality',
+          'Use local storage to persist data',
+          'Add filtering options (All, Active, Completed)',
+          'Include proper error handling and validation'
+        ],
+        createdAt: '2024-01-20T00:00:00.000Z',
+        instructor: { name: 'John Doe' },
+        submittedAt: '2024-01-25T14:30:00.000Z',
+        feedback: 'Great work on the functionality! Consider adding more styling and error handling for better user experience.',
+        attachments: [
+          { name: 'Todo App Requirements.pdf', url: '#', size: '1.8 MB' }
+        ]
+      },
+      {
+        _id: '3',
+        title: 'REST API with Express',
+        courseId: { 
+          _id: '3',
+          title: 'Node.js Backend Development',
+          coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+        },
+        dueAt: '2024-02-25T23:59:59.000Z',
+        submissionStatus: 'graded',
+        maxPoints: 120,
+        grade: 95,
+        description: 'Create a RESTful API using Express.js with authentication and CRUD operations for a blog system.',
+        instructions: [
+          'Set up Express.js server with proper middleware',
+          'Implement JWT authentication',
+          'Create CRUD endpoints for blog posts',
+          'Add input validation and error handling',
+          'Include API documentation with Swagger'
+        ],
+        createdAt: '2024-01-25T00:00:00.000Z',
+        instructor: { name: 'Mike Johnson' },
+        submittedAt: '2024-01-28T16:45:00.000Z',
+        gradedAt: '2024-01-30T10:15:00.000Z',
+        feedback: 'Excellent implementation! Your API structure is clean and well-documented. The authentication flow is solid.',
+        attachments: [
+          { name: 'API Requirements.pdf', url: '#', size: '3.2 MB' },
+          { name: 'Database Schema.sql', url: '#', size: '0.8 MB' }
+        ]
+      },
+      {
+        _id: '4',
+        title: 'CSS Grid Layout Project',
+        courseId: { 
+          _id: '1',
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        dueAt: '2024-01-30T23:59:59.000Z',
+        submissionStatus: 'overdue',
+        maxPoints: 60,
+        description: 'Create a responsive magazine-style layout using CSS Grid. Focus on modern design principles and responsive behavior.',
+        instructions: [
+          'Design a magazine layout using CSS Grid',
+          'Implement responsive breakpoints',
+          'Use modern CSS features (Grid, Flexbox)',
+          'Include typography and color schemes',
+          'Ensure cross-browser compatibility'
+        ],
+        createdAt: '2024-01-10T00:00:00.000Z',
+        instructor: { name: 'Sarah Wilson' },
+        attachments: [
+          { name: 'Grid Layout Examples.pdf', url: '#', size: '4.1 MB' }
+        ]
+      },
+      {
+        _id: '5',
+        title: 'JavaScript ES6+ Features',
+        courseId: { 
+          _id: '2',
+          title: 'React.js Complete Guide',
+          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+        },
+        dueAt: '2024-02-10T23:59:59.000Z',
+        submissionStatus: 'pending',
+        maxPoints: 70,
+        description: 'Demonstrate understanding of modern JavaScript features including arrow functions, destructuring, async/await, and modules.',
+        instructions: [
+          'Create examples of arrow functions vs regular functions',
+          'Implement destructuring in objects and arrays',
+          'Use async/await for API calls',
+          'Create ES6 modules with import/export',
+          'Include error handling with try/catch'
+        ],
+        createdAt: '2024-01-22T00:00:00.000Z',
+        instructor: { name: 'John Doe' },
+        attachments: [
+          { name: 'ES6+ Reference Guide.pdf', url: '#', size: '2.7 MB' }
+        ]
+      }
+    ]
+  };
+
   // Fetch assignments with real-time updates
   const { data: assignmentsData, isLoading, error } = useQuery({
     queryKey: ['/api/students/assignments', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/students/assignments'));
-      if (!response.ok) throw new Error('Failed to fetch assignments');
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyAssignmentsData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000,

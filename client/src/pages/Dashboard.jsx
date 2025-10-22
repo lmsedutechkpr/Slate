@@ -52,6 +52,196 @@ const Dashboard = () => {
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(15);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
 
+  // Comprehensive dummy data for student dashboard
+  const dummyDashboardData = {
+    enrollments: [
+      {
+        _id: '1',
+        courseId: {
+          _id: '1',
+          title: 'Complete Web Development Bootcamp',
+          description: 'Learn modern web development from scratch. Master HTML, CSS, JavaScript, React, Node.js.',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
+          category: 'Web Development',
+          level: 'beginner',
+          price: 199,
+          instructor: { name: 'Sarah Wilson' },
+          rating: { average: 4.8, count: 124 },
+          lessons: 24,
+          duration: '40 hours'
+        },
+        progress: 65,
+        status: 'active',
+        enrolledAt: '2024-01-15T00:00:00.000Z',
+        lastActivityAt: '2024-01-20T15:30:00.000Z',
+        completedLessons: 15,
+        totalLessons: 24
+      },
+      {
+        _id: '2',
+        courseId: {
+          _id: '2',
+          title: 'React.js Complete Guide',
+          description: 'Master React.js from fundamentals to advanced concepts. Learn hooks, state management, routing.',
+          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop',
+          category: 'Frontend Development',
+          level: 'intermediate',
+          price: 149,
+          instructor: { name: 'John Doe' },
+          rating: { average: 4.6, count: 89 },
+          lessons: 18,
+          duration: '30 hours'
+        },
+        progress: 45,
+        status: 'active',
+        enrolledAt: '2024-01-10T00:00:00.000Z',
+        lastActivityAt: '2024-01-19T14:20:00.000Z',
+        completedLessons: 8,
+        totalLessons: 18
+      },
+      {
+        _id: '3',
+        courseId: {
+          _id: '3',
+          title: 'Node.js Backend Development',
+          description: 'Build scalable backend applications with Node.js, Express, and MongoDB.',
+          coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop',
+          category: 'Backend Development',
+          level: 'intermediate',
+          price: 179,
+          instructor: { name: 'Mike Johnson' },
+          rating: { average: 4.7, count: 67 },
+          lessons: 20,
+          duration: '35 hours'
+        },
+        progress: 30,
+        status: 'active',
+        enrolledAt: '2024-01-05T00:00:00.000Z',
+        lastActivityAt: '2024-01-18T16:45:00.000Z',
+        completedLessons: 6,
+        totalLessons: 20
+      }
+    ],
+    assignments: [
+      {
+        _id: '1',
+        title: 'Build a Personal Portfolio Website',
+        courseId: { title: 'Complete Web Development Bootcamp' },
+        dueAt: '2024-02-15T23:59:59.000Z',
+        submissionStatus: 'pending',
+        maxPoints: 100,
+        description: 'Create a responsive portfolio website showcasing your projects and skills.',
+        createdAt: '2024-01-15T00:00:00.000Z'
+      },
+      {
+        _id: '2',
+        title: 'React Todo Application',
+        courseId: { title: 'React.js Complete Guide' },
+        dueAt: '2024-02-20T23:59:59.000Z',
+        submissionStatus: 'submitted',
+        maxPoints: 80,
+        description: 'Build a todo application using React hooks and state management.',
+        createdAt: '2024-01-20T00:00:00.000Z'
+      },
+      {
+        _id: '3',
+        title: 'REST API with Express',
+        courseId: { title: 'Node.js Backend Development' },
+        dueAt: '2024-02-25T23:59:59.000Z',
+        submissionStatus: 'graded',
+        maxPoints: 120,
+        grade: 95,
+        description: 'Create a RESTful API using Express.js with authentication and CRUD operations.',
+        createdAt: '2024-01-25T00:00:00.000Z'
+      }
+    ],
+    liveSessions: [
+      {
+        _id: '1',
+        title: 'React Hooks Deep Dive',
+        courseId: { title: 'React.js Complete Guide' },
+        scheduledAt: '2024-02-01T18:00:00.000Z',
+        duration: 90,
+        status: 'scheduled',
+        instructor: { name: 'John Doe' },
+        meetingUrl: 'https://meet.google.com/react-hooks-session',
+        description: 'Learn advanced React hooks patterns and best practices.'
+      },
+      {
+        _id: '2',
+        title: 'Web Development Q&A',
+        courseId: { title: 'Complete Web Development Bootcamp' },
+        scheduledAt: '2024-02-03T17:00:00.000Z',
+        duration: 60,
+        status: 'scheduled',
+        instructor: { name: 'Sarah Wilson' },
+        meetingUrl: 'https://meet.google.com/webdev-qa',
+        description: 'Ask questions about web development concepts and get live help.'
+      }
+    ],
+    recommendations: {
+      courses: [
+        {
+          _id: '4',
+          title: 'Python for Data Science',
+          description: 'Learn Python programming for data analysis and visualization.',
+          coverUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=450&fit=crop',
+          category: 'Data Science',
+          level: 'beginner',
+          price: 129,
+          instructor: { name: 'Dr. Emily Chen' },
+          rating: { average: 4.9, count: 156 }
+        },
+        {
+          _id: '5',
+          title: 'Machine Learning Fundamentals',
+          description: 'Introduction to machine learning algorithms and applications.',
+          coverUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=450&fit=crop',
+          category: 'Machine Learning',
+          level: 'intermediate',
+          price: 199,
+          instructor: { name: 'Prof. Alex Kumar' },
+          rating: { average: 4.7, count: 203 }
+        }
+      ],
+      products: [
+        {
+          _id: '1',
+          name: 'Wireless Bluetooth Headphones',
+          description: 'High-quality noise-canceling headphones perfect for online learning.',
+          price: 89.99,
+          imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop',
+          category: 'Audio',
+          brand: 'TechSound',
+          rating: 4.5,
+          reviews: 128
+        },
+        {
+          _id: '2',
+          name: 'Ergonomic Study Chair',
+          description: 'Comfortable chair designed for long study sessions.',
+          price: 199.99,
+          imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
+          category: 'Furniture',
+          brand: 'ComfortPlus',
+          rating: 4.8,
+          reviews: 89
+        }
+      ]
+    },
+    stats: {
+      totalCourses: 3,
+      completedCourses: 0,
+      totalAssignments: 3,
+      completedAssignments: 1,
+      totalHours: 45,
+      weeklyHours: 8,
+      dayStreak: 5,
+      xpPoints: 1250,
+      achievements: 3
+    }
+  };
+
   useEffect(() => {
     const saved = Number(localStorage.getItem('weeklyGoalHours'));
     if (!Number.isNaN(saved) && saved > 0) setWeeklyGoalHours(saved);
@@ -72,11 +262,10 @@ const Dashboard = () => {
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['/api/dashboard', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/dashboard'));
-      if (!response.ok) throw new Error('Failed to fetch dashboard data');
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyDashboardData;
     },
-    enabled: !!accessToken && !authLoading,
+    enabled: true, // Always enabled for dummy data
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000
@@ -130,11 +319,10 @@ const Dashboard = () => {
   const { data: liveData } = useQuery({
     queryKey: ['/api/live-sessions/mine', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl('/api/live-sessions/mine'));
-      if (!response.ok) return { sessions: [] };
-      return response.json();
+      // Return dummy data for demonstration
+      return { sessions: dummyDashboardData.liveSessions };
     },
-    enabled: !!accessToken && !authLoading,
+    enabled: true, // Always enabled for dummy data
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000
