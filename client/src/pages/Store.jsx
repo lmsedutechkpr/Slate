@@ -235,7 +235,7 @@ const Store = () => {
   };
 
   const getCategoryIcon = (category) => {
-    switch (category?.toLowerCase()) {
+    switch (String(category || '').toLowerCase()) {
       case 'headphones':
         return Headphones;
       case 'phone-accessories':

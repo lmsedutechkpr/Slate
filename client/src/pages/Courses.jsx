@@ -463,8 +463,8 @@ const CoursesContent = () => {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                  <SelectItem key={category.name || category} value={category.name || category}>
+                    {(category.name || category).charAt(0).toUpperCase() + (category.name || category).slice(1).replace('-', ' ')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -477,8 +477,8 @@ const CoursesContent = () => {
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
                 {levels.map((level) => (
-                  <SelectItem key={level} value={level}>
-                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  <SelectItem key={level.name || level} value={level.name || level}>
+                    {(level.name || level).charAt(0).toUpperCase() + (level.name || level).slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>

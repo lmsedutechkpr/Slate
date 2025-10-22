@@ -10,8 +10,9 @@ export const useRealtimeCourseUpdates = () => {
     let unsubs = [];
 
     const setupRealtimeUpdates = async () => {
-      // Listen for course enrollment updates
-      const unsubEnrolled = await subscribe('course:enrolled', (data) => {
+      try {
+        // Listen for course enrollment updates
+        const unsubEnrolled = await subscribe('course:enrolled', (data) => {
         const { courseId, enrollmentCount } = data;
         
         // Update the specific course's enrollment count
@@ -114,6 +115,9 @@ export const useRealtimeCourseUpdates = () => {
         });
       });
       unsubs.push(unsubTrending);
+      } catch (error) {
+        console.warn('Failed to setup realtime updates:', error);
+      }
     };
 
     setupRealtimeUpdates();
