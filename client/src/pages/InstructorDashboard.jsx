@@ -19,7 +19,8 @@ import {
   CheckCircle,
   UserCheck,
   ClipboardList,
-  BookMarked
+  BookMarked,
+  Plus
 } from 'lucide-react';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 
@@ -27,7 +28,7 @@ const InstructorDashboard = () => {
   const [location, setLocation] = useLocation();
   const { accessToken, user } = useAuth();
 
-  // Fetch instructor's assigned courses (for content management)
+  // Fetch instructor's courses (both assigned and created)
   const { data: coursesData, isLoading: coursesLoading, error: coursesError } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
@@ -135,7 +136,7 @@ const InstructorDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">
             Teaching Dashboard
           </h1>
-          <p className="text-gray-600 mt-2">Manage your courses, track student progress, and conduct live sessions</p>
+          <p className="text-gray-600 mt-2">Create courses, manage content, track student progress, and conduct live sessions</p>
         </div>
         <div className="flex gap-3">
           <Button onClick={() => setLocation('/instructor/live')} className="shadow-sm">
@@ -154,7 +155,7 @@ const InstructorDashboard = () => {
                 <BookOpen className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Assigned Courses</p>
+                <p className="text-sm font-medium text-gray-600">My Courses</p>
                 <p className="text-2xl font-bold text-gray-900">{totalCourses}</p>
               </div>
             </div>
@@ -251,7 +252,7 @@ const InstructorDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="w-5 h-5" />
-              Your Assigned Courses
+              My Courses
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -271,7 +272,17 @@ const InstructorDashboard = () => {
               </div>
             ))}
             {courses?.length === 0 && (
-              <p className="text-gray-500 text-center py-4">No courses assigned yet</p>
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-2">No courses yet</p>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setLocation('/instructor/courses')}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Create Course
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>

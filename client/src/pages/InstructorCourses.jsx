@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth.js';
@@ -6,12 +7,31 @@ import { buildApiUrl } from '../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Users, Calendar, TrendingUp, Video, FileText, BookMarked, Upload, Edit3, Eye } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { BookOpen, Users, Calendar, TrendingUp, Video, FileText, BookMarked, Upload, Edit3, Eye, Plus } from 'lucide-react';
 import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 
 const InstructorCourses = () => {
   const { accessToken, user } = useAuth();
   const [location, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newCourse, setNewCourse] = useState({
+    title: '',
+    description: '',
+    category: '',
+    level: 'beginner',
+    language: 'English',
+    price: 0,
+    tags: []
+  });
   
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
@@ -30,6 +50,47 @@ const InstructorCourses = () => {
     ['instructor-courses', user?._id]
   ], ['courses']);
 
+  // Create course mutation
+  const createCourseMutation = useMutation({
+    mutationFn: async (courseData) => {
+      const res = await fetch(buildApiUrl('/api/courses'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(courseData)
+      });
+      if (!res.ok) throw new Error('Failed to create course');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['instructor-courses', user?._id]);
+      setIsCreateDialogOpen(false);
+      setNewCourse({
+        title: '',
+        description: '',
+        category: '',
+        level: 'beginner',
+        language: 'English',
+        price: 0,
+        tags: []
+      });
+      toast({ title: 'Course created successfully!' });
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to create course', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  const handleCreateCourse = () => {
+    if (!newCourse.title || !newCourse.description) {
+      toast({ title: 'Please fill in all required fields', variant: 'destructive' });
+      return;
+    }
+    createCourseMutation.mutate(newCourse);
+  };
+
   if (isLoading) return <LoadingSpinner />;
 
   const courses = coursesData?.courses || [];
@@ -39,9 +100,102 @@ const InstructorCourses = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Course Content Management</h1>
-          <p className="text-gray-600">Manage course materials, lectures, and content for your assigned courses</p>
+          <p className="text-gray-600">Create and manage your courses, materials, lectures, and content</p>
         </div>
         <div className="flex gap-2">
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Course
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Course</DialogTitle>
+                <DialogDescription>
+                  Create a new course to start teaching and managing content.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Course Title *</Label>
+                  <Input
+                    id="title"
+                    value={newCourse.title}
+                    onChange={(e) => setNewCourse(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter course title"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    value={newCourse.description}
+                    onChange={(e) => setNewCourse(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe what students will learn"
+                    rows={4}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      value={newCourse.category}
+                      onChange={(e) => setNewCourse(prev => ({ ...prev, category: e.target.value }))}
+                      placeholder="e.g., Web Development"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="level">Level</Label>
+                    <Select value={newCourse.level} onValueChange={(value) => setNewCourse(prev => ({ ...prev, level: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="language">Language</Label>
+                    <Input
+                      id="language"
+                      value={newCourse.language}
+                      onChange={(e) => setNewCourse(prev => ({ ...prev, language: e.target.value }))}
+                      placeholder="English"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="price">Price ($)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      value={newCourse.price}
+                      onChange={(e) => setNewCourse(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCreateCourse}
+                  disabled={createCourseMutation.isPending}
+                >
+                  {createCourseMutation.isPending ? 'Creating...' : 'Create Course'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline">
             <Upload className="w-4 h-4 mr-2" />
             Upload Materials
@@ -108,10 +262,14 @@ const InstructorCourses = () => {
         <Card>
           <CardContent className="text-center py-12">
             <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No courses assigned</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No courses yet</h3>
             <p className="text-gray-600 mb-6">
-              Contact admin to get assigned to courses for content management
+              Create your first course to start teaching and managing content.
             </p>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Your First Course
+            </Button>
           </CardContent>
         </Card>
       ) : (

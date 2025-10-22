@@ -40,10 +40,7 @@ const InstructorLayout = ({ children }) => {
     { title: 'Live Sessions', href: '/instructor/live', icon: Video, description: 'Conduct live classes' },
     { title: 'Quiz Builder', href: '/instructor/quizzes', icon: Target, description: 'Create interactive quizzes' },
     { title: 'Calendar', href: '/instructor/calendar', icon: Calendar, description: 'Schedule & manage events' },
-    { title: 'Plagiarism Check', href: '/instructor/plagiarism', icon: Shield, description: 'Detect academic dishonesty' },
     { title: 'Track Students', href: '/instructor/students', icon: Users, description: 'Monitor progress' },
-    { title: 'Communication', href: '/instructor/communication', icon: MessageSquare, description: 'Messages & announcements' },
-    { title: 'Notifications', href: '/instructor/notifications', icon: Bell, description: 'Manage alerts & notifications' },
     { title: 'Reports', href: '/instructor/reports', icon: BarChart3, description: 'Generate reports & analytics' },
     { title: 'Analytics', href: '/instructor/analytics', icon: Activity, description: 'Teaching insights' },
     { title: 'Settings', href: '/instructor/settings', icon: Settings, description: 'Account settings' }
