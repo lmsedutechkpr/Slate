@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import connectDB from './db.js';
 import { seedAdmin } from './seed/seedAdmin.js';
 import { seedRoles } from './seed/seedRoles.js';
-import seedRoutes from './seed/seedRoutes.js';
+import simpleSeedRoutes from './routes/simpleSeed.js';
 
 // Import controllers
 import * as authController from './controllers/authController.js';
@@ -71,10 +71,10 @@ export async function registerRoutes(app) {
     }
   });
   
-  // Seed routes for production deployment
-  app.use('/api/seed', seedRoutes);
+  // Simple seed routes
+  app.use('/api/seed', simpleSeedRoutes);
   
-  // Serve seeding page
+  // Simple seeding page
   app.get('/seed', (req, res) => {
     res.send(`
 <!DOCTYPE html>
@@ -82,11 +82,11 @@ export async function registerRoutes(app) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slate LMS - Production Seeding</title>
+    <title>Slate LMS - Database Seeding</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -102,14 +102,6 @@ export async function registerRoutes(app) {
             text-align: center;
             margin-bottom: 30px;
         }
-        .warning {
-            background: #fef3cd;
-            border: 1px solid #fecaca;
-            color: #92400e;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
         .info {
             background: #dbeafe;
             border: 1px solid #93c5fd;
@@ -117,22 +109,6 @@ export async function registerRoutes(app) {
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 5px;
-            font-size: 16px;
-            box-sizing: border-box;
         }
         button {
             background: #2563eb;
@@ -184,52 +160,32 @@ export async function registerRoutes(app) {
         .credentials li {
             margin-bottom: 5px;
         }
-        small {
-            color: #6b7280;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🌱 Slate LMS - Production Seeding</h1>
-        
-        <div class="warning">
-            <strong>⚠️ Warning:</strong> This will clear all existing data and replace it with comprehensive seed data. Only use this on a fresh deployment or when you want to reset all data.
-        </div>
+        <h1>🌱 Slate LMS - Database Seeding</h1>
         
         <div class="info">
-            <strong>ℹ️ Info:</strong> This tool will seed your production database with comprehensive test data including users, courses, materials, live sessions, products, and more.
+            <strong>ℹ️ Info:</strong> This will seed your database with sample users, courses, and data for testing.
         </div>
         
-        <form id="seedForm">
-            <div class="form-group">
-                <label for="secret">Secret Key:</label>
-                <input type="text" id="secret" name="secret" placeholder="Enter secret key" value="slate-seed-2024" required>
-                <small>Default: slate-seed-2024</small>
-            </div>
-            
-            <button type="submit" id="seedBtn">🚀 Seed Production Database</button>
-        </form>
+        <button id="seedBtn" onclick="seedDatabase()">🚀 Seed Database</button>
         
         <div id="result" class="result"></div>
         
         <div class="credentials" id="credentials" style="display: none;">
-            <h3>📝 Login Credentials After Seeding:</h3>
+            <h3>📝 Login Credentials:</h3>
             <ul>
                 <li><strong>Admin:</strong> admin@slate.com / Admin@123456</li>
                 <li><strong>Instructor:</strong> john.doe@example.com / Instructor123!</li>
                 <li><strong>Student:</strong> alice.johnson@example.com / Student123!</li>
             </ul>
-            <p><strong>Note:</strong> There are 5 instructors and 8 students total. All use the same password pattern: Instructor123! for instructors, Student123! for students.</p>
         </div>
     </div>
 
     <script>
-        document.getElementById('seedForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const secret = document.getElementById('secret').value;
+        async function seedDatabase() {
             const seedBtn = document.getElementById('seedBtn');
             const result = document.getElementById('result');
             const credentials = document.getElementById('credentials');
@@ -240,12 +196,11 @@ export async function registerRoutes(app) {
             credentials.style.display = 'none';
             
             try {
-                const response = await fetch('/api/seed/seed-production', {
+                const response = await fetch('/api/seed/seed', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ secret })
+                    }
                 });
                 
                 const data = await response.json();
@@ -256,16 +211,11 @@ export async function registerRoutes(app) {
                         <strong>✅ Success!</strong><br>
                         \${data.message}<br><br>
                         <strong>Database seeded with:</strong><br>
-                        • 14 Users (1 admin, 5 instructors, 8 students)<br>
-                        • 3 Comprehensive Courses with full content<br>
-                        • 15+ Enrollments with progress tracking<br>
-                        • 3 Assignments with due dates<br>
-                        • 3 Live Sessions scheduled<br>
-                        • 3 Products in store<br>
-                        • 8 Orders with payments<br>
-                        • 12+ Reviews with ratings<br>
-                        • 30+ User Activities tracked<br>
-                        • 30+ Audit Logs for monitoring
+                        • Users: \${data.counts.users}<br>
+                        • Courses: \${data.counts.courses}<br>
+                        • Products: \${data.counts.products}<br>
+                        • Enrollments: \${data.counts.enrollments}<br>
+                        • Reviews: \${data.counts.reviews}
                     \`;
                     credentials.style.display = 'block';
                 } else {
@@ -274,34 +224,31 @@ export async function registerRoutes(app) {
                 }
             } catch (error) {
                 result.className = 'result error';
-                result.innerHTML = \`<strong>❌ Error:</strong> Failed to connect to server. Make sure your backend is running.\`;
+                result.innerHTML = \`<strong>❌ Error:</strong> Failed to connect to server.\`;
             }
             
             result.style.display = 'block';
             seedBtn.disabled = false;
-            seedBtn.textContent = '🚀 Seed Production Database';
-        });
+            seedBtn.textContent = '🚀 Seed Database';
+        }
         
         // Check seeding status on page load
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch('/api/seed/seed-status');
+                const response = await fetch('/api/seed/status');
                 const data = await response.json();
                 
                 if (data.isSeeded) {
                     document.getElementById('result').className = 'result success';
                     document.getElementById('result').innerHTML = \`
                         <strong>✅ Database Status:</strong><br>
-                        Database is already seeded with comprehensive data.<br><br>
+                        Database is already seeded.<br><br>
                         <strong>Current Data:</strong><br>
                         • Users: \${data.counts.users}<br>
                         • Courses: \${data.counts.courses}<br>
                         • Products: \${data.counts.products}<br>
                         • Enrollments: \${data.counts.enrollments}<br>
-                        • Assignments: \${data.counts.assignments}<br>
-                        • Live Sessions: \${data.counts.liveSessions}<br>
-                        • Reviews: \${data.counts.reviews}<br>
-                        • Orders: \${data.counts.orders}
+                        • Reviews: \${data.counts.reviews}
                     \`;
                     document.getElementById('result').style.display = 'block';
                     document.getElementById('credentials').style.display = 'block';
