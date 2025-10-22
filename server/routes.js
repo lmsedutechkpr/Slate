@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import connectDB from './db.js';
 import { seedAdmin } from './seed/seedAdmin.js';
 import { seedRoles } from './seed/seedRoles.js';
+import seedRoutes from './seed/seedRoutes.js';
 
 // Import controllers
 import * as authController from './controllers/authController.js';
@@ -25,6 +26,14 @@ import { requireAdmin, requireInstructorOrAdmin, requireStudent } from './middle
 export async function registerRoutes(app) {
   // Health
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+  
+  // Seed routes for production deployment
+  app.use('/api/seed', seedRoutes);
+  
+  // Serve seeding page
+  app.get('/seed', (req, res) => {
+    res.sendFile('seed.html', { root: './public' });
+  });
   
 
   

@@ -1,8 +1,7 @@
 import connectDB from '../db.js';
 import { seedAdmin } from './seedAdmin.js';
 import { seedRoles } from './seedRoles.js';
-import { seedAllData } from './seedData.js';
-import { seedAdditionalData } from './seedAdditionalData.js';
+import { seedComprehensiveData } from './seedComprehensiveData.js';
 
 const runSeeding = async () => {
   try {
@@ -20,13 +19,9 @@ const runSeeding = async () => {
     console.log('\n👑 Seeding admin user...');
     await seedAdmin();
     
-    // Seed all comprehensive data
+    // Seed comprehensive data
     console.log('\n🌱 Seeding comprehensive data...');
-    await seedAllData();
-    
-    // Seed additional data
-    console.log('\n🌱 Seeding additional comprehensive data...');
-    await seedAdditionalData();
+    await seedComprehensiveData();
     
     console.log('\n🎉 All seeding completed successfully!');
     console.log('\n📝 Login Credentials:');

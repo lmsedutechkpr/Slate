@@ -7,6 +7,12 @@ import LiveSession from './LiveSession.js';
 import Review from './Review.js';
 import AuditLog from './AuditLog.js';
 import Role from './Role.js';
+import Order from './Order.js';
+import Payment from './Payment.js';
+import ProductBundle from './ProductBundle.js';
+import TransactionLog from './TransactionLog.js';
+import UserActivity from './UserActivity.js';
+import AdminSettings from './AdminSettings.js';
 
 export {
   User,
@@ -17,5 +23,11 @@ export {
   LiveSession,
   Review,
   AuditLog,
-  Role
+  Role,
+  Order,
+  Payment,
+  ProductBundle,
+  TransactionLog,
+  UserActivity,
+  AdminSettings
 };

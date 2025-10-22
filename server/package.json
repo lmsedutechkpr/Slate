@@ -8,7 +8,9 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "seed": "node seed/runSeed.js",
-    "seed-admin": "node seed/seedAdmin.js"
+    "seed-admin": "node seed/seedAdmin.js",
+    "seed-production": "node seed/seedProduction.js",
+    "test-seed": "node seed/testSeed.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
