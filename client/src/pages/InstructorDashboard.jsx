@@ -28,45 +28,66 @@ const InstructorDashboard = () => {
   const { accessToken, user } = useAuth();
 
   // Fetch instructor's assigned courses (for content management)
-  const { data: coursesData, isLoading: coursesLoading } = useQuery({
+  const { data: coursesData, isLoading: coursesLoading, error: coursesError } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
+      console.log('Fetching instructor courses for user:', user?._id);
       const res = await fetch(buildApiUrl('/api/instructor/courses'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!res.ok) return { courses: [] };
-      return res.json();
+      if (!res.ok) {
+        console.error('Failed to fetch courses:', res.status, res.statusText);
+        return { courses: [] };
+      }
+      const data = await res.json();
+      console.log('Courses data received:', data);
+      return data;
     },
     enabled: !!accessToken && !!user?._id,
-    refetchInterval: 15000
+    refetchInterval: 15000,
+    staleTime: 0
   });
 
   // Fetch instructor's assignments
-  const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
+  const { data: assignmentsData, isLoading: assignmentsLoading, error: assignmentsError } = useQuery({
     queryKey: ['instructor-assignments', user?._id, accessToken],
     queryFn: async () => {
+      console.log('Fetching instructor assignments for user:', user?._id);
       const res = await fetch(buildApiUrl('/api/instructor/assignments'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!res.ok) return { assignments: [] };
-      return res.json();
+      if (!res.ok) {
+        console.error('Failed to fetch assignments:', res.status, res.statusText);
+        return { assignments: [] };
+      }
+      const data = await res.json();
+      console.log('Assignments data received:', data);
+      return data;
     },
     enabled: !!accessToken && !!user?._id,
-    refetchInterval: 15000
+    refetchInterval: 15000,
+    staleTime: 0
   });
 
   // Fetch instructor's live sessions
-  const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
+  const { data: sessionsData, isLoading: sessionsLoading, error: sessionsError } = useQuery({
     queryKey: ['instructor-live-sessions', user?._id, accessToken],
     queryFn: async () => {
+      console.log('Fetching instructor live sessions for user:', user?._id);
       const res = await fetch(buildApiUrl('/api/instructor/live-sessions'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      if (!res.ok) return { sessions: [] };
-      return res.json();
+      if (!res.ok) {
+        console.error('Failed to fetch live sessions:', res.status, res.statusText);
+        return { sessions: [] };
+      }
+      const data = await res.json();
+      console.log('Live sessions data received:', data);
+      return data;
     },
     enabled: !!accessToken && !!user?._id,
-    refetchInterval: 15000
+    refetchInterval: 15000,
+    staleTime: 0
   });
 
   useRealtimeInvalidate([
@@ -79,10 +100,24 @@ const InstructorDashboard = () => {
     return <LoadingSpinner />;
   }
 
+  // Show error messages if any
+  if (coursesError || assignmentsError || sessionsError) {
+    console.error('Dashboard errors:', { coursesError, assignmentsError, sessionsError });
+  }
+
   // Extract data from API responses
   const courses = coursesData?.courses || [];
   const assignments = assignmentsData?.assignments || [];
   const sessions = sessionsData?.sessions || [];
+
+  // Debug logging
+  console.log('Dashboard data:', {
+    courses: courses.length,
+    assignments: assignments.length,
+    sessions: sessions.length,
+    user: user?._id,
+    role: user?.role
+  });
 
   // Compute teaching statistics
   const totalCourses = courses?.length || 0;
@@ -103,7 +138,7 @@ const InstructorDashboard = () => {
           <p className="text-gray-600 mt-2">Manage your courses, track student progress, and conduct live sessions</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => setLocation('/instructor/live-sessions')} className="shadow-sm">
+          <Button onClick={() => setLocation('/instructor/live')} className="shadow-sm">
             <Video className="w-4 h-4 mr-2" />
             Start Live Session
           </Button>
@@ -192,7 +227,7 @@ const InstructorDashboard = () => {
             <Button 
               variant="outline" 
               className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-orange-50 hover:border-orange-200 transition-colors"
-              onClick={() => setLocation('/instructor/live-sessions')}
+              onClick={() => setLocation('/instructor/live')}
             >
               <Video className="w-7 h-7 text-orange-600" />
               <span className="font-medium">Live Sessions</span>

@@ -54,7 +54,6 @@ import AdvancedAnalytics from './components/Instructor/AdvancedAnalytics.jsx';
 import ContentManagement from './components/Instructor/ContentManagement.jsx';
 import AttendanceTracker from './components/Instructor/AttendanceTracker.jsx';
 import Gradebook from './components/Instructor/Gradebook.jsx';
-import LiveSessionManager from './components/Instructor/LiveSessionManager.jsx';
 import QuizBuilder from './components/Instructor/QuizBuilder.jsx';
 import NotificationCenter from './components/Instructor/NotificationCenter.jsx';
 import ReportingSystem from './components/Instructor/ReportingSystem.jsx';

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,6 +97,13 @@ const AttendanceTracker = () => {
     enabled: !!accessToken && !!selectedCourse,
     refetchInterval: 10000
   });
+
+  // Real-time updates
+  useRealtimeInvalidate([
+    ['instructor-courses', user?._id],
+    ['instructor-students', selectedCourse],
+    ['instructor-attendance', selectedCourse]
+  ], ['courses', 'students', 'attendance']);
 
   // Mark attendance mutation
   const markAttendanceMutation = useMutation({

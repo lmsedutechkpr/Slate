@@ -37,7 +37,7 @@ const InstructorLayout = ({ children }) => {
     { title: 'Grade Assignments', href: '/instructor/assignments', icon: FileText, description: 'Grade & evaluate' },
     { title: 'Gradebook', href: '/instructor/gradebook', icon: Award, description: 'Student grades & progress' },
     { title: 'Attendance', href: '/instructor/attendance', icon: Users, description: 'Track student attendance' },
-    { title: 'Live Sessions', href: '/instructor/live-sessions', icon: Video, description: 'Conduct live classes' },
+    { title: 'Live Sessions', href: '/instructor/live', icon: Video, description: 'Conduct live classes' },
     { title: 'Quiz Builder', href: '/instructor/quizzes', icon: Target, description: 'Create interactive quizzes' },
     { title: 'Calendar', href: '/instructor/calendar', icon: Calendar, description: 'Schedule & manage events' },
     { title: 'Plagiarism Check', href: '/instructor/plagiarism', icon: Shield, description: 'Detect academic dishonesty' },

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,6 +92,12 @@ const ContentManagement = () => {
     enabled: !!accessToken && !!selectedCourse,
     refetchInterval: 15000
   });
+
+  // Real-time updates
+  useRealtimeInvalidate([
+    ['instructor-courses', user?._id],
+    ['instructor-content', selectedCourse]
+  ], ['courses', 'content']);
 
   // Upload files mutation
   const uploadFilesMutation = useMutation({

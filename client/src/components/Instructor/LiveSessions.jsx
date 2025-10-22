@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeInvalidate } from '@/lib/useRealtimeInvalidate.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { buildApiUrl } from '../../lib/utils.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Users, Video, Plus, Edit, Trash2 } from 'lucide-react';
 
 const LiveSessions = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -66,6 +67,12 @@ const LiveSessions = () => {
 
   const courses = coursesData?.courses || [];
   const sessions = sessionsData?.sessions || [];
+
+  // Real-time updates
+  useRealtimeInvalidate([
+    ['/api/instructor/courses', accessToken],
+    ['/api/instructor/live-sessions', accessToken]
+  ], ['courses', 'live-sessions']);
 
   // Create session
   const createMutation = useMutation({
