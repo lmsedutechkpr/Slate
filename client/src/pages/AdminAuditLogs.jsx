@@ -233,7 +233,7 @@ const AdminAuditLogs = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
+      <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Audit Logs</h1>
           <p className="text-gray-600">Monitor system activities and user actions</p>
         </div>
@@ -260,10 +260,10 @@ const AdminAuditLogs = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+            <div>
                 <p className="text-sm font-medium text-gray-600">Total Logs</p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
@@ -274,7 +274,7 @@ const AdminAuditLogs = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+            <div>
                 <p className="text-sm font-medium text-gray-600">Today</p>
                 <p className="text-2xl font-bold">{stats.today}</p>
               </div>
@@ -285,7 +285,7 @@ const AdminAuditLogs = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+            <div>
                 <p className="text-sm font-medium text-gray-600">This Week</p>
                 <p className="text-2xl font-bold">{stats.thisWeek}</p>
               </div>
@@ -296,7 +296,7 @@ const AdminAuditLogs = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+            <div>
                 <p className="text-sm font-medium text-gray-600">This Month</p>
                 <p className="text-2xl font-bold">{stats.thisMonth}</p>
               </div>
@@ -387,20 +387,20 @@ const AdminAuditLogs = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Action</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Action</TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>Details</TableHead>
                     <TableHead>IP Address</TableHead>
                     <TableHead>Timestamp</TableHead>
                     <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                   {auditLogs.map((log) => (
-                    <TableRow key={log._id}>
+                  <TableRow key={log._id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getActionIcon(log.action)}
@@ -415,7 +415,7 @@ const AdminAuditLogs = () => {
                           <div className="text-sm text-gray-500">{log.actorEmail}</div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                    <TableCell>
                         <div className="max-w-xs">
                           <div className="text-sm font-medium truncate">{log.description}</div>
                           {log.meta && (
@@ -423,8 +423,8 @@ const AdminAuditLogs = () => {
                               {Object.keys(log.meta).length} metadata fields
                             </div>
                           )}
-                        </div>
-                      </TableCell>
+                      </div>
+                    </TableCell>
                       <TableCell>
                         <div className="text-sm font-mono">{log.ip || 'N/A'}</div>
                       </TableCell>
@@ -432,17 +432,17 @@ const AdminAuditLogs = () => {
                         <div>
                           <div className="text-sm">{formatDate(log.createdAt)}</div>
                           <div className="text-xs text-gray-500">{formatRelativeTime(log.createdAt)}</div>
-                        </div>
-                      </TableCell>
+                      </div>
+                    </TableCell>
                       <TableCell>
                         <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
                           {log.status || 'success'}
                         </Badge>
                       </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             </div>
           )}
         </CardContent>

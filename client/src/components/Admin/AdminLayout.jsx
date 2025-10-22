@@ -227,7 +227,7 @@ const AdminLayout = ({ children }) => {
                     const segment = segments[i];
                     href += `/${segment}`;
                     const matchedNav = navigationItems.find(n => n.href === href);
-                    const looksLikeId = /^[a-f\d]{24}$/i.test(segment);
+                    const looksLikeId = new RegExp('^[a-f\\d]{24}$', 'i').test(segment);
                     const baseLabel = matchedNav?.title || segment.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
                     const label = looksLikeId ? 'Detail' : (baseLabel || 'Admin');
                     const isLast = i === segments.length - 1;
