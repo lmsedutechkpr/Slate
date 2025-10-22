@@ -49,143 +49,6 @@ import {
 const Dashboard = () => {
   const { user, accessToken, authenticatedFetch, authLoading } = useAuth();
   const queryClient = useQueryClient();
-
-  // Dummy data for demonstration
-  const dummyEnrollmentsData = {
-    enrollments: [
-      {
-        _id: '1',
-        courseId: {
-          _id: '1',
-          title: 'Complete Web Development Bootcamp',
-          description: 'Learn modern web development from scratch. Master HTML, CSS, JavaScript, React, Node.js.',
-          category: 'Web Development',
-          level: 'beginner',
-          price: 199,
-          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
-          rating: 4.8,
-          reviewCount: 12,
-          instructor: {
-            profile: { firstName: 'John', lastName: 'Doe' }
-          }
-        },
-        progress: 75,
-        completedLessons: 3,
-        totalLessons: 4,
-        status: 'active',
-        enrolledAt: '2024-01-02T00:00:00.000Z',
-        lastAccessedAt: '2024-01-20T15:30:00.000Z'
-      },
-      {
-        _id: '2',
-        courseId: {
-          _id: '2',
-          title: 'React.js Complete Guide',
-          description: 'Master React.js from fundamentals to advanced concepts. Learn hooks, state management, routing.',
-          category: 'Frontend Development',
-          level: 'intermediate',
-          price: 149,
-          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop',
-          rating: 4.6,
-          reviewCount: 6,
-          instructor: {
-            profile: { firstName: 'Sarah', lastName: 'Wilson' }
-          }
-        },
-        progress: 45,
-        completedLessons: 1,
-        totalLessons: 4,
-        status: 'active',
-        enrolledAt: '2024-01-06T00:00:00.000Z',
-        lastAccessedAt: '2024-01-19T14:20:00.000Z'
-      },
-      {
-        _id: '3',
-        courseId: {
-          _id: '3',
-          title: 'Machine Learning with Python',
-          description: 'Complete machine learning course covering algorithms, data preprocessing, model training.',
-          category: 'Data Science',
-          level: 'intermediate',
-          price: 299,
-          coverUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=450&fit=crop',
-          rating: 4.9,
-          reviewCount: 8,
-          instructor: {
-            profile: { firstName: 'Mike', lastName: 'Johnson' }
-          }
-        },
-        progress: 20,
-        completedLessons: 0,
-        totalLessons: 3,
-        status: 'active',
-        enrolledAt: '2024-01-12T00:00:00.000Z',
-        lastAccessedAt: '2024-01-18T16:45:00.000Z'
-      }
-    ]
-  };
-
-  const dummyAssignmentsData = {
-    assignments: [
-      {
-        _id: '1',
-        title: 'Build a Personal Portfolio Website',
-        courseId: { title: 'Complete Web Development Bootcamp' },
-        dueDate: '2024-02-15T23:59:59.000Z',
-        maxPoints: 100,
-        status: 'pending',
-        submitted: false,
-        grade: null
-      },
-      {
-        _id: '2',
-        title: 'React Todo Application',
-        courseId: { title: 'React.js Complete Guide' },
-        dueDate: '2024-02-20T23:59:59.000Z',
-        maxPoints: 80,
-        status: 'pending',
-        submitted: false,
-        grade: null
-      },
-      {
-        _id: '3',
-        title: 'ML Model Comparison',
-        courseId: { title: 'Machine Learning with Python' },
-        dueDate: '2024-02-25T23:59:59.000Z',
-        maxPoints: 120,
-        status: 'pending',
-        submitted: false,
-        grade: null
-      }
-    ]
-  };
-
-  const dummyLiveSessionsData = {
-    sessions: [
-      {
-        _id: '1',
-        title: 'React Hooks Deep Dive',
-        courseId: { title: 'React.js Complete Guide' },
-        scheduledAt: '2024-02-01T18:00:00.000Z',
-        duration: 90,
-        status: 'scheduled',
-        instructor: {
-          profile: { firstName: 'Sarah', lastName: 'Wilson' }
-        }
-      },
-      {
-        _id: '2',
-        title: 'Web Development Q&A',
-        courseId: { title: 'Complete Web Development Bootcamp' },
-        scheduledAt: '2024-02-03T17:00:00.000Z',
-        duration: 60,
-        status: 'scheduled',
-        instructor: {
-          profile: { firstName: 'John', lastName: 'Doe' }
-        }
-      }
-    ]
-  };
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(15);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
 
@@ -209,21 +72,11 @@ const Dashboard = () => {
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['/api/dashboard', accessToken],
     queryFn: async () => {
-      // Return dummy data for demonstration
-      return {
-        enrollments: dummyEnrollmentsData.enrollments,
-        assignments: dummyAssignmentsData.assignments,
-        stats: {
-          totalCourses: 3,
-          completedCourses: 0,
-          totalAssignments: 3,
-          completedAssignments: 0,
-          totalHours: 45,
-          weeklyHours: 8
-        }
-      };
+      const response = await authenticatedFetch(buildApiUrl('/api/dashboard'));
+      if (!response.ok) throw new Error('Failed to fetch dashboard data');
+      return response.json();
     },
-    enabled: true, // Always enabled for dummy data
+    enabled: !!accessToken && !authLoading,
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000
@@ -277,10 +130,11 @@ const Dashboard = () => {
   const { data: liveData } = useQuery({
     queryKey: ['/api/live-sessions/mine', accessToken],
     queryFn: async () => {
-      // Return dummy data for demonstration
-      return dummyLiveSessionsData;
+      const response = await authenticatedFetch(buildApiUrl('/api/live-sessions/mine'));
+      if (!response.ok) return { sessions: [] };
+      return response.json();
     },
-    enabled: true, // Always enabled for dummy data
+    enabled: !!accessToken && !authLoading,
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000

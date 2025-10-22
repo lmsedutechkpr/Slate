@@ -60,17 +60,167 @@ const Gradebook = () => {
   const [gradeWeights, setGradeWeights] = useState({});
   const [viewMode, setViewMode] = useState('students');
 
+  // Comprehensive dummy data for gradebook
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch.',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts.',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js.',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+      }
+    ]
+  };
+
+  const dummyGradebookData = {
+    courseId: '1',
+    courseTitle: 'Complete Web Development Bootcamp',
+    assignments: [
+      {
+        _id: '1',
+        title: 'Build a Personal Portfolio Website',
+        maxGrade: 100,
+        weight: 25,
+        dueDate: '2024-02-15T23:59:59.000Z',
+        type: 'project'
+      },
+      {
+        _id: '2',
+        title: 'CSS Grid Layout Exercise',
+        maxGrade: 60,
+        weight: 15,
+        dueDate: '2024-01-30T23:59:59.000Z',
+        type: 'practice'
+      },
+      {
+        _id: '3',
+        title: 'JavaScript DOM Manipulation',
+        maxGrade: 70,
+        weight: 20,
+        dueDate: '2024-02-05T23:59:59.000Z',
+        type: 'practice'
+      },
+      {
+        _id: '4',
+        title: 'HTML Fundamentals Quiz',
+        maxGrade: 50,
+        weight: 10,
+        dueDate: '2024-01-25T23:59:59.000Z',
+        type: 'quiz'
+      },
+      {
+        _id: '5',
+        title: 'Final Project',
+        maxGrade: 150,
+        weight: 30,
+        dueDate: '2024-03-01T23:59:59.000Z',
+        type: 'project'
+      }
+    ],
+    students: [
+      {
+        _id: '1',
+        profile: { firstName: 'Alice', lastName: 'Johnson' },
+        email: 'alice.johnson@example.com',
+        studentId: 'S001',
+        grades: [
+          { assignmentId: '1', grade: 95, maxGrade: 100, status: 'graded', submittedAt: '2024-02-14T10:30:00.000Z' },
+          { assignmentId: '2', grade: 88, maxGrade: 60, status: 'graded', submittedAt: '2024-01-29T14:20:00.000Z' },
+          { assignmentId: '3', grade: null, maxGrade: 70, status: 'pending', submittedAt: null },
+          { assignmentId: '4', grade: 45, maxGrade: 50, status: 'graded', submittedAt: '2024-01-24T16:45:00.000Z' },
+          { assignmentId: '5', grade: null, maxGrade: 150, status: 'not-submitted', submittedAt: null }
+        ],
+        overallGrade: 91.5,
+        attendance: 100,
+        lastActivity: '2024-01-20T15:30:00.000Z'
+      },
+      {
+        _id: '2',
+        profile: { firstName: 'Bob', lastName: 'Smith' },
+        email: 'bob.smith@example.com',
+        studentId: 'S002',
+        grades: [
+          { assignmentId: '1', grade: 80, maxGrade: 100, status: 'graded', submittedAt: '2024-02-13T11:15:00.000Z' },
+          { assignmentId: '2', grade: 75, maxGrade: 60, status: 'graded', submittedAt: '2024-01-28T09:30:00.000Z' },
+          { assignmentId: '3', grade: null, maxGrade: 70, status: 'pending', submittedAt: null },
+          { assignmentId: '4', grade: 38, maxGrade: 50, status: 'graded', submittedAt: '2024-01-23T13:45:00.000Z' },
+          { assignmentId: '5', grade: null, maxGrade: 150, status: 'not-submitted', submittedAt: null }
+        ],
+        overallGrade: 77.5,
+        attendance: 85,
+        lastActivity: '2024-01-19T14:20:00.000Z'
+      },
+      {
+        _id: '3',
+        profile: { firstName: 'Charlie', lastName: 'Brown' },
+        email: 'charlie.brown@example.com',
+        studentId: 'S003',
+        grades: [
+          { assignmentId: '1', grade: 70, maxGrade: 100, status: 'graded', submittedAt: '2024-02-12T16:20:00.000Z' },
+          { assignmentId: '2', grade: 65, maxGrade: 60, status: 'graded', submittedAt: '2024-01-27T12:10:00.000Z' },
+          { assignmentId: '3', grade: null, maxGrade: 70, status: 'pending', submittedAt: null },
+          { assignmentId: '4', grade: 32, maxGrade: 50, status: 'graded', submittedAt: '2024-01-22T15:30:00.000Z' },
+          { assignmentId: '5', grade: null, maxGrade: 150, status: 'not-submitted', submittedAt: null }
+        ],
+        overallGrade: 67.5,
+        attendance: 90,
+        lastActivity: '2024-01-18T16:45:00.000Z'
+      },
+      {
+        _id: '4',
+        profile: { firstName: 'Diana', lastName: 'Prince' },
+        email: 'diana.prince@example.com',
+        studentId: 'S004',
+        grades: [
+          { assignmentId: '1', grade: 92, maxGrade: 100, status: 'graded', submittedAt: '2024-02-14T08:45:00.000Z' },
+          { assignmentId: '2', grade: 90, maxGrade: 60, status: 'graded', submittedAt: '2024-01-29T10:15:00.000Z' },
+          { assignmentId: '3', grade: null, maxGrade: 70, status: 'pending', submittedAt: null },
+          { assignmentId: '4', grade: 48, maxGrade: 50, status: 'graded', submittedAt: '2024-01-24T11:20:00.000Z' },
+          { assignmentId: '5', grade: null, maxGrade: 150, status: 'not-submitted', submittedAt: null }
+        ],
+        overallGrade: 89.0,
+        attendance: 95,
+        lastActivity: '2024-01-20T12:30:00.000Z'
+      },
+      {
+        _id: '5',
+        profile: { firstName: 'Eve', lastName: 'Adams' },
+        email: 'eve.adams@example.com',
+        studentId: 'S005',
+        grades: [
+          { assignmentId: '1', grade: 85, maxGrade: 100, status: 'graded', submittedAt: '2024-02-13T14:30:00.000Z' },
+          { assignmentId: '2', grade: 82, maxGrade: 60, status: 'graded', submittedAt: '2024-01-28T16:45:00.000Z' },
+          { assignmentId: '3', grade: null, maxGrade: 70, status: 'pending', submittedAt: null },
+          { assignmentId: '4', grade: 42, maxGrade: 50, status: 'graded', submittedAt: '2024-01-23T09:15:00.000Z' },
+          { assignmentId: '5', grade: null, maxGrade: 150, status: 'not-submitted', submittedAt: null }
+        ],
+        overallGrade: 81.0,
+        attendance: 88,
+        lastActivity: '2024-01-19T11:45:00.000Z'
+      }
+    ]
+  };
+
   // Fetch courses
   const { data: coursesData } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { courses: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000
   });
 
@@ -78,14 +228,10 @@ const Gradebook = () => {
   const { data: assignmentsData } = useQuery({
     queryKey: ['course-assignments', selectedCourse, accessToken],
     queryFn: async () => {
-      if (!selectedCourse) return { assignments: [] };
-      const res = await fetch(buildApiUrl(`/api/instructor/courses/${selectedCourse}/assignments`), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { assignments: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return { assignments: dummyGradebookData.assignments };
     },
-    enabled: !!accessToken && !!selectedCourse,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000
   });
 
@@ -93,14 +239,10 @@ const Gradebook = () => {
   const { data: gradebookData } = useQuery({
     queryKey: ['gradebook', selectedCourse, accessToken],
     queryFn: async () => {
-      if (!selectedCourse) return { students: [], grades: {}, summary: {} };
-      const res = await fetch(buildApiUrl(`/api/instructor/courses/${selectedCourse}/gradebook`), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { students: [], grades: {}, summary: {} };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyGradebookData;
     },
-    enabled: !!accessToken && !!selectedCourse,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 10000
   });
 

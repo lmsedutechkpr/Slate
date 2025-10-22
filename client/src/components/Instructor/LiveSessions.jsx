@@ -31,37 +31,158 @@ const LiveSessions = () => {
     maxParticipants: ''
   });
 
+  // Comprehensive dummy data for live sessions
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch.',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts.',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js.',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+      }
+    ]
+  };
+
+  const dummySessionsData = {
+    sessions: [
+      {
+        _id: '1',
+        title: 'React Hooks Deep Dive',
+        description: 'Deep dive into React hooks including useState, useEffect, useContext, and custom hooks.',
+        courseId: { 
+          _id: '2', 
+          title: 'React.js Complete Guide',
+          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+        },
+        scheduledAt: '2024-02-01T18:00:00.000Z',
+        duration: 90,
+        status: 'scheduled',
+        participants: 25,
+        maxParticipants: 50,
+        meetingUrl: 'https://meet.google.com/react-hooks-session',
+        instructor: {
+          profile: { firstName: 'Sarah', lastName: 'Wilson' }
+        },
+        createdAt: '2024-01-25T00:00:00.000Z',
+        updatedAt: '2024-01-25T00:00:00.000Z'
+      },
+      {
+        _id: '2',
+        title: 'Web Development Q&A',
+        description: 'Q&A session for web development concepts and project help.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        scheduledAt: '2024-02-03T17:00:00.000Z',
+        duration: 60,
+        status: 'scheduled',
+        participants: 15,
+        maxParticipants: 30,
+        meetingUrl: 'https://meet.google.com/webdev-qa',
+        instructor: {
+          profile: { firstName: 'John', lastName: 'Doe' }
+        },
+        createdAt: '2024-01-20T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Best Practices',
+        description: 'Learn best practices for Node.js development including error handling, security, and performance.',
+        courseId: { 
+          _id: '3', 
+          title: 'Node.js Backend Development',
+          coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+        },
+        scheduledAt: '2024-01-30T19:00:00.000Z',
+        duration: 75,
+        status: 'completed',
+        participants: 18,
+        maxParticipants: 25,
+        recordingUrl: 'https://recordings.example.com/nodejs-best-practices.mp4',
+        instructor: {
+          profile: { firstName: 'Mike', lastName: 'Johnson' }
+        },
+        createdAt: '2024-01-15T00:00:00.000Z',
+        updatedAt: '2024-01-30T20:15:00.000Z'
+      },
+      {
+        _id: '4',
+        title: 'CSS Grid Layout Workshop',
+        description: 'Hands-on workshop for CSS Grid layout techniques and responsive design.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        scheduledAt: '2024-01-28T14:00:00.000Z',
+        duration: 120,
+        status: 'completed',
+        participants: 22,
+        maxParticipants: 30,
+        recordingUrl: 'https://recordings.example.com/css-grid-workshop.mp4',
+        instructor: {
+          profile: { firstName: 'John', lastName: 'Doe' }
+        },
+        createdAt: '2024-01-10T00:00:00.000Z',
+        updatedAt: '2024-01-28T16:00:00.000Z'
+      },
+      {
+        _id: '5',
+        title: 'JavaScript ES6+ Features',
+        description: 'Explore modern JavaScript features including arrow functions, destructuring, and async/await.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        scheduledAt: '2024-02-05T16:00:00.000Z',
+        duration: 90,
+        status: 'scheduled',
+        participants: 0,
+        maxParticipants: 40,
+        meetingUrl: 'https://meet.google.com/js-es6-features',
+        instructor: {
+          profile: { firstName: 'John', lastName: 'Doe' }
+        },
+        createdAt: '2024-01-30T00:00:00.000Z',
+        updatedAt: '2024-01-30T00:00:00.000Z'
+      }
+    ]
+  };
+
   // Fetch instructor's courses for session selection
   const { data: coursesData } = useQuery({
     queryKey: ['/api/instructor/courses'],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch courses');
-      }
-      
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
   });
 
   // Fetch instructor live sessions
   const { data: sessionsData, isLoading } = useQuery({
     queryKey: ['/api/instructor/live-sessions', accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/live-sessions'), {
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
-      });
-      if (!res.ok) return { sessions: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummySessionsData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000,
   });
 

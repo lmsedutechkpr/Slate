@@ -7,16 +7,92 @@ import LoadingSpinner from '../components/Common/LoadingSpinner.jsx';
 
 const InstructorAnalytics = () => {
   const { accessToken, user } = useAuth();
+
+  // Comprehensive dummy data for instructor analytics
+  const dummyAnalyticsData = {
+    instructor: {
+      _id: user?._id,
+      profile: { firstName: 'John', lastName: 'Doe' },
+      email: 'john.doe@example.com'
+    },
+    stats: {
+      totalCourses: 3,
+      publishedCourses: 3,
+      totalStudents: 312,
+      totalEnrollments: 456,
+      avgRating: 4.7,
+      totalRevenue: 125000,
+      monthlyGrowth: 12.5,
+      activeStudents: 267,
+      completionRate: 78.5,
+      satisfactionScore: 4.6
+    },
+    coursePerformance: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        enrollments: 156,
+        completionRate: 82.5,
+        avgRating: 4.8,
+        revenue: 62000,
+        students: 156,
+        assignments: 8,
+        avgGrade: 87.5
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        enrollments: 89,
+        completionRate: 75.2,
+        avgRating: 4.6,
+        revenue: 35000,
+        students: 89,
+        assignments: 6,
+        avgGrade: 82.3
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        enrollments: 67,
+        completionRate: 68.9,
+        avgRating: 4.7,
+        revenue: 28000,
+        students: 67,
+        assignments: 7,
+        avgGrade: 78.9
+      }
+    ],
+    recentActivity: [
+      { action: 'New student enrolled in Web Development Bootcamp', timestamp: '2024-01-20T15:30:00.000Z' },
+      { action: 'Assignment graded for React.js Guide', timestamp: '2024-01-20T14:20:00.000Z' },
+      { action: 'Live session completed: Node.js Best Practices', timestamp: '2024-01-20T13:15:00.000Z' },
+      { action: 'Course updated: Complete Web Development Bootcamp', timestamp: '2024-01-20T12:00:00.000Z' }
+    ],
+    trends: {
+      enrollments: [
+        { month: 'Oct 2023', count: 45 },
+        { month: 'Nov 2023', count: 52 },
+        { month: 'Dec 2023', count: 38 },
+        { month: 'Jan 2024', count: 67 },
+        { month: 'Feb 2024', count: 89 }
+      ],
+      revenue: [
+        { month: 'Oct 2023', amount: 18000 },
+        { month: 'Nov 2023', amount: 22000 },
+        { month: 'Dec 2023', amount: 15000 },
+        { month: 'Jan 2024', amount: 35000 },
+        { month: 'Feb 2024', amount: 45000 }
+      ]
+    }
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ['/api/instructor/analytics', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/analytics'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { instructor: null, stats: {}, coursePerformance: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyAnalyticsData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000
   });
 

@@ -38,20 +38,120 @@ const InstructorAssignments = () => {
     type: 'practice'
   });
 
+  // Comprehensive dummy data for assignments
+  const dummyAssignmentsData = {
+    assignments: [
+      {
+        _id: '1',
+        title: 'Build a Personal Portfolio Website',
+        description: 'Create a responsive portfolio website using HTML, CSS, and JavaScript. Include sections for about, projects, skills, and contact.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        dueDate: '2024-02-15T23:59:59.000Z',
+        maxGrade: 100,
+        instructions: 'Use modern CSS techniques like Flexbox or Grid. Include at least 3 projects with descriptions and links.',
+        type: 'project',
+        status: 'active',
+        submissions: 45,
+        graded: 42,
+        avgGrade: 87.5,
+        createdAt: '2024-01-15T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z'
+      },
+      {
+        _id: '2',
+        title: 'React Todo Application',
+        description: 'Build a todo application using React with features like add, edit, delete, and mark as complete.',
+        courseId: { 
+          _id: '2', 
+          title: 'React.js Complete Guide',
+          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+        },
+        dueDate: '2024-02-20T23:59:59.000Z',
+        maxGrade: 80,
+        instructions: 'Use React hooks (useState, useEffect). Implement local storage for persistence.',
+        type: 'practice',
+        status: 'active',
+        submissions: 23,
+        graded: 18,
+        avgGrade: 82.3,
+        createdAt: '2024-01-20T00:00:00.000Z',
+        updatedAt: '2024-01-22T00:00:00.000Z'
+      },
+      {
+        _id: '3',
+        title: 'REST API with Express',
+        description: 'Create a RESTful API using Express.js with CRUD operations for a blog system.',
+        courseId: { 
+          _id: '3', 
+          title: 'Node.js Backend Development',
+          coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+        },
+        dueDate: '2024-02-25T23:59:59.000Z',
+        maxGrade: 120,
+        instructions: 'Include endpoints for posts, comments, and users. Use proper HTTP status codes and error handling.',
+        type: 'project',
+        status: 'active',
+        submissions: 12,
+        graded: 8,
+        avgGrade: 78.9,
+        createdAt: '2024-01-25T00:00:00.000Z',
+        updatedAt: '2024-01-28T00:00:00.000Z'
+      },
+      {
+        _id: '4',
+        title: 'CSS Grid Layout Exercise',
+        description: 'Create a responsive layout using CSS Grid for a magazine-style webpage.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        dueDate: '2024-01-30T23:59:59.000Z',
+        maxGrade: 60,
+        instructions: 'Include header, sidebar, main content, and footer areas. Make it responsive for mobile devices.',
+        type: 'practice',
+        status: 'completed',
+        submissions: 38,
+        graded: 38,
+        avgGrade: 91.2,
+        createdAt: '2024-01-10T00:00:00.000Z',
+        updatedAt: '2024-01-30T00:00:00.000Z'
+      },
+      {
+        _id: '5',
+        title: 'JavaScript DOM Manipulation',
+        description: 'Create an interactive webpage that demonstrates various DOM manipulation techniques.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        dueDate: '2024-02-05T23:59:59.000Z',
+        maxGrade: 70,
+        instructions: 'Include event listeners, element creation, styling changes, and form validation.',
+        type: 'practice',
+        status: 'upcoming',
+        submissions: 0,
+        graded: 0,
+        avgGrade: 0,
+        createdAt: '2024-01-28T00:00:00.000Z',
+        updatedAt: '2024-01-28T00:00:00.000Z'
+      }
+    ]
+  };
+
   // Fetch assignments (realtime)
   const { data: assignmentsData, isLoading } = useQuery({
     queryKey: ['/api/instructor/assignments', accessToken],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/instructor/assignments'), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) return { assignments: [] };
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyAssignmentsData;
     },
-    enabled: !!accessToken,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000
   });
 

@@ -49,6 +49,135 @@ const ContentManagement = () => {
   const { accessToken, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Comprehensive dummy data for content management
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch.',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts.',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js.',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+      }
+    ]
+  };
+
+  const dummyContentData = {
+    folders: [
+      {
+        _id: '1',
+        name: 'Lectures',
+        courseId: '1',
+        parentId: null,
+        type: 'folder',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-15T00:00:00.000Z',
+        size: 0,
+        itemCount: 8
+      },
+      {
+        _id: '2',
+        name: 'Assignments',
+        courseId: '1',
+        parentId: null,
+        type: 'folder',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-15T00:00:00.000Z',
+        size: 0,
+        itemCount: 5
+      },
+      {
+        _id: '3',
+        name: 'Resources',
+        courseId: '1',
+        parentId: null,
+        type: 'folder',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-15T00:00:00.000Z',
+        size: 0,
+        itemCount: 12
+      }
+    ],
+    files: [
+      {
+        _id: '1',
+        name: 'Lecture 1 - Introduction to Web Development.pdf',
+        courseId: '1',
+        folderId: '1',
+        type: 'file',
+        fileType: 'pdf',
+        size: 5242880, // 5MB
+        url: 'https://example.com/files/lecture1.pdf',
+        createdAt: '2024-01-02T00:00:00.000Z',
+        updatedAt: '2024-01-02T00:00:00.000Z',
+        uploadedBy: user?._id
+      },
+      {
+        _id: '2',
+        name: 'Lecture 2 - HTML Basics.pptx',
+        courseId: '1',
+        folderId: '1',
+        type: 'file',
+        fileType: 'pptx',
+        size: 8388608, // 8MB
+        url: 'https://example.com/files/lecture2.pptx',
+        createdAt: '2024-01-05T00:00:00.000Z',
+        updatedAt: '2024-01-05T00:00:00.000Z',
+        uploadedBy: user?._id
+      },
+      {
+        _id: '3',
+        name: 'Assignment 1 - HTML Structure.docx',
+        courseId: '1',
+        folderId: '2',
+        type: 'file',
+        fileType: 'docx',
+        size: 2097152, // 2MB
+        url: 'https://example.com/files/assignment1.docx',
+        createdAt: '2024-01-08T00:00:00.000Z',
+        updatedAt: '2024-01-08T00:00:00.000Z',
+        uploadedBy: user?._id
+      },
+      {
+        _id: '4',
+        name: 'Web Development Cheat Sheet.pdf',
+        courseId: '1',
+        folderId: '3',
+        type: 'file',
+        fileType: 'pdf',
+        size: 1048576, // 1MB
+        url: 'https://example.com/files/cheatsheet.pdf',
+        createdAt: '2024-01-10T00:00:00.000Z',
+        updatedAt: '2024-01-10T00:00:00.000Z',
+        uploadedBy: user?._id
+      },
+      {
+        _id: '5',
+        name: 'CSS Tutorial Video.mp4',
+        courseId: '1',
+        folderId: '1',
+        type: 'file',
+        fileType: 'mp4',
+        size: 52428800, // 50MB
+        url: 'https://example.com/files/css-tutorial.mp4',
+        createdAt: '2024-01-12T00:00:00.000Z',
+        updatedAt: '2024-01-12T00:00:00.000Z',
+        uploadedBy: user?._id
+      }
+    ]
+  };
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
   
@@ -68,13 +197,10 @@ const ContentManagement = () => {
   const { data: coursesData } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { courses: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000
   });
 
@@ -82,14 +208,10 @@ const ContentManagement = () => {
   const { data: contentData } = useQuery({
     queryKey: ['course-content', selectedCourse, accessToken],
     queryFn: async () => {
-      if (!selectedCourse) return { folders: [], files: [] };
-      const res = await fetch(buildApiUrl(`/api/instructor/courses/${selectedCourse}/content`), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { folders: [], files: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyContentData;
     },
-    enabled: !!accessToken && !!selectedCourse,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000
   });
 

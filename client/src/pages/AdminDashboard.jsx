@@ -41,87 +41,6 @@ const AdminDashboard = () => {
     retryDelay: 1000
   });
 
-  // Dummy data for students and courses
-  const dummyStudentsSample = {
-    students: [
-      {
-        _id: '1',
-        username: 'alice_johnson',
-        profile: { firstName: 'Alice', lastName: 'Johnson' },
-        enrollments: [{ courseId: { title: 'Complete Web Development Bootcamp' } }],
-        analytics: { lastActivity: '2024-01-20T15:30:00.000Z' },
-        createdAt: '2024-01-20T00:00:00.000Z'
-      },
-      {
-        _id: '2',
-        username: 'bob_smith',
-        profile: { firstName: 'Bob', lastName: 'Smith' },
-        enrollments: [{ courseId: { title: 'React.js Complete Guide' } }],
-        analytics: { lastActivity: '2024-01-19T14:20:00.000Z' },
-        createdAt: '2024-01-19T00:00:00.000Z'
-      },
-      {
-        _id: '3',
-        username: 'charlie_brown',
-        profile: { firstName: 'Charlie', lastName: 'Brown' },
-        enrollments: [{ courseId: { title: 'Machine Learning with Python' } }],
-        analytics: { lastActivity: '2024-01-18T16:45:00.000Z' },
-        createdAt: '2024-01-18T00:00:00.000Z'
-      },
-      {
-        _id: '4',
-        username: 'diana_prince',
-        profile: { firstName: 'Diana', lastName: 'Prince' },
-        enrollments: [{ courseId: { title: 'Complete Web Development Bootcamp' } }],
-        analytics: { lastActivity: '2024-01-17T11:15:00.000Z' },
-        createdAt: '2024-01-17T00:00:00.000Z'
-      },
-      {
-        _id: '5',
-        username: 'eve_adams',
-        profile: { firstName: 'Eve', lastName: 'Adams' },
-        enrollments: [{ courseId: { title: 'React.js Complete Guide' } }],
-        analytics: { lastActivity: '2024-01-16T09:30:00.000Z' },
-        createdAt: '2024-01-16T00:00:00.000Z'
-      }
-    ]
-  };
-
-  const dummyCoursesData = {
-    courses: [
-      {
-        _id: '1',
-        title: 'Complete Web Development Bootcamp',
-        enrollmentCount: 456,
-        assignedInstructor: { profile: { firstName: 'John', lastName: 'Doe' } }
-      },
-      {
-        _id: '2',
-        title: 'React.js Complete Guide',
-        enrollmentCount: 234,
-        assignedInstructor: { profile: { firstName: 'Sarah', lastName: 'Wilson' } }
-      },
-      {
-        _id: '3',
-        title: 'Machine Learning with Python',
-        enrollmentCount: 189,
-        assignedInstructor: { profile: { firstName: 'Mike', lastName: 'Johnson' } }
-      },
-      {
-        _id: '4',
-        title: 'Node.js Backend Development',
-        enrollmentCount: 156,
-        assignedInstructor: { profile: { firstName: 'John', lastName: 'Doe' } }
-      },
-      {
-        _id: '5',
-        title: 'Data Science Fundamentals',
-        enrollmentCount: 123,
-        assignedInstructor: { profile: { firstName: 'Sarah', lastName: 'Wilson' } }
-      }
-    ]
-  };
-
   // Secondary datasets
   const { data: studentsSample } = useQuery({
     queryKey: ['/api/admin/analytics/students', { page: 1, limit: 50 }],
@@ -149,10 +68,6 @@ const AdminDashboard = () => {
     enabled: !!accessToken && !authLoading
   });
 
-  // Use dummy data if API data is not available
-  const finalStudentsSample = studentsSample || dummyStudentsSample;
-  const finalCoursesData = coursesData || dummyCoursesData;
-
   // Realtime: invalidate overview on updates
   useEffect(() => {
     let unsub = () => {};
@@ -174,19 +89,7 @@ const AdminDashboard = () => {
   console.log('isLoading:', isLoading);
   console.log('overview data:', overview);
 
-  // Dummy data for demonstration
-  const dummyStats = {
-    totalUsers: 1247,
-    totalStudents: 1156,
-    totalInstructors: 45,
-    totalCourses: 23,
-    totalEnrollments: 3456,
-    totalRevenue: 125000,
-    monthlyGrowth: 12.5,
-    activeUsers: 892
-  };
-
-  const stats = overview || dummyStats;
+  const stats = overview || { totalUsers: 0, totalStudents: 0, totalInstructors: 0, totalCourses: 0, totalEnrollments: 0, totalRevenue: 0, monthlyGrowth: 0, activeUsers: 0 };
 
   // Simple synthetic trend data derived from current totals (placeholder until backend provides series)
   const trend = [
@@ -299,9 +202,9 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader><CardTitle>Recent Enrollments</CardTitle><CardDescription>Last 10 sign-ups</CardDescription></CardHeader>
           <CardContent>
-            {finalStudentsSample?.students?.length ? (
+            {studentsSample?.students?.length ? (
               <ul className="divide-y">
-                {finalStudentsSample.students
+                {studentsSample.students
                   .slice(0, 10)
                   .map((s) => {
                     const courseTitle = s.enrollments?.[0]?.courseId?.title;
@@ -329,9 +232,9 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader><CardTitle>Course Performance</CardTitle><CardDescription>Top courses by enrollments</CardDescription></CardHeader>
           <CardContent>
-            {Array.isArray(finalCoursesData?.courses) && finalCoursesData.courses.length > 0 ? (
+            {Array.isArray(coursesData?.courses) && coursesData.courses.length > 0 ? (
               <div className="text-sm">
-                {finalCoursesData.courses
+                {coursesData.courses
                   .slice(0, 5)
                   .sort((a,b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
                   .map((c, idx, arr) => {

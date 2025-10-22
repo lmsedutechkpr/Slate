@@ -74,17 +74,133 @@ const ReportingSystem = () => {
     includeRecommendations: true
   });
 
+  // Comprehensive dummy data for reporting system
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch.',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts.',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js.',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+      }
+    ]
+  };
+
+  const dummyReportsData = {
+    reports: [
+      {
+        _id: '1',
+        title: 'Student Performance Report',
+        description: 'Detailed analysis of individual student performance and progress.',
+        type: 'student-performance',
+        courseId: '1',
+        courseTitle: 'Complete Web Development Bootcamp',
+        status: 'completed',
+        createdAt: '2024-01-20T10:00:00.000Z',
+        data: {
+          students: [
+            { name: 'Alice Johnson', avgGrade: 91.5, assignments: 3, attendance: 100 },
+            { name: 'Bob Smith', avgGrade: 77.5, assignments: 3, attendance: 85 },
+            { name: 'Charlie Brown', avgGrade: 67.5, assignments: 3, attendance: 90 }
+          ],
+          summary: {
+            totalStudents: 3,
+            avgGrade: 78.8,
+            completionRate: 85.2
+          }
+        }
+      },
+      {
+        _id: '2',
+        title: 'Course Analytics Report',
+        description: 'Overall course performance metrics and trends.',
+        type: 'course-analytics',
+        courseId: '2',
+        courseTitle: 'React.js Complete Guide',
+        status: 'completed',
+        createdAt: '2024-01-19T14:30:00.000Z',
+        data: {
+          metrics: {
+            enrollment: 89,
+            completion: 75.2,
+            avgGrade: 82.3,
+            satisfaction: 4.6
+          },
+          trends: [
+            { period: 'Week 1', engagement: 85 },
+            { period: 'Week 2', engagement: 78 },
+            { period: 'Week 3', engagement: 82 },
+            { period: 'Week 4', engagement: 88 }
+          ]
+        }
+      },
+      {
+        _id: '3',
+        title: 'Assignment Analysis Report',
+        description: 'Analysis of assignment completion and grading patterns.',
+        type: 'assignment-analysis',
+        courseId: '1',
+        courseTitle: 'Complete Web Development Bootcamp',
+        status: 'completed',
+        createdAt: '2024-01-18T16:45:00.000Z',
+        data: {
+          assignments: [
+            { title: 'Portfolio Website', submissions: 45, avgGrade: 87.5, completion: 93.8 },
+            { title: 'CSS Grid Layout', submissions: 38, avgGrade: 91.2, completion: 100 },
+            { title: 'DOM Manipulation', submissions: 0, avgGrade: 0, completion: 0 }
+          ],
+          summary: {
+            totalAssignments: 3,
+            avgCompletion: 64.6,
+            avgGrade: 89.4
+          }
+        }
+      },
+      {
+        _id: '4',
+        title: 'Attendance Report',
+        description: 'Attendance tracking and patterns analysis.',
+        type: 'attendance',
+        courseId: '1',
+        courseTitle: 'Complete Web Development Bootcamp',
+        status: 'completed',
+        createdAt: '2024-01-17T12:20:00.000Z',
+        data: {
+          sessions: [
+            { date: '2024-01-15', attendance: 91.0, total: 156 },
+            { date: '2024-01-17', attendance: 88.5, total: 156 },
+            { date: '2024-01-19', attendance: 92.9, total: 156 }
+          ],
+          summary: {
+            avgAttendance: 90.8,
+            totalSessions: 3,
+            totalStudents: 156
+          }
+        }
+      }
+    ]
+  };
+
   // Fetch courses
   const { data: coursesData } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { courses: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000
   });
 
@@ -92,14 +208,10 @@ const ReportingSystem = () => {
   const { data: reportData } = useQuery({
     queryKey: ['instructor-report', selectedCourse, selectedReport, dateRange, accessToken],
     queryFn: async () => {
-      if (!selectedCourse || !selectedReport) return null;
-      const res = await fetch(buildApiUrl(`/api/instructor/reports/${selectedReport}?courseId=${selectedCourse}&dateRange=${dateRange}`), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return null;
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyReportsData;
     },
-    enabled: !!accessToken && !!selectedCourse && !!selectedReport,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000
   });
 

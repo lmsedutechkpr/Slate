@@ -28,7 +28,7 @@ const InstructorDashboard = () => {
   const [location, setLocation] = useLocation();
   const { accessToken, user } = useAuth();
 
-  // Dummy data for demonstration
+  // Comprehensive dummy data for instructor dashboard
   const dummyCoursesData = {
     courses: [
       {
@@ -39,13 +39,15 @@ const InstructorDashboard = () => {
         level: 'beginner',
         price: 199,
         coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
-        enrollmentCount: 456,
+        enrollmentCount: 156,
         avgProgressPct: 65,
         rating: 4.8,
         reviewCount: 12,
         status: 'published',
         createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-15T00:00:00.000Z'
+        updatedAt: '2024-01-15T00:00:00.000Z',
+        lessons: 24,
+        duration: '40 hours'
       },
       {
         _id: '2',
@@ -55,13 +57,15 @@ const InstructorDashboard = () => {
         level: 'intermediate',
         price: 149,
         coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop',
-        enrollmentCount: 234,
+        enrollmentCount: 89,
         avgProgressPct: 45,
         rating: 4.6,
         reviewCount: 6,
         status: 'published',
         createdAt: '2024-01-05T00:00:00.000Z',
-        updatedAt: '2024-01-20T00:00:00.000Z'
+        updatedAt: '2024-01-20T00:00:00.000Z',
+        lessons: 18,
+        duration: '30 hours'
       },
       {
         _id: '3',
@@ -71,13 +75,15 @@ const InstructorDashboard = () => {
         level: 'intermediate',
         price: 179,
         coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop',
-        enrollmentCount: 156,
+        enrollmentCount: 67,
         avgProgressPct: 30,
         rating: 4.7,
         reviewCount: 8,
         status: 'published',
         createdAt: '2024-01-10T00:00:00.000Z',
-        updatedAt: '2024-01-25T00:00:00.000Z'
+        updatedAt: '2024-01-25T00:00:00.000Z',
+        lessons: 20,
+        duration: '35 hours'
       }
     ]
   };
@@ -92,7 +98,8 @@ const InstructorDashboard = () => {
         submissions: 45,
         graded: 42,
         maxPoints: 100,
-        status: 'active'
+        status: 'active',
+        createdAt: '2024-01-15T00:00:00.000Z'
       },
       {
         _id: '2',
@@ -102,7 +109,8 @@ const InstructorDashboard = () => {
         submissions: 23,
         graded: 18,
         maxPoints: 80,
-        status: 'active'
+        status: 'active',
+        createdAt: '2024-01-20T00:00:00.000Z'
       },
       {
         _id: '3',
@@ -112,7 +120,8 @@ const InstructorDashboard = () => {
         submissions: 12,
         graded: 8,
         maxPoints: 120,
-        status: 'active'
+        status: 'active',
+        createdAt: '2024-01-25T00:00:00.000Z'
       }
     ]
   };
@@ -127,7 +136,8 @@ const InstructorDashboard = () => {
         duration: 90,
         status: 'scheduled',
         participants: 25,
-        maxParticipants: 50
+        maxParticipants: 50,
+        meetingUrl: 'https://meet.google.com/react-hooks-session'
       },
       {
         _id: '2',
@@ -137,7 +147,8 @@ const InstructorDashboard = () => {
         duration: 60,
         status: 'scheduled',
         participants: 15,
-        maxParticipants: 30
+        maxParticipants: 30,
+        meetingUrl: 'https://meet.google.com/webdev-qa'
       },
       {
         _id: '3',
@@ -147,7 +158,42 @@ const InstructorDashboard = () => {
         duration: 75,
         status: 'completed',
         participants: 18,
-        maxParticipants: 25
+        maxParticipants: 25,
+        recordingUrl: 'https://recordings.example.com/nodejs-best-practices.mp4'
+      }
+    ]
+  };
+
+  const dummyStudentsData = {
+    students: [
+      {
+        _id: '1',
+        profile: { firstName: 'Alice', lastName: 'Johnson' },
+        email: 'alice.johnson@example.com',
+        enrollments: [
+          { courseId: '1', progress: 75, status: 'active' },
+          { courseId: '2', progress: 45, status: 'active' }
+        ],
+        lastActivity: '2024-01-20T15:30:00.000Z'
+      },
+      {
+        _id: '2',
+        profile: { firstName: 'Bob', lastName: 'Smith' },
+        email: 'bob.smith@example.com',
+        enrollments: [
+          { courseId: '1', progress: 60, status: 'active' },
+          { courseId: '3', progress: 30, status: 'active' }
+        ],
+        lastActivity: '2024-01-19T14:20:00.000Z'
+      },
+      {
+        _id: '3',
+        profile: { firstName: 'Charlie', lastName: 'Brown' },
+        email: 'charlie.brown@example.com',
+        enrollments: [
+          { courseId: '2', progress: 20, status: 'active' }
+        ],
+        lastActivity: '2024-01-18T16:45:00.000Z'
       }
     ]
   };

@@ -32,17 +32,86 @@ const InstructorCourses = () => {
     price: 0,
     tags: []
   });
+
+  // Comprehensive dummy data for course content management
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch. Master HTML, CSS, JavaScript, React, Node.js.',
+        category: 'Web Development',
+        level: 'beginner',
+        language: 'English',
+        price: 199,
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
+        enrollmentCount: 156,
+        avgProgressPct: 65,
+        rating: 4.8,
+        reviewCount: 12,
+        status: 'published',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-15T00:00:00.000Z',
+        lessons: 24,
+        duration: '40 hours',
+        materials: 15,
+        assignments: 8,
+        quizzes: 5
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts. Learn hooks, state management, routing.',
+        category: 'Frontend Development',
+        level: 'intermediate',
+        language: 'English',
+        price: 149,
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop',
+        enrollmentCount: 89,
+        avgProgressPct: 45,
+        rating: 4.6,
+        reviewCount: 6,
+        status: 'published',
+        createdAt: '2024-01-05T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z',
+        lessons: 18,
+        duration: '30 hours',
+        materials: 12,
+        assignments: 6,
+        quizzes: 4
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js, Express, and MongoDB.',
+        category: 'Backend Development',
+        level: 'intermediate',
+        language: 'English',
+        price: 179,
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop',
+        enrollmentCount: 67,
+        avgProgressPct: 30,
+        rating: 4.7,
+        reviewCount: 8,
+        status: 'published',
+        createdAt: '2024-01-10T00:00:00.000Z',
+        updatedAt: '2024-01-25T00:00:00.000Z',
+        lessons: 20,
+        duration: '35 hours',
+        materials: 18,
+        assignments: 7,
+        quizzes: 6
+      }
+    ]
+  };
   
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { courses: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000
   });
 

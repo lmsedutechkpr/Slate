@@ -54,17 +54,197 @@ const AttendanceTracker = () => {
   const [localAttendanceData, setLocalAttendanceData] = useState({});
   const [bulkAction, setBulkAction] = useState('');
 
+  // Comprehensive dummy data for attendance tracking
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch.',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts.',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js.',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+      }
+    ]
+  };
+
+  const dummyAttendanceData = {
+    courseId: '1',
+    courseTitle: 'Complete Web Development Bootcamp',
+    sessions: [
+      {
+        _id: '1',
+        date: '2024-01-15T10:00:00.000Z',
+        topic: 'Introduction to Web Development',
+        duration: 90,
+        totalStudents: 156,
+        present: 142,
+        absent: 14,
+        late: 8,
+        attendanceRate: 91.0,
+        instructor: 'John Doe'
+      },
+      {
+        _id: '2',
+        date: '2024-01-17T10:00:00.000Z',
+        topic: 'HTML Basics',
+        duration: 90,
+        totalStudents: 156,
+        present: 138,
+        absent: 18,
+        late: 12,
+        attendanceRate: 88.5,
+        instructor: 'John Doe'
+      },
+      {
+        _id: '3',
+        date: '2024-01-19T10:00:00.000Z',
+        topic: 'CSS Fundamentals',
+        duration: 90,
+        totalStudents: 156,
+        present: 145,
+        absent: 11,
+        late: 6,
+        attendanceRate: 92.9,
+        instructor: 'John Doe'
+      },
+      {
+        _id: '4',
+        date: '2024-01-22T10:00:00.000Z',
+        topic: 'JavaScript Basics',
+        duration: 90,
+        totalStudents: 156,
+        present: 140,
+        absent: 16,
+        late: 9,
+        attendanceRate: 89.7,
+        instructor: 'John Doe'
+      },
+      {
+        _id: '5',
+        date: '2024-01-24T10:00:00.000Z',
+        topic: 'DOM Manipulation',
+        duration: 90,
+        totalStudents: 156,
+        present: 143,
+        absent: 13,
+        late: 7,
+        attendanceRate: 91.7,
+        instructor: 'John Doe'
+      }
+    ],
+    students: [
+      {
+        _id: '1',
+        profile: { firstName: 'Alice', lastName: 'Johnson' },
+        email: 'alice.johnson@example.com',
+        studentId: 'S001',
+        attendance: [
+          { sessionId: '1', status: 'present', timestamp: '2024-01-15T09:58:00.000Z', notes: '' },
+          { sessionId: '2', status: 'present', timestamp: '2024-01-17T09:55:00.000Z', notes: '' },
+          { sessionId: '3', status: 'present', timestamp: '2024-01-19T09:57:00.000Z', notes: '' },
+          { sessionId: '4', status: 'present', timestamp: '2024-01-22T09:59:00.000Z', notes: '' },
+          { sessionId: '5', status: 'present', timestamp: '2024-01-24T09:56:00.000Z', notes: '' }
+        ],
+        attendanceRate: 100.0,
+        totalSessions: 5,
+        presentSessions: 5,
+        absentSessions: 0,
+        lateSessions: 0
+      },
+      {
+        _id: '2',
+        profile: { firstName: 'Bob', lastName: 'Smith' },
+        email: 'bob.smith@example.com',
+        studentId: 'S002',
+        attendance: [
+          { sessionId: '1', status: 'present', timestamp: '2024-01-15T10:02:00.000Z', notes: 'Late arrival' },
+          { sessionId: '2', status: 'absent', timestamp: null, notes: 'Sick leave' },
+          { sessionId: '3', status: 'present', timestamp: '2024-01-19T10:01:00.000Z', notes: 'Late arrival' },
+          { sessionId: '4', status: 'present', timestamp: '2024-01-22T09:58:00.000Z', notes: '' },
+          { sessionId: '5', status: 'present', timestamp: '2024-01-24T10:03:00.000Z', notes: 'Late arrival' }
+        ],
+        attendanceRate: 80.0,
+        totalSessions: 5,
+        presentSessions: 4,
+        absentSessions: 1,
+        lateSessions: 3
+      },
+      {
+        _id: '3',
+        profile: { firstName: 'Charlie', lastName: 'Brown' },
+        email: 'charlie.brown@example.com',
+        studentId: 'S003',
+        attendance: [
+          { sessionId: '1', status: 'present', timestamp: '2024-01-15T09:59:00.000Z', notes: '' },
+          { sessionId: '2', status: 'present', timestamp: '2024-01-17T10:05:00.000Z', notes: 'Late arrival' },
+          { sessionId: '3', status: 'present', timestamp: '2024-01-19T09:58:00.000Z', notes: '' },
+          { sessionId: '4', status: 'absent', timestamp: null, notes: 'Personal emergency' },
+          { sessionId: '5', status: 'present', timestamp: '2024-01-24T09:57:00.000Z', notes: '' }
+        ],
+        attendanceRate: 80.0,
+        totalSessions: 5,
+        presentSessions: 4,
+        absentSessions: 1,
+        lateSessions: 1
+      },
+      {
+        _id: '4',
+        profile: { firstName: 'Diana', lastName: 'Prince' },
+        email: 'diana.prince@example.com',
+        studentId: 'S004',
+        attendance: [
+          { sessionId: '1', status: 'present', timestamp: '2024-01-15T09:57:00.000Z', notes: '' },
+          { sessionId: '2', status: 'present', timestamp: '2024-01-17T09:56:00.000Z', notes: '' },
+          { sessionId: '3', status: 'present', timestamp: '2024-01-19T09:55:00.000Z', notes: '' },
+          { sessionId: '4', status: 'present', timestamp: '2024-01-22T09:58:00.000Z', notes: '' },
+          { sessionId: '5', status: 'present', timestamp: '2024-01-24T09:57:00.000Z', notes: '' }
+        ],
+        attendanceRate: 100.0,
+        totalSessions: 5,
+        presentSessions: 5,
+        absentSessions: 0,
+        lateSessions: 0
+      },
+      {
+        _id: '5',
+        profile: { firstName: 'Eve', lastName: 'Adams' },
+        email: 'eve.adams@example.com',
+        studentId: 'S005',
+        attendance: [
+          { sessionId: '1', status: 'present', timestamp: '2024-01-15T10:01:00.000Z', notes: 'Late arrival' },
+          { sessionId: '2', status: 'present', timestamp: '2024-01-17T09:58:00.000Z', notes: '' },
+          { sessionId: '3', status: 'present', timestamp: '2024-01-19T10:02:00.000Z', notes: 'Late arrival' },
+          { sessionId: '4', status: 'present', timestamp: '2024-01-22T09:59:00.000Z', notes: '' },
+          { sessionId: '5', status: 'present', timestamp: '2024-01-24T10:01:00.000Z', notes: 'Late arrival' }
+        ],
+        attendanceRate: 100.0,
+        totalSessions: 5,
+        presentSessions: 5,
+        absentSessions: 0,
+        lateSessions: 3
+      }
+    ]
+  };
+
   // Fetch courses
   const { data: coursesData } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { courses: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000
   });
 
@@ -72,14 +252,10 @@ const AttendanceTracker = () => {
   const { data: studentsData } = useQuery({
     queryKey: ['course-students', selectedCourse, accessToken],
     queryFn: async () => {
-      if (!selectedCourse) return { students: [] };
-      const res = await fetch(buildApiUrl(`/api/instructor/courses/${selectedCourse}/students`), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { students: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return { students: dummyAttendanceData.students };
     },
-    enabled: !!accessToken && !!selectedCourse,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000
   });
 
@@ -87,14 +263,10 @@ const AttendanceTracker = () => {
   const { data: attendanceData } = useQuery({
     queryKey: ['attendance-records', selectedCourse, selectedDate, accessToken],
     queryFn: async () => {
-      if (!selectedCourse) return { records: [], summary: {} };
-      const res = await fetch(buildApiUrl(`/api/instructor/attendance?courseId=${selectedCourse}&date=${selectedDate}`), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { records: [], summary: {} };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyAttendanceData;
     },
-    enabled: !!accessToken && !!selectedCourse,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 10000
   });
 

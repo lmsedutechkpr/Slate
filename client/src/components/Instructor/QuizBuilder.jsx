@@ -63,6 +63,135 @@ const QuizBuilder = () => {
   const [filterType, setFilterType] = useState('all');
   const [viewMode, setViewMode] = useState('list');
 
+  // Comprehensive dummy data for quiz builder
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch.',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts.',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js.',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+      }
+    ]
+  };
+
+  const dummyQuizzesData = {
+    quizzes: [
+      {
+        _id: '1',
+        title: 'HTML Fundamentals Quiz',
+        description: 'Test your knowledge of HTML basics including tags, attributes, and structure.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        questions: 10,
+        type: 'Multiple Choice',
+        status: 'published',
+        attempts: 45,
+        avgScore: 82.5,
+        timeLimit: 30,
+        createdAt: '2024-01-10T00:00:00.000Z',
+        updatedAt: '2024-01-15T00:00:00.000Z',
+        totalPoints: 100,
+        passingScore: 70
+      },
+      {
+        _id: '2',
+        title: 'React Hooks Quiz',
+        description: 'Comprehensive quiz on React hooks including useState, useEffect, and custom hooks.',
+        courseId: { 
+          _id: '2', 
+          title: 'React.js Complete Guide',
+          coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+        },
+        questions: 8,
+        type: 'Mixed',
+        status: 'published',
+        attempts: 23,
+        avgScore: 78.3,
+        timeLimit: 25,
+        createdAt: '2024-01-15T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z',
+        totalPoints: 80,
+        passingScore: 60
+      },
+      {
+        _id: '3',
+        title: 'CSS Grid Layout Quiz',
+        description: 'Test your understanding of CSS Grid layout properties and techniques.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        questions: 12,
+        type: 'True/False',
+        status: 'draft',
+        attempts: 0,
+        avgScore: 0,
+        timeLimit: 20,
+        createdAt: '2024-01-20T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z',
+        totalPoints: 60,
+        passingScore: 45
+      },
+      {
+        _id: '4',
+        title: 'Node.js Express Quiz',
+        description: 'Quiz covering Express.js fundamentals, middleware, and routing.',
+        courseId: { 
+          _id: '3', 
+          title: 'Node.js Backend Development',
+          coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+        },
+        questions: 15,
+        type: 'Multiple Choice',
+        status: 'draft',
+        attempts: 0,
+        avgScore: 0,
+        timeLimit: 35,
+        createdAt: '2024-01-25T00:00:00.000Z',
+        updatedAt: '2024-01-25T00:00:00.000Z',
+        totalPoints: 150,
+        passingScore: 105
+      },
+      {
+        _id: '5',
+        title: 'JavaScript ES6+ Features',
+        description: 'Advanced JavaScript concepts including arrow functions, destructuring, and async/await.',
+        courseId: { 
+          _id: '1', 
+          title: 'Complete Web Development Bootcamp',
+          coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+        },
+        questions: 20,
+        type: 'Mixed',
+        status: 'published',
+        attempts: 67,
+        avgScore: 85.2,
+        timeLimit: 45,
+        createdAt: '2024-01-05T00:00:00.000Z',
+        updatedAt: '2024-01-12T00:00:00.000Z',
+        totalPoints: 200,
+        passingScore: 140
+      }
+    ]
+  };
+
   const [newQuiz, setNewQuiz] = useState({
     title: '',
     description: '',
@@ -90,13 +219,10 @@ const QuizBuilder = () => {
   const { data: coursesData } = useQuery({
     queryKey: ['instructor-courses', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { courses: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 30000
   });
 
@@ -104,13 +230,10 @@ const QuizBuilder = () => {
   const { data: quizzesData } = useQuery({
     queryKey: ['instructor-quizzes', user?._id, accessToken],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl('/api/instructor/quizzes'), {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (!res.ok) return { quizzes: [] };
-      return res.json();
+      // Return dummy data for demonstration
+      return dummyQuizzesData;
     },
-    enabled: !!accessToken && !!user?._id,
+    enabled: true, // Always enabled for dummy data
     refetchInterval: 15000
   });
 
