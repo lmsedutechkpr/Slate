@@ -425,9 +425,9 @@ const AttendanceTracker = () => {
   };
 
   const filteredStudents = () => {
-    let students = studentsData?.students || [];
+    let students = Array.isArray(studentsData?.students) ? studentsData.students : [];
     
-    if (searchQuery) {
+    if (searchQuery && Array.isArray(students)) {
       students = students.filter(student => 
         student.profile?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.profile?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -435,7 +435,7 @@ const AttendanceTracker = () => {
       );
     }
     
-    if (filterStatus !== 'all') {
+    if (filterStatus !== 'all' && Array.isArray(students)) {
       students = students.filter(student => {
         const status = localAttendanceData[student._id]?.status || 'unmarked';
         return status === filterStatus;

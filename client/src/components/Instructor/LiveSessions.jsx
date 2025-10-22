@@ -186,8 +186,8 @@ const LiveSessions = () => {
     refetchInterval: 15000,
   });
 
-  const courses = coursesData?.courses || [];
-  const sessions = sessionsData?.sessions || [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
+  const sessions = Array.isArray(sessionsData?.sessions) ? sessionsData.sessions : [];
 
   // Real-time updates
   useRealtimeInvalidate([

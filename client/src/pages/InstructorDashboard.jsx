@@ -250,9 +250,9 @@ const InstructorDashboard = () => {
   }
 
   // Extract data from API responses
-  const courses = coursesData?.courses || [];
-  const assignments = assignmentsData?.assignments || [];
-  const sessions = sessionsData?.sessions || [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
+  const assignments = Array.isArray(assignmentsData?.assignments) ? assignmentsData.assignments : [];
+  const sessions = Array.isArray(sessionsData?.sessions) ? sessionsData.sessions : [];
 
   // Debug logging
   console.log('Dashboard data:', {
@@ -267,9 +267,9 @@ const InstructorDashboard = () => {
   const totalCourses = courses?.length || 0;
   const totalStudents = courses?.reduce((total, course) => total + (course.enrolledStudents || 0), 0) || 0;
   const totalAssignments = assignments?.length || 0;
-  const pendingGrading = assignments?.filter(assignment => assignment.status === 'submitted').length || 0;
-  const activeSessions = sessions?.filter(session => session.status === 'live').length || 0;
-  const upcomingSessions = sessions?.filter(session => session.status === 'scheduled').length || 0;
+  const pendingGrading = Array.isArray(assignments) ? assignments.filter(assignment => assignment.status === 'submitted').length : 0;
+  const activeSessions = Array.isArray(sessions) ? sessions.filter(session => session.status === 'live').length : 0;
+  const upcomingSessions = Array.isArray(sessions) ? sessions.filter(session => session.status === 'scheduled').length : 0;
 
   return (
     <div className="space-y-6">

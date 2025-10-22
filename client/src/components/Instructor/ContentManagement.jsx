@@ -405,15 +405,17 @@ const ContentManagement = () => {
   };
 
   const filteredContent = () => {
-    let content = [...(contentData?.folders || []), ...(contentData?.files || [])];
+    const folders = Array.isArray(contentData?.folders) ? contentData.folders : [];
+    const files = Array.isArray(contentData?.files) ? contentData.files : [];
+    let content = [...folders, ...files];
     
-    if (searchQuery) {
+    if (searchQuery && Array.isArray(content)) {
       content = content.filter(item => 
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
-    if (filterType !== 'all') {
+    if (filterType !== 'all' && Array.isArray(content)) {
       content = content.filter(item => {
         if (item.type === 'folder') return filterType === 'folders';
         return item.fileType?.startsWith(filterType);

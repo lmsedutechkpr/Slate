@@ -387,9 +387,9 @@ const Gradebook = () => {
   };
 
   const filteredStudents = () => {
-    let students = gradebookData?.students || [];
+    let students = Array.isArray(gradebookData?.students) ? gradebookData.students : [];
     
-    if (searchQuery) {
+    if (searchQuery && Array.isArray(students)) {
       students = students.filter(student => 
         student.profile?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.profile?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -397,7 +397,7 @@ const Gradebook = () => {
       );
     }
     
-    if (filterGrade !== 'all') {
+    if (filterGrade !== 'all' && Array.isArray(students)) {
       students = students.filter(student => {
         const average = calculateStudentAverage(student);
         switch (filterGrade) {

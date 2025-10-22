@@ -520,16 +520,16 @@ const QuizBuilder = () => {
   };
 
   const filteredQuizzes = () => {
-    let quizzes = quizzesData?.quizzes || [];
+    let quizzes = Array.isArray(quizzesData?.quizzes) ? quizzesData.quizzes : [];
     
-    if (searchQuery) {
+    if (searchQuery && Array.isArray(quizzes)) {
       quizzes = quizzes.filter(quiz => 
         quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         quiz.description?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
-    if (filterType !== 'all') {
+    if (filterType !== 'all' && Array.isArray(quizzes)) {
       quizzes = quizzes.filter(quiz => quiz.status === filterType);
     }
     

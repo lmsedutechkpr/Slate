@@ -136,11 +136,11 @@ const CoursesContent = () => {
     ['/api/recommendations']
   ], ['courses', 'enrollments', 'recommendations']);
 
-  const courses = coursesData?.courses || [];
-  const enrollments = enrollmentsData?.enrollments || [];
-  const recommendations = recommendationsData?.courses || [];
-  const categories = filtersData?.categories || [];
-  const levels = filtersData?.levels || [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
+  const enrollments = Array.isArray(enrollmentsData?.enrollments) ? enrollmentsData.enrollments : [];
+  const recommendations = Array.isArray(recommendationsData?.courses) ? recommendationsData.courses : [];
+  const categories = Array.isArray(filtersData?.categories) ? filtersData.categories : [];
+  const levels = Array.isArray(filtersData?.levels) ? filtersData.levels : [];
 
   // Sort courses based on selected sort option
   const getSortedCourses = (coursesList) => {

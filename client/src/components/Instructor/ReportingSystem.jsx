@@ -393,7 +393,7 @@ const ReportingSystem = () => {
     return new Intl.NumberFormat('en-US').format(num);
   };
 
-  const courses = coursesData?.courses || [];
+  const courses = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
   const reportTypes = [
     'student-performance',
     'course-analytics',
