@@ -421,8 +421,8 @@ const Store = () => {
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category} className="capitalize">
-                        {category}
+                      <SelectItem key={category.name || category} value={category.name || category} className="capitalize">
+                        {category.name || category}
                       </SelectItem>
                     ))}
                   </SelectContent>
