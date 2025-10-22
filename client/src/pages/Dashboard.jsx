@@ -278,6 +278,7 @@ const Dashboard = () => {
       totalAssignments: 3,
       completedAssignments: 1,
       totalHours: 45,
+      totalStudyTime: 930, // 15h 30m in minutes
       weeklyHours: 8,
       weeklyStudyTime: 8.5,
       dayStreak: 5,
@@ -614,10 +615,10 @@ const Dashboard = () => {
               <CardDescription>Stay on top of your deadlines</CardDescription>
             </CardHeader>
             <CardContent>
-              {assignments.filter(a => !a.submitted && new Date(a.dueAt) > new Date()).length > 0 ? (
+              {assignments.filter(a => a.submissionStatus !== 'submitted' && a.submissionStatus !== 'graded' && new Date(a.dueAt) > new Date()).length > 0 ? (
                 <div className="space-y-4">
                   {assignments
-                    .filter(a => !a.submitted && new Date(a.dueAt) > new Date())
+                    .filter(a => a.submissionStatus !== 'submitted' && a.submissionStatus !== 'graded' && new Date(a.dueAt) > new Date())
                     .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
                     .slice(0, 3)
                     .map((assignment) => (
