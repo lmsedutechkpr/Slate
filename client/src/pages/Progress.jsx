@@ -275,7 +275,7 @@ const Progress = () => {
     );
   }
 
-  const progress = progressData?.progress || {};
+  const progress = progressData || {};
   const achievements = achievementsData?.achievements || [];
   const analytics = analyticsData?.analytics || {};
 
@@ -340,7 +340,7 @@ const Progress = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Enrolled Courses</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    {progress.enrolledCourses || 0}
+                    {progress.stats?.enrolledCourses || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
@@ -356,7 +356,7 @@ const Progress = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Completed</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    {progress.completedCourses || 0}
+                    {progress.stats?.completedCourses || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
@@ -372,7 +372,7 @@ const Progress = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Study Time</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    {formatTime(progress.totalStudyTime || 0)}
+                    {progress.stats?.studyTime || '0h 0m'}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
@@ -427,11 +427,11 @@ const Progress = () => {
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-sm font-medium text-gray-700">Course Completion</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {Math.round(progress.overallProgress || 0)}%
+                        {Math.round(progress.learningProgress?.courseCompletion || 0)}%
                       </span>
                     </div>
                     <ProgressBar 
-                      value={progress.overallProgress || 0} 
+                      value={progress.learningProgress?.courseCompletion || 0} 
                       className="h-3 bg-gray-100"
                     />
                   </div>
@@ -440,11 +440,11 @@ const Progress = () => {
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-sm font-medium text-gray-700">Assignment Progress</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {Math.round(progress.assignmentProgress || 0)}%
+                        {Math.round(progress.learningProgress?.assignmentProgress || 0)}%
                       </span>
                     </div>
                     <ProgressBar 
-                      value={progress.assignmentProgress || 0} 
+                      value={progress.learningProgress?.assignmentProgress || 0} 
                       className="h-3 bg-gray-100"
                     />
                   </div>
@@ -453,11 +453,11 @@ const Progress = () => {
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-sm font-medium text-gray-700">Study Consistency</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {Math.round(progress.studyConsistency || 0)}%
+                        {Math.round(progress.learningProgress?.studyConsistency || 0)}%
                       </span>
                     </div>
                     <ProgressBar 
-                      value={progress.studyConsistency || 0} 
+                      value={progress.learningProgress?.studyConsistency || 0} 
                       className="h-3 bg-gray-100"
                     />
                   </div>
@@ -475,13 +475,13 @@ const Progress = () => {
                     <div className="flex justify-center space-x-6">
                         <div>
                         <div className="text-2xl font-bold text-primary-600">
-                          {progress.currentStreak || 0}
+                          {progress.streak?.current || 0}
                         </div>
                         <div className="text-xs text-gray-600">Current</div>
                           </div>
                       <div>
                         <div className="text-2xl font-bold text-yellow-600">
-                          {progress.longestStreak || 0}
+                          {progress.streak?.longest || 0}
                         </div>
                         <div className="text-xs text-gray-600">Longest</div>
                       </div>
@@ -492,7 +492,7 @@ const Progress = () => {
                         <div
                           key={i}
                           className={`w-6 h-6 rounded-md ${
-                            i < (progress.currentStreak || 0) 
+                            i < (progress.streak?.current || 0) 
                               ? 'bg-primary-500' 
                               : 'bg-gray-200'
                           }`}
