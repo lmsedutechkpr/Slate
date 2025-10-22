@@ -37,13 +37,6 @@ const AdminLayout = ({ children }) => {
     { title: 'Roles & Permissions', href: '/admin/roles', icon: Settings, description: 'Manage roles and permissions', roles: ['admin', 'super-admin'] },
     { title: 'Instructor Management', href: '/admin/instructors', icon: UserCheck, description: 'Manage instructors and their courses', roles: ['admin', 'instructor-admin', 'super-admin'] },
     { title: 'Courses', href: '/admin/courses', icon: BookOpen, description: 'Manage courses', roles: ['admin', 'course-admin', 'super-admin'] },
-    // Store Management - routes not implemented yet
-    // { title: 'Store Management', href: '/admin/store', icon: ShoppingBag, description: 'E-commerce administration', roles: ['super-admin', 'admin'], collapsible: true },
-    // ...(storeOpen ? [
-    //   { title: 'Products', href: '/admin/store/products', icon: Package, description: 'Manage products', roles: ['super-admin', 'admin'], indent: true },
-    //   { title: 'Orders', href: '/admin/store/orders', icon: Receipt, description: 'View and process orders', roles: ['super-admin', 'admin'], indent: true },
-    //   { title: 'Inventory', href: '/admin/store/inventory', icon: Boxes, description: 'Track stock levels', roles: ['super-admin', 'admin'], indent: true },
-    // ] : []),
     { title: 'Reports & Analytics', href: '/admin/analytics', icon: BarChart3, description: 'Sales and learning insights', roles: ['admin', 'analytics-admin', 'super-admin'] },
     { title: 'Audit Logs', href: '/admin/audit-logs', icon: BarChart3, description: 'System audit trail', roles: ['admin', 'super-admin'] },
     { title: 'Settings', href: '/admin/settings', icon: Settings, description: 'System configuration', roles: ['super-admin'] }
@@ -112,8 +105,6 @@ const AdminLayout = ({ children }) => {
             <X className="w-4 h-4" />
           </Button>
         </div>
-
-        
 
         {/* User Profile Section */}
         <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
@@ -204,7 +195,7 @@ const AdminLayout = ({ children }) => {
         lg:ml-64
       `}>
         {/* Top Bar with Integrated Navigation */}
-        <div className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200 px-3 py-3 lg:px-6 shadow-sm">
+        <div className="sticky top-0 z-40 bg-white bg-opacity-90 backdrop-blur border-b border-gray-200 px-3 py-3 lg:px-6 shadow-sm">
           <div className="flex items-center justify-between">
             {/* Left side - Toggle button and current page */}
             <div className="flex items-center space-x-3 lg:space-x-4 flex-1">
@@ -228,7 +219,7 @@ const AdminLayout = ({ children }) => {
                     href += `/${segment}`;
                     const matchedNav = navigationItems.find(n => n.href === href);
                     const looksLikeId = new RegExp('^[a-f\\d]{24}$', 'i').test(segment);
-                    const baseLabel = matchedNav?.title || segment.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                    const baseLabel = matchedNav?.title || segment.replace(/-/g, ' ').replace(new RegExp('\\b\\w', 'g'), (c) => c.toUpperCase());
                     const label = looksLikeId ? 'Detail' : (baseLabel || 'Admin');
                     const isLast = i === segments.length - 1;
                     crumbs.push(
@@ -259,20 +250,19 @@ const AdminLayout = ({ children }) => {
                 <span>Last login:</span>
                 <span>{new Date().toLocaleDateString()}</span>
               </div>
-              {/* removed topbar profile/logout per request */}
             </div>
           </div>
         </div>
 
-        {/* Page Content */
+        {/* Page Content */}
         <main className="p-3 lg:p-6">
           {children}
         </main>
       </div>
       {/* Command Palette */}
       {cmdOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/30" onClick={() => setCmdOpen(false)}>
-          <div className="w-[90%] max-w-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black bg-opacity-30" onClick={() => setCmdOpen(false)}>
+          <div className="w-full max-w-xl mx-auto" onClick={(e) => e.stopPropagation()}>
             <div className="rounded-md border bg-white shadow-xl">
               <Command>
                 <CommandInput placeholder="Search actions, pages..." autoFocus />
@@ -360,7 +350,7 @@ function NotificationsBell() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
           <Bell className="w-4 h-4 lg:w-5 lg:h-5" />
-          {count > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] leading-none rounded-full flex items-center justify-center">{Math.min(count,9)}</span>}
+          {count > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs leading-none rounded-full flex items-center justify-center">{Math.min(count,9)}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0">
@@ -376,7 +366,7 @@ function NotificationsBell() {
         ) : (
           <ul className="max-h-64 overflow-auto divide-y">
             {items.map(n => (
-              <li key={n.id} className={`p-3 text-sm cursor-pointer hover:bg-gray-50 ${n.unread ? 'bg-blue-50/40' : ''}`}
+              <li key={n.id} className={`p-3 text-sm cursor-pointer hover:bg-gray-50 ${n.unread ? 'bg-blue-50 bg-opacity-40' : ''}`}
                   onClick={() => {
                     setItems(prev => prev.map(i => i.id === n.id ? { ...i, unread: false } : i));
                     setCount(c => Math.max(0, c - (n.unread ? 1 : 0)));
