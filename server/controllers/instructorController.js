@@ -5,6 +5,8 @@ export const getAllInstructors = async (req, res) => {
   try {
     const { status, page = 1, limit = 20, search } = req.query;
     
+    console.log(`Fetching instructors with status: ${status}, search: ${search}`);
+    
     // Build query
     let query = { role: 'instructor' };
     
@@ -21,11 +23,15 @@ export const getAllInstructors = async (req, res) => {
       ];
     }
 
+    console.log('Query:', JSON.stringify(query, null, 2));
+
     const instructors = await User.find(query)
       .select('-password -refreshToken')
       .limit(parseInt(limit) * 1)
       .skip((parseInt(page) - 1) * parseInt(limit))
       .sort({ createdAt: -1 });
+
+    console.log(`Found ${instructors.length} instructors`);
 
     // Get detailed stats for each instructor
     const instructorsWithStats = await Promise.all(
@@ -73,6 +79,8 @@ export const getAllInstructors = async (req, res) => {
     );
 
     const total = await User.countDocuments(query);
+
+    console.log(`Returning ${instructorsWithStats.length} instructors with stats`);
 
     res.json({
       instructors: instructorsWithStats,
@@ -192,13 +200,21 @@ export const updateInstructorStatus = async (req, res) => {
     const { status } = req.body;
     const adminId = req.user._id;
 
+    console.log(`Updating instructor ${instructorId} status to ${status}`);
+
     const instructor = await User.findById(instructorId);
     if (!instructor || instructor.role !== 'instructor') {
+      console.log(`Instructor not found: ${instructorId}`);
       return res.status(404).json({ message: 'Instructor not found' });
     }
 
+    const previousStatus = instructor.status;
+    console.log(`Previous status: ${previousStatus}, New status: ${status}`);
+    
     instructor.status = status;
     await instructor.save();
+
+    console.log(`Instructor status updated successfully. New status: ${instructor.status}`);
 
     // Log the action
     await AuditLog.create({
@@ -209,7 +225,7 @@ export const updateInstructorStatus = async (req, res) => {
       details: { 
         instructorName: instructor.username, 
         newStatus: status,
-        previousStatus: instructor.status 
+        previousStatus: previousStatus 
       }
     });
 
@@ -218,6 +234,7 @@ export const updateInstructorStatus = async (req, res) => {
       instructor
     });
   } catch (error) {
+    console.error('Error updating instructor status:', error);
     res.status(500).json({
       message: 'Failed to update instructor status',
       error: error.message
@@ -228,6 +245,8 @@ export const updateInstructorStatus = async (req, res) => {
 // Get instructor KPIs
 export const getInstructorKPIs = async (req, res) => {
   try {
+    console.log('Fetching instructor KPIs');
+    
     // Total active instructors
     const totalActiveInstructors = await User.countDocuments({ 
       role: 'instructor', 
@@ -239,6 +258,8 @@ export const getInstructorKPIs = async (req, res) => {
       role: 'instructor', 
       status: 'pending' 
     });
+
+    console.log(`Active instructors: ${totalActiveInstructors}, Pending: ${pendingApplications}`);
 
     // Top instructor by student count
     const topInstructor = await User.aggregate([
@@ -284,12 +305,16 @@ export const getInstructorKPIs = async (req, res) => {
       { $group: { _id: null, totalRevenue: { $sum: '$enrollments.price' } } }
     ]);
 
-    res.json({
+    const kpiData = {
       totalActiveInstructors,
       pendingApplications,
       topInstructor: topInstructor[0] || null,
       totalInstructorRevenue: totalInstructorRevenue[0]?.totalRevenue || 0
-    });
+    };
+
+    console.log('KPI data:', kpiData);
+
+    res.json(kpiData);
   } catch (error) {
     res.status(500).json({
       message: 'Failed to fetch instructor KPIs',

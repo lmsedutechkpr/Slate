@@ -13,9 +13,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from '@/components/ui/label';
 import { buildApiUrl, getImageUrl } from '../../lib/utils.js';
 import { useAuthRefresh } from '../../hooks/useAuthRefresh.js';
+import { useRealtimeInvalidate } from '../../lib/useRealtimeInvalidate.js';
 import { 
   BookOpen, Search, Users, UserCheck, Plus, Eye, Edit, 
-  Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload, ListPlus
+  Archive, Play, Filter, CheckCircle, Trash2, MoreHorizontal, Upload, ListPlus, RefreshCw
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 
@@ -38,7 +39,7 @@ const EnhancedCourseManagement = () => {
   const [selectAll, setSelectAll] = useState(false);
 
   // Fetch courses from API
-  const { data: courseList, isLoading } = useQuery({
+  const { data: courseList, isLoading, isFetching } = useQuery({
     queryKey: ['/api/admin/courses', { searchTerm, selectedCategory, selectedLevel, selectedStatus, page, limit, sortBy, sortDir }],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -66,6 +67,12 @@ const EnhancedCourseManagement = () => {
 
   const courses = courseList?.courses || [];
   const pagination = courseList?.pagination || { page, limit, total: courses.length };
+
+  // Real-time updates
+  useRealtimeInvalidate(
+    ['/api/admin/courses', '/api/courses'], 
+    ['courses:update', 'courses:create', 'courses:delete', 'courses:publish', 'courses:archive']
+  );
 
   // Show loading state while authentication is in progress
   if (authLoading) {
@@ -132,15 +139,28 @@ const EnhancedCourseManagement = () => {
 
   const deleteCourseMutation = useMutation({
     mutationFn: async (courseId) => {
-      const res = await fetch(`/api/admin/courses/${courseId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${accessToken}` }
+      console.log(`Frontend: Deleting course ${courseId}`);
+      const res = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId}`), {
+        method: 'DELETE'
       });
-      if (!res.ok) throw new Error('Failed to delete course');
-      return res.json();
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Failed to delete course:', errorData);
+        throw new Error(errorData.message || 'Failed to delete course');
+      }
+      const result = await res.json();
+      console.log('Course deletion result:', result);
+      return result;
     },
-    onSuccess: () => { toast({ title: 'Deleted', description: 'Course removed' }); invalidateCourses(); },
-    onError: () => toast({ title: 'Error', description: 'Failed to delete course', variant: 'destructive' })
+    onSuccess: () => { 
+      console.log('Course deleted successfully, invalidating queries');
+      toast({ title: 'Deleted', description: 'Course removed successfully' }); 
+      invalidateCourses(); 
+    },
+    onError: (error) => {
+      console.error('Course deletion error:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to delete course', variant: 'destructive' });
+    }
   });
 
   const confirmAndDelete = (course) => {
@@ -379,10 +399,21 @@ const EnhancedCourseManagement = () => {
               <CardTitle>All Courses ({pagination.total || courses.length})</CardTitle>
               <CardDescription>Manage courses with advanced filtering and bulk operations</CardDescription>
             </div>
-            <Button onClick={openCreate}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Course
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/courses'] })}
+                title="Refresh data"
+                disabled={isFetching}
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button onClick={openCreate}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Course
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

@@ -29,7 +29,8 @@ import {
   Shield,
   Users,
   ChevronDown,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 const AdminUsers = () => {
@@ -48,7 +49,7 @@ const AdminUsers = () => {
   const [enrollmentFilter, setEnrollmentFilter] = useState('all');
 
   // Fetch users data from API
-  const { data: usersData, isLoading } = useQuery({
+  const { data: usersData, isLoading, isFetching } = useQuery({
     queryKey: ['/api/admin/users', { 
       search: searchTerm, 
       role: selectedRole, 
@@ -97,7 +98,10 @@ const AdminUsers = () => {
   }, [users]);
 
   // Real-time updates
-  useRealtimeInvalidate(['/api/admin/users'], ['users:update', 'users:create', 'users:delete']);
+  useRealtimeInvalidate(
+    ['/api/admin/users'], 
+    ['users:update', 'users:create', 'users:delete', 'users:ban', 'users:unban']
+  );
 
   // Bulk actions mutation
   const bulkActionMutation = useMutation({
@@ -130,8 +134,31 @@ const AdminUsers = () => {
   // Individual user actions mutation
   const userActionMutation = useMutation({
     mutationFn: async ({ action, userId }) => {
-      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}/${action}`), {
-        method: 'POST',
+      console.log(`Frontend: Performing ${action} on user ${userId}`);
+      
+      let endpoint = '';
+      let method = 'POST';
+      
+      switch (action) {
+        case 'ban':
+          endpoint = `/api/admin/users/${userId}/ban`;
+          break;
+        case 'unban':
+          endpoint = `/api/admin/users/${userId}/unban`;
+          break;
+        case 'delete':
+          endpoint = `/api/admin/users/${userId}`;
+          method = 'DELETE';
+          break;
+        case 'reset-password':
+          endpoint = `/api/admin/users/${userId}/reset-password`;
+          break;
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+      
+      const response = await fetch(buildApiUrl(endpoint), {
+        method,
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -139,16 +166,22 @@ const AdminUsers = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to ${action} user`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`Failed to ${action} user:`, errorData);
+        throw new Error(errorData.message || `Failed to ${action} user`);
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log(`${action} result:`, result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log(`User ${variables.action} successful, invalidating queries`);
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
-      toast({ title: 'Action completed successfully' });
+      toast({ title: `User ${variables.action} completed successfully` });
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      console.error(`User ${variables.action} error:`, error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   });
@@ -218,10 +251,21 @@ const AdminUsers = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600">Manage students, instructors, and administrators</p>
         </div>
-        <Button className="w-full sm:w-auto">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] })}
+            title="Refresh data"
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button className="w-full sm:w-auto">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+        </div>
       </div>
 
       {/* Role Tabs */}

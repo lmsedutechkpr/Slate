@@ -91,6 +91,8 @@ const AdminInstructors = () => {
       if (selectedStatus !== 'all') params.append('status', selectedStatus);
       if (searchQuery) params.append('search', searchQuery);
       
+      console.log(`Frontend: Fetching instructors with status: ${selectedStatus}, search: ${searchQuery}`);
+      
       const response = await fetch(buildApiUrl(`/api/admin/instructors?${params}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -102,7 +104,9 @@ const AdminInstructors = () => {
         throw new Error('Failed to fetch instructors');
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched instructors data:', data);
+      return data;
     },
     enabled: !!accessToken,
   });
@@ -137,6 +141,7 @@ const AdminInstructors = () => {
   // Update instructor status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ instructorId, status }) => {
+      console.log(`Frontend: Updating instructor ${instructorId} status to ${status}`);
       const response = await fetch(buildApiUrl(`/api/admin/instructors/${instructorId}/status`), {
         method: 'PUT',
         headers: {
@@ -147,17 +152,23 @@ const AdminInstructors = () => {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update instructor status');
+        const errorData = await response.json();
+        console.error('Failed to update instructor status:', errorData);
+        throw new Error(errorData.message || 'Failed to update instructor status');
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log('Status update result:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Status update successful, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors/kpis'] });
       toast({ title: 'Instructor status updated successfully' });
     },
     onError: (error) => {
+      console.error('Status update error:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   });

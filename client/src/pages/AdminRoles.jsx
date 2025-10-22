@@ -22,7 +22,8 @@ import {
   GraduationCap,
   Settings,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 
 const AdminRoles = () => {
@@ -42,9 +43,10 @@ const AdminRoles = () => {
   });
 
   // Fetch roles and permissions data
-  const { data: rolesData, isLoading } = useQuery({
+  const { data: rolesData, isLoading, isFetching } = useQuery({
     queryKey: ['/api/admin/roles', accessToken],
     queryFn: async () => {
+      console.log('Fetching roles and permissions data...');
       const response = await fetch(buildApiUrl('/api/admin/roles'), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -56,20 +58,28 @@ const AdminRoles = () => {
         throw new Error('Failed to fetch roles');
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log('Roles data fetched:', data);
+      return data;
     },
     enabled: !!accessToken,
+    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    staleTime: 0, // Always consider data stale to ensure fresh data
   });
 
   const roles = rolesData?.roles || [];
   const permissionModules = rolesData?.modules || {};
 
   // Real-time updates
-  useRealtimeInvalidate(['/api/admin/roles'], ['roles:update', 'roles:create', 'roles:delete']);
+  useRealtimeInvalidate(
+    ['/api/admin/roles'], 
+    ['roles:update', 'roles:create', 'roles:delete', 'roles:permissions', 'users:update']
+  );
 
   // Create role mutation
   const createRoleMutation = useMutation({
     mutationFn: async (roleData) => {
+      console.log('Creating role:', roleData);
       const response = await fetch(buildApiUrl('/api/admin/roles'), {
         method: 'POST',
         headers: {
@@ -80,18 +90,24 @@ const AdminRoles = () => {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to create role');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to create role:', errorData);
+        throw new Error(errorData.message || 'Failed to create role');
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log('Role created successfully:', result);
+      return result;
     },
     onSuccess: () => {
+      console.log('Role creation successful, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['/api/admin/roles'] });
       setShowCreateDialog(false);
       setCreateRoleData({ name: '', description: '', color: '#3B82F6', icon: 'shield' });
       toast({ title: 'Role created successfully' });
     },
     onError: (error) => {
+      console.error('Role creation error:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   });
@@ -335,6 +351,15 @@ const AdminRoles = () => {
           <p className="text-gray-600">Define roles and manage permissions across the platform</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/roles'] })}
+            title="Refresh data"
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
           {roles.length === 0 && (
             <Button
               onClick={() => initializeRolesMutation.mutate()}

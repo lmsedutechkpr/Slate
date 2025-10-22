@@ -336,12 +336,52 @@ export const getCourseById = async (req, res) => {
 export const deleteCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const userId = req.user._id;
+    
+    console.log(`Deleting course ${courseId} by user ${userId}`);
+    
     const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ message: 'Course not found' });
+    if (!course) {
+      console.log(`Course not found: ${courseId}`);
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    console.log(`Found course: ${course.title} (${course.status})`);
+    
+    // Check if course has enrollments
+    const enrollmentCount = await Enrollment.countDocuments({ courseId: courseId });
+    if (enrollmentCount > 0) {
+      console.log(`Course has ${enrollmentCount} enrollments, cannot delete`);
+      return res.status(400).json({ 
+        message: 'Cannot delete course with active enrollments', 
+        enrollmentCount 
+      });
+    }
+    
     await Course.findByIdAndDelete(courseId);
-    try { await AuditLog.create({ action: 'course:delete', actorId: req.user._id, actorRole: req.user.role, actorUsername: req.user.username, actorEmail: req.user.email, ip: req.ip, userAgent: req.headers['user-agent'], targetType: 'Course', targetId: String(courseId), meta: { title: course.title } }); } catch {}
-    res.json({ message: 'Course deleted' });
+    console.log(`Course deleted successfully: ${course.title}`);
+    
+    // Log the action
+    try { 
+      await AuditLog.create({ 
+        action: 'course:delete', 
+        actorId: userId, 
+        actorRole: req.user.role, 
+        actorUsername: req.user.username, 
+        actorEmail: req.user.email, 
+        ip: req.ip, 
+        userAgent: req.headers['user-agent'], 
+        targetType: 'Course', 
+        targetId: String(courseId), 
+        meta: { title: course.title } 
+      }); 
+    } catch (auditError) {
+      console.error('Audit log creation failed:', auditError);
+    }
+    
+    res.json({ message: 'Course deleted successfully', courseId });
   } catch (error) {
+    console.error('Error deleting course:', error);
     res.status(500).json({ message: 'Failed to delete course', error: error.message });
   }
 };

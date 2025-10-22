@@ -57,15 +57,20 @@ export const PERMISSION_MODULES = {
 // Get all roles with user counts
 export const getAllRoles = async (req, res) => {
   try {
+    console.log('Fetching all roles and permissions...');
+    
     const roles = await Role.find({ isActive: true })
       .populate('createdBy', 'username email')
       .populate('updatedBy', 'username email')
       .sort({ isSystemRole: -1, createdAt: -1 });
 
+    console.log(`Found ${roles.length} roles`);
+
     // Get user counts for each role
     const rolesWithCounts = await Promise.all(
       roles.map(async (role) => {
         const userCount = await User.countDocuments({ role: role.name });
+        console.log(`Role ${role.name}: ${userCount} users`);
         return {
           ...role.toObject(),
           userCount
@@ -73,11 +78,19 @@ export const getAllRoles = async (req, res) => {
       })
     );
 
-    res.json({
+    const response = {
       roles: rolesWithCounts,
       modules: PERMISSION_MODULES
+    };
+
+    console.log('Roles data prepared:', {
+      rolesCount: rolesWithCounts.length,
+      modulesCount: Object.keys(PERMISSION_MODULES).length
     });
+
+    res.json(response);
   } catch (error) {
+    console.error('Error fetching roles:', error);
     res.status(500).json({
       message: 'Failed to fetch roles',
       error: error.message

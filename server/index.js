@@ -112,9 +112,55 @@ app.use((req, res, next) => {
             io.emit('instructors:update', { path, method: req.method, status: res.statusCode });
           }
           
+          // Emit course-specific events
+          if (path.includes('/courses')) {
+            io.emit('courses:update', { path, method: req.method, status: res.statusCode });
+            // Also emit instructor updates if course is assigned to instructor
+            if (capturedJsonResponse?.instructor) {
+              io.emit('instructors:update', { path, method: req.method, status: res.statusCode });
+            }
+            
+            // Emit specific course deletion events
+            if (path.includes('/courses') && method === 'DELETE') {
+              io.emit('courses:delete', { path, method: req.method, status: res.statusCode, courseId: path.split('/').pop() });
+            }
+          }
+          
+          // Emit enrollment-specific events
+          if (path.includes('/enrollments') || path.includes('/enroll')) {
+            io.emit('enrollments:update', { path, method: req.method, status: res.statusCode });
+            // Also emit instructor updates if enrollment affects instructor's courses
+            if (capturedJsonResponse?.course?.instructor) {
+              io.emit('instructors:update', { path, method: req.method, status: res.statusCode });
+            }
+          }
+          
           // Emit user-specific events for instructor management
           if (path.includes('/users') && capturedJsonResponse?.role === 'instructor') {
             io.emit('instructors:update', { path, method: req.method, status: res.statusCode });
+          }
+          
+          // Emit user ban/unban events
+          if (path.includes('/users') && (path.includes('/ban') || path.includes('/unban'))) {
+            io.emit('users:ban', { path, method: req.method, status: res.statusCode, userId: path.split('/').pop() });
+            io.emit('users:update', { path, method: req.method, status: res.statusCode });
+          }
+          
+          // Emit role-specific events
+          if (path.includes('/roles')) {
+            io.emit('roles:update', { path, method: req.method, status: res.statusCode });
+            if (method === 'POST') {
+              io.emit('roles:create', { path, method: req.method, status: res.statusCode });
+            } else if (method === 'DELETE') {
+              io.emit('roles:delete', { path, method: req.method, status: res.statusCode });
+            } else if (path.includes('/permissions')) {
+              io.emit('roles:permissions', { path, method: req.method, status: res.statusCode });
+            }
+          }
+          
+          // Emit audit log events
+          if (path.includes('/audit-logs')) {
+            io.emit('audit:update', { path, method: req.method, status: res.statusCode });
           }
         }
       } catch {}

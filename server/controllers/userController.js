@@ -603,6 +603,8 @@ export const banUser = async (req, res) => {
     const { userId } = req.params;
     const adminId = req.user._id;
     
+    console.log(`Banning user ${userId} by admin ${adminId}`);
+    
     const user = await User.findByIdAndUpdate(
       userId,
       { $set: { status: 'banned', updatedAt: new Date() } },
@@ -610,8 +612,11 @@ export const banUser = async (req, res) => {
     );
     
     if (!user) {
+      console.log(`User not found: ${userId}`);
       return res.status(404).json({ message: 'User not found' });
     }
+    
+    console.log(`User banned successfully: ${user.username} (${user.status})`);
     
     // Log the action
     await AuditLog.create({
@@ -624,6 +629,7 @@ export const banUser = async (req, res) => {
     
     res.json({ message: 'User banned successfully', user });
   } catch (error) {
+    console.error('Error banning user:', error);
     res.status(500).json({
       message: 'Failed to ban user',
       error: error.message
@@ -637,6 +643,8 @@ export const unbanUser = async (req, res) => {
     const { userId } = req.params;
     const adminId = req.user._id;
     
+    console.log(`Unbanning user ${userId} by admin ${adminId}`);
+    
     const user = await User.findByIdAndUpdate(
       userId,
       { $set: { status: 'active', updatedAt: new Date() } },
@@ -644,8 +652,11 @@ export const unbanUser = async (req, res) => {
     );
     
     if (!user) {
+      console.log(`User not found: ${userId}`);
       return res.status(404).json({ message: 'User not found' });
     }
+    
+    console.log(`User unbanned successfully: ${user.username} (${user.status})`);
     
     // Log the action
     await AuditLog.create({
@@ -658,6 +669,7 @@ export const unbanUser = async (req, res) => {
     
     res.json({ message: 'User unbanned successfully', user });
   } catch (error) {
+    console.error('Error unbanning user:', error);
     res.status(500).json({
       message: 'Failed to unban user',
       error: error.message

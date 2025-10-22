@@ -8,18 +8,30 @@ export function useRealtimeInvalidate(queryKeys = [], topics = []) {
   useEffect(() => {
     let unsubs = [];
     (async () => {
-      const unsubApi = await subscribe('api:update', () => {
+      const unsubApi = await subscribe('api:update', (data) => {
+        console.log('Real-time API update received:', data);
         try {
-          queryKeys.forEach((k) => queryClient.invalidateQueries({ queryKey: k }));
-        } catch {}
+          queryKeys.forEach((k) => {
+            console.log('Invalidating query:', k);
+            queryClient.invalidateQueries({ queryKey: k });
+          });
+        } catch (error) {
+          console.error('Error invalidating queries:', error);
+        }
       });
       unsubs.push(unsubApi);
 
       for (const t of topics) {
-        const unsubTopic = await subscribe(`${t}:update`, () => {
+        const unsubTopic = await subscribe(`${t}:update`, (data) => {
+          console.log(`Real-time ${t} update received:`, data);
           try {
-            queryKeys.forEach((k) => queryClient.invalidateQueries({ queryKey: k }));
-          } catch {}
+            queryKeys.forEach((k) => {
+              console.log('Invalidating query:', k);
+              queryClient.invalidateQueries({ queryKey: k });
+            });
+          } catch (error) {
+            console.error('Error invalidating queries:', error);
+          }
         });
         unsubs.push(unsubTopic);
       }

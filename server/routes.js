@@ -16,6 +16,7 @@ import * as analyticsController from './controllers/analyticsController.js';
 import * as notificationController from './controllers/notificationController.js';
 import * as roleController from './controllers/roleController.js';
 import * as instructorController from './controllers/instructorController.js';
+import * as auditLogController from './controllers/auditLogController.js';
 
 // Import middleware
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
@@ -96,6 +97,13 @@ export async function registerRoutes(app) {
   app.post('/api/admin/roles/:roleId/permissions', authenticateToken, requireAdmin, roleController.updateRolePermissions);
   app.get('/api/admin/roles/:roleId/users', authenticateToken, requireAdmin, roleController.getRoleUsers);
   app.post('/api/admin/roles/initialize', authenticateToken, requireAdmin, roleController.initializeSystemRoles);
+  
+  // Audit log routes
+  app.get('/api/admin/audit-logs', authenticateToken, requireAdmin, auditLogController.getAllAuditLogs);
+  app.get('/api/admin/audit-logs/:logId', authenticateToken, requireAdmin, auditLogController.getAuditLogById);
+  app.delete('/api/admin/audit-logs/clear', authenticateToken, requireAdmin, auditLogController.clearAuditLogs);
+  app.get('/api/admin/audit-logs/export', authenticateToken, requireAdmin, auditLogController.exportAuditLogs);
+  app.get('/api/admin/audit-logs/stats', authenticateToken, requireAdmin, auditLogController.getAuditStats);
   
   // Instructor management routes
   app.get('/api/admin/instructors', authenticateToken, requireAdmin, instructorController.getAllInstructors);

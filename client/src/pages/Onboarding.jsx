@@ -147,25 +147,36 @@ const Onboarding = () => {
   };
 
   const handleSkip = async () => {
+    console.log('Skip button clicked');
     setIsSubmitting(true);
     setError('');
     try {
       // Mark onboarded without collecting details
-      const result = await updateUserProfile({
+      const skipData = {
         firstName: user?.profile?.firstName || 'Student',
         lastName: user?.profile?.lastName || 'User',
         yearOfStudy: '1',
         degree: 'General Studies',
-        interestType: 'Core Engineering',
-        domains: ['Web Development'],
-        learningPace: 'Medium'
-      });
+        interestType: 'core',
+        domains: ['webdev'],
+        learningPace: 'medium'
+      };
+      
+      console.log('Sending skip data:', skipData);
+      const result = await updateUserProfile(skipData);
+      console.log('Update result:', result);
+      
       if (result.success) {
+        console.log('Profile update successful, navigating to dashboard');
         setLocation('/dashboard');
       } else {
+        // Even if API fails, navigate to dashboard to prevent user being stuck
+        console.warn('Profile update failed during skip, but navigating to dashboard');
         setLocation('/dashboard');
       }
-    } catch {
+    } catch (error) {
+      // Even if there's an error, navigate to dashboard to prevent user being stuck
+      console.error('Error during skip:', error);
       setLocation('/dashboard');
     } finally {
       setIsSubmitting(false);
@@ -482,9 +493,17 @@ const Onboarding = () => {
                 <Button 
                   variant="outline" 
                   onClick={handleSkip}
+                  disabled={isSubmitting}
                   data-testid="button-skip"
                 >
-                  Skip for Now
+                  {isSubmitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                      Skipping...
+                    </div>
+                  ) : (
+                    'Skip for Now'
+                  )}
                 </Button>
               ) : (
                 <Button 

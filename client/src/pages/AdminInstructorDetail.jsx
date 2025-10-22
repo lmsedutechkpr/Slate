@@ -31,7 +31,8 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  MessageSquare
+  MessageSquare,
+  RefreshCw
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -50,9 +51,10 @@ const AdminInstructorDetail = () => {
   });
 
   // Fetch instructor details
-  const { data: instructorData, isLoading } = useQuery({
+  const { data: instructorData, isLoading, isFetching } = useQuery({
     queryKey: ['/api/admin/instructors', instructorId, accessToken],
     queryFn: async () => {
+      console.log(`Fetching instructor details for: ${instructorId}`);
       const response = await fetch(buildApiUrl(`/api/admin/instructors/${instructorId}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -64,9 +66,12 @@ const AdminInstructorDetail = () => {
         throw new Error('Failed to fetch instructor details');
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log('Instructor details fetched:', data);
+      return data;
     },
     enabled: !!accessToken && !!instructorId,
+    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
 
   const instructor = instructorData?.instructor;
@@ -76,7 +81,10 @@ const AdminInstructorDetail = () => {
   const totalReviews = instructorData?.totalReviews || 0;
 
   // Real-time updates
-  useRealtimeInvalidate(['/api/admin/instructors'], ['instructors:update', 'instructors:create', 'instructors:delete', 'users:update']);
+  useRealtimeInvalidate(
+    ['/api/admin/instructors', `/api/admin/instructors/${instructorId}`], 
+    ['instructors:update', 'instructors:create', 'instructors:delete', 'users:update', 'courses:update', 'enrollments:update']
+  );
 
   // Update payout settings mutation
   const updatePayoutMutation = useMutation({
@@ -189,6 +197,15 @@ const AdminInstructorDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/instructors', instructorId] })}
+            title="Refresh data"
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
           {getStatusBadge(instructor.status)}
           <Button variant="outline" onClick={() => setShowPayoutDialog(true)}>
             <Settings className="h-4 w-4 mr-2" />
@@ -257,6 +274,7 @@ const AdminInstructorDetail = () => {
         <TabsList>
           <TabsTrigger value="profile">Profile Details</TabsTrigger>
           <TabsTrigger value="courses">Courses ({assignedCourses.length})</TabsTrigger>
+          <TabsTrigger value="students">Students ({instructor.totalStudents})</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="reviews">Reviews ({totalReviews})</TabsTrigger>
         </TabsList>
@@ -340,7 +358,7 @@ const AdminInstructorDetail = () => {
             <CardHeader>
               <CardTitle>Assigned Courses</CardTitle>
               <CardDescription>
-                Courses currently assigned to this instructor
+                Courses currently assigned to this instructor with detailed information
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -350,37 +368,158 @@ const AdminInstructorDetail = () => {
                   <p>No courses assigned</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {assignedCourses.map((course) => (
-                    <div key={course._id} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
+                    <div key={course._id} className="border rounded-lg p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <h4 className="font-medium">{course.title}</h4>
-                          <p className="text-sm text-gray-600">{course.description}</p>
-                          <div className="flex items-center gap-4 mt-2">
-                            <div className="flex items-center gap-1">
+                          <h4 className="font-semibold text-lg mb-2">{course.title}</h4>
+                          <p className="text-sm text-gray-600 mb-3">{course.description}</p>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div className="flex items-center gap-2">
                               <Users className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm">{course.enrollments} students</span>
+                              <div>
+                                <p className="text-sm font-medium">{course.enrollments || 0}</p>
+                                <p className="text-xs text-gray-500">Students</p>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-2">
                               <DollarSign className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm">${course.price}</span>
+                              <div>
+                                <p className="text-sm font-medium">${course.price || 0}</p>
+                                <p className="text-xs text-gray-500">Price</p>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-2">
                               <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                              <span className="text-sm">{course.averageRating || 0}/5</span>
+                              <div>
+                                <p className="text-sm font-medium">{course.averageRating || 0}/5</p>
+                                <p className="text-xs text-gray-500">Rating</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="h-4 w-4 text-gray-400" />
+                              <div>
+                                <p className="text-sm font-medium">{course.reviewCount || 0}</p>
+                                <p className="text-xs text-gray-500">Reviews</p>
+                              </div>
                             </div>
                           </div>
+
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <span>Created: {new Date(course.createdAt).toLocaleDateString()}</span>
+                            <span>Updated: {new Date(course.updatedAt).toLocaleDateString()}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        
+                        <div className="flex items-center gap-2 ml-4">
                           <Badge variant={course.status === 'published' ? 'default' : 'secondary'}>
                             {course.status}
                           </Badge>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => setLocation(`/admin/courses/${course._id}`)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
+
+                      {/* Course Progress Bar */}
+                      {course.enrollments > 0 && (
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-blue-900">Course Performance</span>
+                            <span className="text-sm text-blue-700">{course.enrollments} enrollments</span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min((course.enrollments / 100) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Students Tab */}
+        <TabsContent value="students" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Enrolled Students</CardTitle>
+              <CardDescription>
+                Students enrolled in this instructor's courses
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {assignedCourses.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No courses assigned - no students to display</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {assignedCourses.map((course) => (
+                    <div key={course._id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="font-medium text-lg">{course.title}</h4>
+                          <p className="text-sm text-gray-600">{course.description}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm font-medium">{course.enrollments} students</span>
+                          </div>
+                          <Badge variant={course.status === 'published' ? 'default' : 'secondary'}>
+                            {course.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      {course.enrollments > 0 ? (
+                        <div className="space-y-3">
+                          <h5 className="font-medium text-sm text-gray-700">Enrolled Students:</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {course.enrollments?.slice(0, 12).map((enrollment, index) => (
+                              <div key={enrollment.student?._id || index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                                  <span className="text-primary-600 font-medium text-sm">
+                                    {enrollment.student?.firstName?.charAt(0) || 'S'}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">
+                                    {enrollment.student?.firstName} {enrollment.student?.lastName}
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {enrollment.student?.email}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                            {course.enrollments?.length > 12 && (
+                              <div className="flex items-center justify-center p-3 bg-gray-100 rounded-lg">
+                                <span className="text-sm text-gray-500">
+                                  +{course.enrollments.length - 12} more students
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500">
+                          <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                          <p className="text-sm">No students enrolled in this course</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
