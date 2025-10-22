@@ -46,7 +46,7 @@ const AttendanceTracker = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('1'); // Set default course
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');

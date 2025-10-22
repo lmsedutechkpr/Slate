@@ -50,7 +50,7 @@ const Gradebook = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('1'); // Set default course
   const [selectedAssignment, setSelectedAssignment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterGrade, setFilterGrade] = useState('all');

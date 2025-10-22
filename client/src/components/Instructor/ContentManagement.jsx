@@ -181,7 +181,7 @@ const ContentManagement = () => {
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
   
-  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('1'); // Set default course
   const [selectedFolder, setSelectedFolder] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');

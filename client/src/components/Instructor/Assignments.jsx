@@ -39,6 +39,29 @@ const InstructorAssignments = () => {
   });
 
   // Comprehensive dummy data for assignments
+  const dummyCoursesData = {
+    courses: [
+      {
+        _id: '1',
+        title: 'Complete Web Development Bootcamp',
+        description: 'Learn modern web development from scratch.',
+        coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '2',
+        title: 'React.js Complete Guide',
+        description: 'Master React.js from fundamentals to advanced concepts.',
+        coverUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop'
+      },
+      {
+        _id: '3',
+        title: 'Node.js Backend Development',
+        description: 'Build scalable backend applications with Node.js.',
+        coverUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=450&fit=crop'
+      }
+    ]
+  };
+
   const dummyAssignmentsData = {
     assignments: [
       {
@@ -159,20 +182,10 @@ const InstructorAssignments = () => {
   const { data: coursesData } = useQuery({
     queryKey: ['/api/instructor/courses'],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl('/api/instructor/courses'), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch courses');
-      }
-      
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyCoursesData;
     },
-    enabled: !!accessToken
+    enabled: true, // Always enabled for dummy data
   });
 
   // Real-time updates
