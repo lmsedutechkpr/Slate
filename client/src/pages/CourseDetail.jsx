@@ -45,15 +45,152 @@ const CourseDetail = () => {
   
   const queryClient = useQueryClient();
 
+  // Comprehensive dummy data for course detail
+  const dummyCourseData = {
+    _id: courseId || '1',
+    title: 'Complete Web Development Bootcamp',
+    description: 'Learn modern web development from scratch. Master HTML, CSS, JavaScript, React, Node.js, and build real-world projects.',
+    longDescription: 'This comprehensive bootcamp will take you from beginner to advanced web developer. You\'ll learn the latest technologies and best practices used by professional developers.',
+    coverUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop',
+    category: 'Web Development',
+    level: 'beginner',
+    price: 199,
+    originalPrice: 299,
+    language: 'English',
+    duration: '40 hours',
+    lessons: 24,
+    students: 1247,
+    rating: { average: 4.8, count: 124 },
+    instructor: {
+      _id: 'instructor1',
+      name: 'Sarah Wilson',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b1c1b?w=100&h=100&fit=crop&crop=face',
+      bio: 'Senior Full-Stack Developer with 8+ years of experience',
+      rating: 4.9,
+      students: 5000
+    },
+    sections: [
+      {
+        _id: 'section1',
+        title: 'HTML & CSS Fundamentals',
+        description: 'Learn the building blocks of web development',
+        lectures: [
+          {
+            _id: 'lecture1',
+            title: 'Introduction to HTML',
+            description: 'Learn the basics of HTML structure and elements',
+            duration: 1800,
+            type: 'video',
+            videoUrl: 'https://example.com/video1.mp4',
+            isPreview: true
+          },
+          {
+            _id: 'lecture2',
+            title: 'CSS Basics and Styling',
+            description: 'Master CSS selectors, properties, and styling techniques',
+            duration: 2400,
+            type: 'video',
+            videoUrl: 'https://example.com/video2.mp4',
+            isPreview: false
+          },
+          {
+            _id: 'lecture3',
+            title: 'Responsive Design',
+            description: 'Create mobile-friendly layouts with CSS Grid and Flexbox',
+            duration: 2100,
+            type: 'video',
+            videoUrl: 'https://example.com/video3.mp4',
+            isPreview: false
+          }
+        ]
+      },
+      {
+        _id: 'section2',
+        title: 'JavaScript Essentials',
+        description: 'Master JavaScript programming fundamentals',
+        lectures: [
+          {
+            _id: 'lecture4',
+            title: 'JavaScript Variables and Functions',
+            description: 'Learn about variables, functions, and scope in JavaScript',
+            duration: 2700,
+            type: 'video',
+            videoUrl: 'https://example.com/video4.mp4',
+            isPreview: false
+          },
+          {
+            _id: 'lecture5',
+            title: 'DOM Manipulation',
+            description: 'Interact with HTML elements using JavaScript',
+            duration: 3000,
+            type: 'video',
+            videoUrl: 'https://example.com/video5.mp4',
+            isPreview: false
+          }
+        ]
+      }
+    ],
+    requirements: [
+      'Basic computer skills',
+      'No programming experience required',
+      'Willingness to learn and practice'
+    ],
+    whatYouWillLearn: [
+      'Build responsive websites with HTML and CSS',
+      'Master JavaScript programming',
+      'Create interactive web applications',
+      'Understand modern web development tools',
+      'Deploy websites to the internet'
+    ],
+    tags: ['html', 'css', 'javascript', 'web-development', 'beginner']
+  };
+
+  const dummyEnrollmentData = {
+    _id: 'enrollment1',
+    courseId: courseId || '1',
+    userId: 'user1',
+    progress: 65,
+    status: 'active',
+    enrolledAt: '2024-01-15T00:00:00.000Z',
+    completedLectures: ['lecture1', 'lecture2', 'lecture3'],
+    lastAccessedLecture: 'lecture3'
+  };
+
+  const dummyReviewsData = {
+    reviews: [
+      {
+        _id: 'review1',
+        userId: {
+          name: 'Alice Johnson',
+          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: 5,
+        comment: 'Excellent course! Sarah explains everything clearly and the projects are very practical.',
+        createdAt: '2024-01-20T10:30:00.000Z',
+        helpful: 12
+      },
+      {
+        _id: 'review2',
+        userId: {
+          name: 'Bob Smith',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+        },
+        rating: 4,
+        comment: 'Great content, but could use more advanced examples. Overall very helpful.',
+        createdAt: '2024-01-18T14:20:00.000Z',
+        helpful: 8
+      }
+    ]
+  };
+
   // Fetch course details
   const { data: courseData, isLoading: courseLoading } = useQuery({
     queryKey: ['/api/courses', courseId, accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId}`));
-      if (!response.ok) throw new Error('Failed to fetch course');
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyCourseData;
     },
-    enabled: !!accessToken && !!courseId,
+    enabled: true, // Always enabled for dummy data
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000,
@@ -63,11 +200,10 @@ const CourseDetail = () => {
   const { data: enrollmentData } = useQuery({
     queryKey: ['/api/enrollments', courseId, accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl(`/api/enrollments/${courseId}`));
-      if (!response.ok) return null;
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyEnrollmentData;
     },
-    enabled: !!accessToken && !!courseId,
+    enabled: true, // Always enabled for dummy data
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000,
@@ -77,11 +213,10 @@ const CourseDetail = () => {
   const { data: reviewsData } = useQuery({
     queryKey: ['/api/courses', courseId, 'reviews', accessToken],
     queryFn: async () => {
-      const response = await authenticatedFetch(buildApiUrl(`/api/courses/${courseId}/reviews`));
-      if (!response.ok) return { reviews: [] };
-      return response.json();
+      // Return dummy data for demonstration
+      return dummyReviewsData;
     },
-    enabled: !!accessToken && !!courseId,
+    enabled: true, // Always enabled for dummy data
     refetchOnWindowFocus: true,
     refetchInterval: false,
     staleTime: 30000,

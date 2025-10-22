@@ -68,14 +68,36 @@ const Dashboard = () => {
           instructor: { name: 'Sarah Wilson' },
           rating: { average: 4.8, count: 124 },
           lessons: 24,
-          duration: '40 hours'
+          duration: '40 hours',
+          sections: [
+            {
+              _id: 'section1',
+              title: 'HTML & CSS Fundamentals',
+              lectures: [
+                { _id: 'lecture1', title: 'Introduction to HTML', duration: 1800, type: 'video' },
+                { _id: 'lecture2', title: 'CSS Basics and Styling', duration: 2400, type: 'video' },
+                { _id: 'lecture3', title: 'Responsive Design', duration: 2100, type: 'video' }
+              ]
+            },
+            {
+              _id: 'section2',
+              title: 'JavaScript Essentials',
+              lectures: [
+                { _id: 'lecture4', title: 'JavaScript Variables and Functions', duration: 2700, type: 'video' },
+                { _id: 'lecture5', title: 'DOM Manipulation', duration: 3000, type: 'video' },
+                { _id: 'lecture6', title: 'Event Handling', duration: 1800, type: 'video' }
+              ]
+            }
+          ]
         },
         progress: 65,
         status: 'active',
         enrolledAt: '2024-01-15T00:00:00.000Z',
         lastActivityAt: '2024-01-20T15:30:00.000Z',
         completedLessons: 15,
-        totalLessons: 24
+        totalLessons: 24,
+        completedLectures: ['lecture1', 'lecture2', 'lecture3', 'lecture4'],
+        lastAccessedLecture: 'lecture4'
       },
       {
         _id: '2',
@@ -90,14 +112,35 @@ const Dashboard = () => {
           instructor: { name: 'John Doe' },
           rating: { average: 4.6, count: 89 },
           lessons: 18,
-          duration: '30 hours'
+          duration: '30 hours',
+          sections: [
+            {
+              _id: 'section3',
+              title: 'React Fundamentals',
+              lectures: [
+                { _id: 'lecture7', title: 'Introduction to React', duration: 1800, type: 'video' },
+                { _id: 'lecture8', title: 'Components and Props', duration: 2400, type: 'video' },
+                { _id: 'lecture9', title: 'State and Lifecycle', duration: 2100, type: 'video' }
+              ]
+            },
+            {
+              _id: 'section4',
+              title: 'Advanced React',
+              lectures: [
+                { _id: 'lecture10', title: 'Hooks Deep Dive', duration: 2700, type: 'video' },
+                { _id: 'lecture11', title: 'Context API', duration: 3000, type: 'video' }
+              ]
+            }
+          ]
         },
         progress: 45,
         status: 'active',
         enrolledAt: '2024-01-10T00:00:00.000Z',
         lastActivityAt: '2024-01-19T14:20:00.000Z',
         completedLessons: 8,
-        totalLessons: 18
+        totalLessons: 18,
+        completedLectures: ['lecture7', 'lecture8'],
+        lastAccessedLecture: 'lecture8'
       },
       {
         _id: '3',
@@ -236,6 +279,7 @@ const Dashboard = () => {
       completedAssignments: 1,
       totalHours: 45,
       weeklyHours: 8,
+      weeklyStudyTime: 8.5,
       dayStreak: 5,
       xpPoints: 1250,
       achievements: 3
