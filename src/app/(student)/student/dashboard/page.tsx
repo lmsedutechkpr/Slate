@@ -116,18 +116,20 @@ export default async function StudentDashboardPage() {
     (hoursData?.reduce((sum, lp) => sum + (lp.progress_secs || 0), 0) ?? 0) / 3600
   );
 
-  // Daily goal mock query matching spec for "today mins"
+  // Real daily goal query
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayIso = todayStart.toISOString();
+
   const {data: todayProgress} = await supabase
     .from('lecture_progress')
-    .select('progress_secs, created_at, updated_at')
+    .select('progress_secs')
     .eq('student_id', user.id)
-    .eq('is_completed', true)
-    // Simplified count for today since realtime Postgres date filters can be complex client-side
-    // We will just sum any progress matching the mock for the dashboard demo purpose
+    .gte('updated_at', todayIso);
   
   const todayWatchedMinutes = Math.floor(
     (todayProgress?.reduce((sum, lp) => sum + (lp.progress_secs || 0), 0) ?? 0) / 60
-  ) || 0; // Fallback to 0
+  ) || 0;
 
   // Fetch full details for the recommended products
   const productIds = (recommendedProducts || []).map((rp: any) => rp.product_id).filter(Boolean);

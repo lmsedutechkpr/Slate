@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Pencil } from "lucide-react";
 import TrafficLights from "@/components/auth/TrafficLights";
@@ -20,9 +20,40 @@ export default function DailyGoal({
   const [goal, setGoal] = useState(dailyGoalMinutes || 30);
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(goal.toString());
+  const [watchedMins, setWatchedMins] = useState(todayWatchedMinutes);
 
-  const progress = Math.min((todayWatchedMinutes / goal) * 100, 100);
-  const isAchieved = todayWatchedMinutes >= goal;
+  useEffect(() => {
+    const supabase = createClient();
+    
+    const fetchTodayMins = async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from('lecture_progress')
+        .select('progress_secs')
+        .eq('student_id', userId)
+        .gte('updated_at', todayStart.toISOString());
+        
+      const mins = Math.floor((data?.reduce((sum, lp) => sum + (lp.progress_secs || 0), 0) ?? 0) / 60);
+      setWatchedMins(mins);
+    };
+
+    const channel = supabase
+      .channel('daily_goal_realtime')
+      .on(
+        'postgres_changes', 
+        { event: '*', schema: 'public', table: 'lecture_progress', filter: `student_id=eq.${userId}` }, 
+        () => fetchTodayMins()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  const progress = Math.min((watchedMins / goal) * 100, 100);
+  const isAchieved = watchedMins >= goal;
 
   let progressColor = "#E5E7EB";
   if (progress >= 100) progressColor = "#28C840";
@@ -64,7 +95,7 @@ export default function DailyGoal({
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-baseline gap-1.5">
             <span className="font-sans text-[16px] font-bold text-gray-900">
-              {todayWatchedMinutes}
+              {watchedMins}
             </span>
             <span className="text-[13px] text-gray-500">
               /{" "}
