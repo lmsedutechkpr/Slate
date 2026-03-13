@@ -1,0 +1,7 @@
+node_modules
+.next
+out
+.orchids/dev.log
+.orchids/dev.err.log
+.env
+.env.local
