@@ -25,12 +25,18 @@ interface Props {
   profile: { full_name: string | null; };
   userId: string;
   myCourseIds: string[];
+  enrollTrend: number;
+  revenueTrend: number;
+  computedTotalRevenue: number;
 }
 
-function StatCard({ icon: Icon, value, label, trend }: { icon: any; value: string; label: string; trend?: string }) {
+function StatCard({ icon: Icon, value, label, trend, trendPositive }: {
+  icon: any; value: string; label: string; trend?: string; trendPositive?: boolean;
+}) {
+  const color = trendPositive === false ? 'text-[#FF5F57]' : 'text-[#28C840]';
+  const TrendIcon = trendPositive === false ? TrendingUp : TrendingUp;
   return (
     <div className="overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.08)] bg-white shadow-sm">
-      {/* Mac titlebar */}
       <div className="flex h-8 items-center border-b border-[rgba(0,0,0,0.06)] bg-[#F5F5F7] px-4">
         <TrafficLights size="xs" />
       </div>
@@ -42,8 +48,8 @@ function StatCard({ icon: Icon, value, label, trend }: { icon: any; value: strin
         <p className="mt-0.5 text-[12px] text-[#6E6E73]">{label}</p>
         {trend && (
           <div className="mt-2 flex items-center gap-1">
-            <TrendingUp className="h-3 w-3 text-[#28C840]" />
-            <span className="text-[11px] text-[#28C840]">{trend}</span>
+            <TrendingUp className={`h-3 w-3 ${color}`} />
+            <span className={`text-[11px] ${color}`}>{trend}</span>
           </div>
         )}
       </div>
@@ -74,6 +80,9 @@ export function DashboardClient({
   profile,
   userId,
   myCourseIds,
+  enrollTrend,
+  revenueTrend,
+  computedTotalRevenue,
 }: Props) {
   const router = useRouter();
   const [studentCount, setStudentCount] = useState(instructorProfile?.total_students ?? 0);
@@ -148,22 +157,29 @@ export function DashboardClient({
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           icon={DollarSign}
-          value={`₹${(instructorProfile?.total_revenue ?? 0).toLocaleString('en-IN')}`}
+          value={`₹${computedTotalRevenue.toLocaleString('en-IN')}`}
           label="Total Earnings"
-          trend="+8% this month"
+          trend={revenueTrend !== 0 ? `${revenueTrend > 0 ? '+' : ''}${revenueTrend}% this month` : undefined}
+          trendPositive={revenueTrend >= 0}
         />
-        <StatCard icon={Users} value={String(studentCount)} label="Total Students" trend="+5% this month" />
+        <StatCard
+          icon={Users}
+          value={String(studentCount)}
+          label="Total Students"
+          trend={enrollTrend !== 0 ? `${enrollTrend > 0 ? '+' : ''}${enrollTrend}% this month` : undefined}
+          trendPositive={enrollTrend >= 0}
+        />
         <StatCard
           icon={BookOpen}
           value={String(instructorProfile?.total_courses ?? courses.length)}
           label="Active Courses"
-          trend="+1 this month"
         />
         <StatCard
           icon={Star}
           value={`${(instructorProfile?.avg_rating ?? 0).toFixed(1)} ★`}
           label="Avg Rating"
-          trend="Top 10%"
+          trend={instructorProfile?.avg_rating > 0 ? 'From student reviews' : undefined}
+          trendPositive={true}
         />
       </div>
 

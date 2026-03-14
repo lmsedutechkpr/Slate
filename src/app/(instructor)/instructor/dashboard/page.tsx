@@ -1,18 +1,17 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdmin } from '@supabase/supabase-js';
 import { DashboardClient } from '@/components/instructor/dashboard/DashboardClient';
-import { format, subMonths, startOfMonth } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
-function generateMockEarnings(courses: any[], commissionRate: number) {
-  return Array.from({ length: 6 }, (_, i) => {
-    const d = subMonths(new Date(), 5 - i);
-    const baseAmount = courses.reduce((sum, c) => sum + ((c.total_enrolled ?? 0) * (c.discounted_price ?? c.price ?? 0)), 0);
-    const mock = Math.round((baseAmount * (commissionRate / 100)) * (0.7 + Math.random() * 0.6));
-    return {
-      month: format(d, 'MMM yy'),
-      amount: mock,
-    };
-  });
+export const dynamic = 'force-dynamic';
+
+function adminDb() {
+  return createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 }
 
 export default async function InstructorDashboardPage() {
@@ -20,8 +19,10 @@ export default async function InstructorDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // Role guard
-  const { data: profile } = await supabase
+  const db = adminDb();
+
+  // ── 1. Profile + role guard ──
+  const { data: profile } = await db
     .from('profiles')
     .select('role, status, full_name, avatar_url')
     .eq('id', user.id)
@@ -30,35 +31,35 @@ export default async function InstructorDashboardPage() {
   if (!profile || profile.role !== 'instructor') redirect('/student/dashboard');
   if (profile.status === 'pending') redirect('/pending-approval?role=instructor');
 
-  // Query 1 — Instructor profile stats
-  const { data: instructorProfile } = await supabase
+  // ── 2. Instructor profile ──
+  const { data: instructorProfile } = await db
     .from('instructor_profiles')
-    .select('total_students, total_courses, avg_rating, total_revenue, commission_rate')
+    .select('total_students, total_courses, avg_rating, total_revenue, commission_rate, pending_payout')
     .eq('user_id', user.id)
     .single();
 
-  // Query 2 — My courses (via course_instructors join)
-  const { data: myInstructorCourses } = await supabase
+  // ── 3. My course IDs ──
+  const { data: ciRows } = await db
     .from('course_instructors')
     .select('course_id')
     .eq('instructor_id', user.id);
+  const myCourseIds = (ciRows ?? []).map((r: any) => r.course_id).filter(Boolean);
 
-  const myCourseIds = (myInstructorCourses ?? []).map((r: any) => r.course_id).filter(Boolean);
-
+  // ── 4. My courses ──
   let courses: any[] = [];
   if (myCourseIds.length > 0) {
-    const { data } = await supabase
+    const { data } = await db
       .from('courses')
-      .select('id, title, slug, thumbnail_url, status, total_enrolled, total_lectures, avg_rating, total_reviews, price, discounted_price, created_at')
+      .select('id, title, thumbnail_url, status, total_enrolled, avg_rating, total_reviews, price, discounted_price')
       .in('id', myCourseIds)
       .order('total_enrolled', { ascending: false });
     courses = data ?? [];
   }
 
-  // Query 3 — Recent enrollments
+  // ── 5. Recent enrollments ──
   let recentEnrollments: any[] = [];
   if (myCourseIds.length > 0) {
-    const { data } = await supabase
+    const { data } = await db
       .from('enrollments')
       .select(`
         id, created_at, progress_pct,
@@ -71,42 +72,69 @@ export default async function InstructorDashboardPage() {
     recentEnrollments = data ?? [];
   }
 
-  // Query 4 — Upcoming live classes
-  const { data: upcomingLive } = await supabase
+  // ── 6. Upcoming live classes (scheduled OR live) ──
+  const { data: upcomingLive } = await db
     .from('live_classes')
     .select('*')
     .eq('instructor_id', user.id)
-    .eq('status', 'scheduled')
-    .gte('scheduled_at', new Date().toISOString())
+    .in('status', ['scheduled', 'live'])
     .order('scheduled_at')
     .limit(3);
 
-  // Query 5 — Monthly earnings (from payout_transactions or fallback)
-  let monthlyEarnings: { month: string; amount: number }[] = [];
-  const { data: payouts } = await supabase
-    .from('payout_transactions')
-    .select('amount, created_at')
-    .eq('instructor_id', user.id)
-    .gte('created_at', new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString());
+  // ── 7. Monthly earnings from enrollments × course price (last 6 months) ──
+  const monthlyEarnings: { month: string; amount: number }[] = [];
+  let computedTotalRevenue = 0;
+  if (myCourseIds.length > 0) {
+    for (let i = 5; i >= 0; i--) {
+      const d = subMonths(new Date(), i);
+      const start = startOfMonth(d).toISOString();
+      const end   = endOfMonth(d).toISOString();
 
-  if (payouts && payouts.length > 0) {
-    // Group by month
-    const grouped: Record<string, number> = {};
-    payouts.forEach((p: any) => {
-      const key = format(new Date(p.created_at), 'MMM yy');
-      grouped[key] = (grouped[key] ?? 0) + p.amount;
-    });
-    monthlyEarnings = Object.entries(grouped).map(([month, amount]) => ({ month, amount }));
-  } else {
-    // Generate mock data from enrollments × price × commission
-    const commissionRate = instructorProfile?.commission_rate ?? 70;
-    monthlyEarnings = generateMockEarnings(courses, commissionRate);
+      const { data: enrRows } = await db
+        .from('enrollments')
+        .select('course_id, courses(price, discounted_price)')
+        .in('course_id', myCourseIds)
+        .gte('enrolled_at', start)   // ← correct column name
+        .lte('enrolled_at', end);
+
+      const commRate = (instructorProfile?.commission_rate ?? 70) / 100;
+      const gross = (enrRows ?? []).reduce((sum: number, e: any) => {
+        const p = e.courses?.discounted_price ?? e.courses?.price ?? 0;
+        return sum + (p * commRate);
+      }, 0);
+
+      computedTotalRevenue += gross;
+      monthlyEarnings.push({ month: format(d, 'MMM yy'), amount: Math.round(gross) });
+    }
   }
 
-  // Query 6 — Unanswered Q&A count
+  // ── 8. Trend: this month vs last month enrollments ──
+  const now = new Date();
+  const thisMonthStart = startOfMonth(now).toISOString();
+  const lastMonthStart = startOfMonth(subMonths(now, 1)).toISOString();
+  const lastMonthEnd   = endOfMonth(subMonths(now, 1)).toISOString();
+
+  let enrollTrend = 0;
+  let revenueTrend = 0;
+  if (myCourseIds.length > 0) {
+    const [thisEnr, lastEnr] = await Promise.all([
+      db.from('enrollments').select('id', { count: 'exact', head: true }).in('course_id', myCourseIds).gte('enrolled_at', thisMonthStart),
+      db.from('enrollments').select('id', { count: 'exact', head: true }).in('course_id', myCourseIds).gte('enrolled_at', lastMonthStart).lte('enrolled_at', lastMonthEnd),
+    ]);
+    const thisCount = thisEnr.count ?? 0;
+    const lastCount = lastEnr.count ?? 1;
+    enrollTrend = Math.round(((thisCount - lastCount) / lastCount) * 100);
+
+    // Revenue trend from monthlyEarnings
+    const thisMo = monthlyEarnings[monthlyEarnings.length - 1]?.amount ?? 0;
+    const lastMo = monthlyEarnings[monthlyEarnings.length - 2]?.amount ?? 1;
+    revenueTrend = lastMo > 0 ? Math.round(((thisMo - lastMo) / lastMo) * 100) : 0;
+  }
+
+  // ── 9. Unanswered Q&A ──
   let unansweredQA = 0;
   if (myCourseIds.length > 0) {
-    const { count } = await supabase
+    const { count } = await db
       .from('course_qa')
       .select('id', { count: 'exact', head: true })
       .in('course_id', myCourseIds)
@@ -126,6 +154,10 @@ export default async function InstructorDashboardPage() {
       profile={profile}
       userId={user.id}
       myCourseIds={myCourseIds}
+      enrollTrend={enrollTrend}
+      revenueTrend={revenueTrend}
+      computedTotalRevenue={Math.round(computedTotalRevenue)}
     />
   );
+
 }

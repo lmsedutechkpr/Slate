@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import ConversationList from './ConversationList';
 import ChatWindow from './ChatWindow';
@@ -12,6 +12,7 @@ interface MessagesClientProps {
   userProfile: any;
   contactLabel?: string;
   emptyHint?: string;
+  initialToUserId?: string;
 }
 
 export default function MessagesClient({
@@ -21,11 +22,56 @@ export default function MessagesClient({
   userProfile,
   contactLabel,
   emptyHint,
+  initialToUserId,
 }: MessagesClientProps) {
   const [conversations, setConversations] = useState(initialConversations);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isMobileListOpen, setIsMobileListOpen] = useState(true);
   const supabase = createClient();
+  const didAutoOpen = useRef(false);
+
+  // ── Auto-open conversation when coming from ?to=userId (e.g. Students page message button) ──
+  useEffect(() => {
+    if (!initialToUserId || didAutoOpen.current) return;
+    didAutoOpen.current = true;
+
+    // Check if a conversation already exists
+    const existing = initialConversations.find(c =>
+      c.participant_1 === initialToUserId || c.participant_2 === initialToUserId
+    );
+
+    if (existing) {
+      setActiveId(existing.id);
+      setIsMobileListOpen(false);
+      return;
+    }
+
+    // Create a new conversation with that user
+    const sorted = [userId, initialToUserId].sort();
+    supabase
+      .from('conversations')
+      .insert({
+        participant_1: sorted[0],
+        participant_2: sorted[1],
+        last_message_at: new Date().toISOString(),
+        unread_count_p1: 0,
+        unread_count_p2: 0,
+      })
+      .select(`
+        id, participant_1, participant_2, last_message_at,
+        unread_count_p1, unread_count_p2, created_at,
+        p1:profiles!participant_1(id, full_name, display_name, avatar_url, role),
+        p2:profiles!participant_2(id, full_name, display_name, avatar_url, role)
+      `)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        setConversations(prev => [data, ...prev]);
+        setActiveId(data.id);
+        setIsMobileListOpen(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialToUserId]);
 
   const activeConversation = conversations.find(c => c.id === activeId) || null;
 

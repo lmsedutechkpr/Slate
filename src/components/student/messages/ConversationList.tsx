@@ -29,6 +29,7 @@ export default function ConversationList({
 }: ConversationListProps) {
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [contactSearch, setContactSearch] = useState('');
   const supabase = createClient();
 
   const filtered = conversations.filter(c => 
@@ -125,34 +126,52 @@ export default function ConversationList({
       {/* New Message Extender */}
       {showNew && (
         <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10">
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">
+          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-2">
             {contactLabel}
           </p>
-          {instructors.length === 0 ? (
-            <p className="text-[12px] text-gray-500 italic">No instructors found.</p>
-          ) : (
-            <div className="space-y-1">
-              {instructors.map(inst => (
-                <div
-                  key={inst.id}
-                  onClick={() => openOrCreate(inst.id)}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-200">
-                    {inst.avatar_url ? (
-                      <img src={inst.avatar_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[12px] font-bold text-gray-500">{inst.full_name?.[0]}</span>
-                    )}
+          {/* Search contacts */}
+          <div className="relative mb-3">
+            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-1.5 text-[13px] text-gray-900 focus:outline-none focus:border-gray-400 placeholder-gray-400"
+              placeholder="Search by name..."
+              value={contactSearch}
+              onChange={e => setContactSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+          {(() => {
+            const filtered = instructors.filter(i =>
+              (i.full_name || i.display_name || '').toLowerCase().includes(contactSearch.toLowerCase())
+            );
+            return filtered.length === 0 ? (
+              <p className="text-[12px] text-gray-500 italic py-1">
+                {contactSearch ? `No results for "${contactSearch}"` : 'No contacts found.'}
+              </p>
+            ) : (
+              <div className="space-y-1 max-h-52 overflow-y-auto">
+                {filtered.map(inst => (
+                  <div
+                    key={inst.id}
+                    onClick={() => { openOrCreate(inst.id); setContactSearch(''); }}
+                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
+                      {inst.avatar_url ? (
+                        <img src={inst.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[12px] font-bold text-gray-500">{inst.full_name?.[0] || '?'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-semibold text-gray-900">{inst.full_name || inst.display_name}</p>
+                      <p className="text-[11px] text-gray-500 capitalize">{inst.role || 'Student'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[13px] font-semibold text-gray-900">{inst.full_name}</p>
-                    <p className="text-[11px] text-gray-500 capitalize">{inst.role || 'Instructor'}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
 

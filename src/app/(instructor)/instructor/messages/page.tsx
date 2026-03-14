@@ -4,7 +4,8 @@ import MessagesClient from '@/components/student/messages/MessagesClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function InstructorMessagesPage() {
+export default async function InstructorMessagesPage({ searchParams }: { searchParams: Promise<{to?: string}> }) {
+  const { to } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -75,6 +76,7 @@ export default async function InstructorMessagesPage() {
         userProfile={profile}
         contactLabel="Message a Student"
         emptyHint="Start a conversation with any student enrolled in your courses."
+        initialToUserId={to}
       />
     </div>
   );
