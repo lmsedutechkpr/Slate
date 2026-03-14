@@ -1,11 +1,13 @@
-import {cn} from '@/lib/utils';
-import {ReactNode} from 'react';
+import { cn } from '@/lib/utils';
+import { ReactNode } from 'react';
 import TrafficLights from './TrafficLights';
+import { Check, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SignupRoleCardProps {
   icon: ReactNode;
   title: string;
-  tagline: string;
+  description: string;
   points: string[];
   selected: boolean;
   requiresApproval?: boolean;
@@ -16,7 +18,7 @@ interface SignupRoleCardProps {
 export function SignupRoleCard({
   icon,
   title,
-  tagline,
+  description,
   points,
   selected,
   requiresApproval,
@@ -24,38 +26,56 @@ export function SignupRoleCard({
   onClick
 }: SignupRoleCardProps) {
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'flex h-full cursor-pointer flex-col items-start gap-3 rounded-2xl border p-6 transition-all duration-200',
-        selected
-          ? 'border-[rgba(0,0,0,0.25)] bg-[var(--surface-raised)] outline outline-1 outline-[rgba(0,0,0,0.2)]'
-          : 'border-[var(--border)] bg-[var(--surface)] hover:scale-[1.02] hover:border-[rgba(0,0,0,0.2)]'
-      )}
-    >
-      <TrafficLights size="sm" />
+    <div className="flex flex-col">
+      <div
+        onClick={onClick}
+        className={cn(
+          'group flex cursor-pointer flex-col rounded-2xl border p-4 transition-all duration-200',
+          selected
+            ? 'border-[var(--text)] bg-[var(--surface-hover)] shadow-sm'
+            : 'border-[var(--border)] bg-[var(--surface-raised)] hover:-translate-y-[2px] hover:border-[var(--border-hover)] hover:shadow-sm'
+        )}
+      >
+        <div className="mb-3">
+          <TrafficLights size="sm" />
+        </div>
 
-      <div className="mt-4 rounded-xl bg-[rgba(0,0,0,0.06)] p-3 text-[var(--text)]">{icon}</div>
+        <div className="mt-2 flex items-start gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-hover)] text-[var(--text)]">
+            {icon}
+          </div>
 
-      <div>
-        <h3 className="font-sans text-[17px] font-bold text-[var(--text)]">{title}</h3>
-        <p className="text-[13px] text-[var(--text-secondary)]">{tagline}</p>
+          <div className="flex-1">
+            <h3 className="font-sans text-[15px] font-bold text-[var(--text)]">{title}</h3>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">{description}</p>
+
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {points.map((point) => (
+                <li key={point} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                  <Check className="h-[11px] w-[11px] text-[var(--traffic-green)]" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
 
-      <ul className="mt-3 flex flex-col gap-2">
-        {points.map((point) => (
-          <li key={point} className="flex items-center gap-2 text-[12px] text-[var(--text-secondary)]">
-            <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-[var(--traffic-green)]" />
-            {point}
-          </li>
-        ))}
-      </ul>
-
-      {requiresApproval && (
-        <span className="mt-1 rounded-full bg-[rgba(254,188,46,0.1)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--traffic-yellow)]">
-          {requiresApprovalText}
-        </span>
-      )}
+      <AnimatePresence>
+        {selected && requiresApproval && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-start gap-2 rounded-xl border border-[var(--traffic-yellow)]/20 bg-[var(--traffic-yellow)]/10 px-4 py-3">
+              <Info className="mt-0.5 h-[14px] w-[14px] shrink-0 text-[var(--traffic-yellow)]" />
+              <p className="text-[12px] leading-relaxed text-[var(--traffic-yellow)]">{requiresApprovalText}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

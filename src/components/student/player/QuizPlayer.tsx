@@ -8,6 +8,7 @@ interface QuizPlayerProps {
   userId: string;
   onComplete: () => void;
   language?: string;
+  prefetchedQuiz?: any; // Pre-fetched server-side to bypass RLS
 }
 
 type QuizState = 'loading' | 'intro' | 'taking' | 'submitted' | 'reviewing';
@@ -17,7 +18,8 @@ export default function QuizPlayer({
   enrollmentId,
   userId,
   onComplete,
-  language = 'en'
+  language = 'en',
+  prefetchedQuiz,
 }: QuizPlayerProps) {
   
   const [state, setState] = useState<QuizState>('loading');
@@ -29,11 +31,33 @@ export default function QuizPlayer({
   
   const supabase = createClient();
 
+  // Helper: normalise options so they're always {label, value}
+  const normaliseOptions = (opts: any[]): { label: string; value: string }[] => {
+    if (!Array.isArray(opts) || opts.length === 0) return [];
+    if (typeof opts[0] === 'string') {
+      return opts.map((o, i) => ({ label: o as string, value: String(i + 1) }));
+    }
+    return opts as { label: string; value: string }[];
+  };
+
   // Memoize fetchQuiz to strictly include lecture.id and supabase instances
   const fetchQuiz = useCallback(async () => {
     setState('loading');
+
+    // If pre-fetched server-side (bypasses RLS), use that directly
+    if (prefetchedQuiz) {
+      setQuizData(prefetchedQuiz);
+      setQuestions(
+        (prefetchedQuiz.questions ?? []).map((q: any) => ({
+          ...q,
+          options: normaliseOptions(q.options ?? []),
+        }))
+      );
+      setState('intro');
+      return;
+    }
     
-    // 1. Fetch the exact Quiz associated with this lecture
+    // Fallback: client-side fetch (works if RLS allows)
     const { data: qData, error: qErr } = await supabase
       .from('quizzes')
       .select('*')
@@ -43,13 +67,12 @@ export default function QuizPlayer({
 
     if (qErr || !qData) {
       setQuizData(null);
-      setState('intro'); // Will show "Content coming soon" inside Intro render
+      setState('intro');
       return;
     }
 
     setQuizData(qData);
 
-    // 2. Fetch the Questions for this Quiz
     const { data: qqData } = await supabase
       .from('quiz_questions')
       .select('*')
@@ -57,12 +80,12 @@ export default function QuizPlayer({
       .order('sort_order', { ascending: true });
 
     if (qqData) {
-      setQuestions(qqData);
+      setQuestions(qqData.map((q: any) => ({ ...q, options: normaliseOptions(q.options ?? []) })));
     }
     
     setState('intro');
 
-  }, [lecture.id, supabase]);
+  }, [lecture.id, prefetchedQuiz, supabase]);
 
   useEffect(() => {
     fetchQuiz();
@@ -73,14 +96,15 @@ export default function QuizPlayer({
     
     let correctCount = 0;
     const computedResults = questions.map(q => {
-      // In a strict production system, correct_answer should be hidden from Client until submit.
-      // Since this table is accessible to the student for checking, we compare locally.
-      const isCorrect = answers[q.id] === q.correct_answer;
+      // answers[q.id] = opt.value (e.g. '2') | q.correct_answer = '2' (canonical string comparison)
+      const isCorrect = String(answers[q.id] ?? '') === String(q.correct_answer ?? '');
       if (isCorrect) correctCount++;
       return { question_id: q.id, is_correct: isCorrect, selected: answers[q.id], correct: q.correct_answer };
     });
 
-    const finalScorePct = Math.round((correctCount / questions.length) * 100);
+    const finalScorePct = questions.length > 0
+      ? Math.round((correctCount / questions.length) * 100)
+      : 0;
     
     // Save Attempt
     const { data: attempt } = await supabase.from('quiz_attempts').insert({
@@ -91,7 +115,6 @@ export default function QuizPlayer({
     }).select('id').single();
 
     if (attempt) {
-      // Save Answers
       const answersToInsert = computedResults.map(res => ({
         attempt_id: attempt.id,
         question_id: res.question_id,
@@ -104,7 +127,14 @@ export default function QuizPlayer({
     setScore(finalScorePct);
     setResults(computedResults);
     setState('submitted');
+
+    // Auto-mark lecture as completed if student passes
+    const passPct = quizData?.pass_percentage ?? 60;
+    if (finalScorePct >= passPct) {
+      onComplete();
+    }
   };
+
 
 
   // -------------- RENDER ROUTER --------------
@@ -417,6 +447,14 @@ export default function QuizPlayer({
                      </div>
                    );
                  })}
+
+                {/* Explanation */}
+                {q.explanation && q.explanation.trim() && (
+                  <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-blue-500 mb-1">Explanation</p>
+                    <p className="text-[13px] text-gray-700 leading-relaxed">{q.explanation}</p>
+                  </div>
+                )}
                </div>
             </div>
           );

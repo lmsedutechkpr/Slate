@@ -21,7 +21,8 @@ export default function PlayerShell({
   progress,
   resumeLecture,
   userId,
-  prefs
+  prefs,
+  quizzesMap = {},
 }: any) {
   const [activeLecture, setActiveLecture] = useState(resumeLecture);
   const [enrollmentProgress, setEnrollmentProgress] = useState(enrollment.progress_pct || 0);
@@ -50,10 +51,19 @@ export default function PlayerShell({
   }, [activeLecture?.id, enrollment.id, supabase]);
 
   // Handle Lecture Completion Flow
-  const handleMarkComplete = async (lectureIdToComplete: string = activeLecture?.id) => {
+  const handleMarkComplete = async (lectureIdToComplete: string = activeLecture?.id, isPassedQuiz = false) => {
     if (!lectureIdToComplete) return;
     
-    // 1. Save to DB Exceptionally (Bypassing strict student RLS on lecture_progress UPSERT)
+    // Quiz lectures MUST only be marked complete when the student passes (via QuizPlayer.onComplete)
+    // If called for a quiz lecture without the explicit passed-quiz flag, skip the completion.
+    const allLecturesFlat = sections?.flatMap((s: any) => s.lectures || []) || [];
+    const targetLecture = allLecturesFlat.find((l: any) => l.id === lectureIdToComplete);
+    if (targetLecture?.type === 'quiz' && !isPassedQuiz) {
+      // Don't mark quiz as complete unless explicitly told it was passed
+      return;
+    }
+    
+    // 1. Save to DB
     await markLectureCompleteAction({
       enrollment_id: enrollment.id,
       lecture_id: lectureIdToComplete,
@@ -68,17 +78,18 @@ export default function PlayerShell({
       return next;
     });
 
-    // 3. Find next lecture
-    const allLectures = sections?.flatMap((s: any) => s.lectures || []) || [];
-    const currentIndex = allLectures.findIndex((l: any) => l.id === lectureIdToComplete);
-    const nextLecture = allLectures[currentIndex + 1];
-
-    if (nextLecture && prefs?.autoplay_next !== false) {
-      setTimeout(() => {
-        setActiveLecture(nextLecture);
-      }, 1500); // Small 1.5s delay before jumping
+    // 3. Auto-advance to next lecture (skip for quizzes — let student dismiss on their own)
+    if (targetLecture?.type !== 'quiz') {
+      const currentIndex = allLecturesFlat.findIndex((l: any) => l.id === lectureIdToComplete);
+      const nextLecture = allLecturesFlat[currentIndex + 1];
+      if (nextLecture && prefs?.autoplay_next !== false) {
+        setTimeout(() => {
+          setActiveLecture(nextLecture);
+        }, 1500);
+      }
     }
   };
+
 
   // Realtime subscription to overall progress updates
   useEffect(() => {
@@ -206,14 +217,15 @@ export default function PlayerShell({
                     </div>
                   )}
 
-                  {activeLecture.type === 'quiz' && (
+                   {activeLecture.type === 'quiz' && (
                     <div className="p-4 md:p-8 mt-4">
                        <QuizPlayer 
                          lecture={activeLecture}
                          enrollmentId={enrollment.id}
                          userId={userId}
-                         onComplete={() => handleMarkComplete(activeLecture.id)}
+                         onComplete={() => handleMarkComplete(activeLecture.id, true /* isPassedQuiz */)}
                          language={prefs?.language}
+                         prefetchedQuiz={quizzesMap[activeLecture.id] ?? null}
                        />
                     </div>
                   )}

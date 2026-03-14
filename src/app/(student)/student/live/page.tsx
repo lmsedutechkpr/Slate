@@ -66,11 +66,13 @@ export default async function LiveClassesPage() {
     .filter(Boolean) as string[];
 
   // Normalise courses nested object (Supabase returns it as object on 1:1 FK joins)
-  const liveClasses = (liveClassesRaw || []).map((lc: any) => ({
-    ...lc,
-    courses: Array.isArray(lc.courses) ? lc.courses[0] : lc.courses,
-  }));
-
+  // Strictly filter to only include classes from courses the student is enrolled in
+  const liveClasses = (liveClassesRaw || [])
+    .map((lc: any) => ({
+      ...lc,
+      courses: Array.isArray(lc.courses) ? lc.courses[0] : lc.courses,
+    }))
+    .filter((lc: any) => lc.courses?.id && enrolledCourseIds.includes(lc.courses.id));
   // Get user language preference
   const { data: prefs } = await supabaseAdmin
     .from('user_preferences')

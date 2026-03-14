@@ -210,7 +210,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-full bg-[var(--white-surface)] py-2.5 text-[14px] font-semibold text-[var(--white-text)] transition-all duration-150 hover:scale-[1.01] hover:bg-[rgba(0,0,0,0.8)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-full bg-[var(--text)] py-2.5 text-[14px] font-semibold text-[var(--bg)] transition-all duration-150 hover:scale-[1.01] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isLoading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t('submit')}
         </button>

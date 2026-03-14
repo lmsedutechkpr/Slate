@@ -10,6 +10,8 @@ interface MessagesClientProps {
   instructors: any[];
   userId: string;
   userProfile: any;
+  contactLabel?: string;
+  emptyHint?: string;
 }
 
 export default function MessagesClient({
@@ -17,6 +19,8 @@ export default function MessagesClient({
   instructors,
   userId,
   userProfile,
+  contactLabel,
+  emptyHint,
 }: MessagesClientProps) {
   const [conversations, setConversations] = useState(initialConversations);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -122,6 +126,8 @@ export default function MessagesClient({
           activeId={activeId}
           onSelect={selectConversation}
           setConversations={setConversations}
+          contactLabel={contactLabel}
+          emptyHint={emptyHint}
         />
       </div>
 

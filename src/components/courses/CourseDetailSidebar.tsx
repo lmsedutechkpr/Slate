@@ -56,8 +56,13 @@ export default function CourseDetailSidebar({ course, enrollment, initialWishlis
     return () => clearInterval(interval);
   }, [course.discount_expires_at]);
 
-  const hasDiscountActive = (!course.is_free && course.discounted_price < course.price && timeLeft !== "Expired");
-  const currentPrice = hasDiscountActive ? course.discounted_price : course.price;
+  const hasDiscountActive = (
+    !course.is_free &&
+    course.discounted_price != null &&
+    Number(course.discounted_price) < Number(course.price) &&
+    timeLeft !== "Expired"
+  );
+  const currentPrice = hasDiscountActive ? course.discounted_price : (course.price ?? 0);
 
   const t = isStudentView ? {
     bgMain: 'bg-white',

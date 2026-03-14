@@ -10,6 +10,8 @@ export interface CurriculumLecture {
   title_ta?: string | null;
   type: string;
   duration_mins: number;
+  read_time_mins?: number | null;
+  quiz_duration_mins?: number | null;
   is_free_preview: boolean;
   sort_order: number;
 }
@@ -116,7 +118,11 @@ export default function CourseCurriculum({
           sections.map((section) => {
             const isOpen = expandedIds.has(section.id);
             const sectionLectures = section.lectures || [];
-          const sectionDuration = sectionLectures.reduce((acc, curr) => acc + (curr.duration_mins || 0), 0);
+          const sectionDuration = sectionLectures.reduce((acc, lec) => {
+            if (lec.type === 'article') return acc + (lec.read_time_mins || 0);
+            if (lec.type === 'quiz')    return acc + (lec.quiz_duration_mins || 0);
+            return acc + (lec.duration_mins || 0);
+          }, 0);
           
           return (
             <div key={section.id} className={`${t.bgSection} rounded-2xl overflow-hidden border ${t.borderSection}`}>
@@ -178,9 +184,13 @@ export default function CourseCurriculum({
                                  Preview
                                </button>
                              )}
-                             <span className={`text-[11px] ${t.textMuted}`}>
-                               {lecture.duration_mins} min
-                             </span>
+                              <span className={`text-[11px] ${t.textMuted}`}>
+                                {lecture.type === 'article'
+                                  ? lecture.read_time_mins ? `${lecture.read_time_mins} min read` : '—'
+                                  : lecture.type === 'quiz'
+                                  ? lecture.quiz_duration_mins ? `${lecture.quiz_duration_mins} min` : '—'
+                                  : lecture.duration_mins ? `${lecture.duration_mins} min` : '—'}
+                              </span>
                           </div>
                         </div>
                       ))}

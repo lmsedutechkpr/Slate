@@ -22,30 +22,34 @@ export async function GET(request: Request) {
         // New OAuth user — create profile as student
         await supabase.from('profiles').insert({
           id: user.id,
-          full_name: user.user_metadata.full_name
-            || user.email?.split('@')[0],
+          full_name: user.user_metadata.full_name || user.email?.split('@')[0],
           avatar_url: user.user_metadata.avatar_url,
           role: 'student',
           status: 'active',
           preferred_language: 'en',
           registration_source: 'google'
-        })
-        await supabase.from('user_preferences')
-          .insert({ user_id: user.id })
-        return NextResponse.redirect(
-          `${origin}/student/dashboard`
-        )
+        });
+        await supabase.from('user_preferences').insert({ user_id: user.id });
+        return NextResponse.redirect(`${origin}/student/dashboard`);
       }
 
+      // Check if user is pending
+      if (profile.status === 'pending') {
+        return NextResponse.redirect(
+          `${origin}/pending-approval?role=${profile.role}`
+        );
+      }
+
+      // Active user - route to their dashboard
       const redirectMap: Record<string, string> = {
         admin: '/admin/dashboard',
         instructor: '/instructor/dashboard',
         seller: '/seller/dashboard',
         student: '/student/dashboard',
-      }
-      return NextResponse.redirect(
-        `${origin}${redirectMap[profile.role]}`
-      )
+      };
+      
+      const targetRoute = redirectMap[profile.role] || '/student/dashboard';
+      return NextResponse.redirect(`${origin}${targetRoute}`);
     }
   }
 

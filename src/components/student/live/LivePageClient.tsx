@@ -98,26 +98,46 @@ export default function LivePageClient({
 }: LivePageClientProps) {
   const [classes, setClasses] = useState<LiveClass[]>(initial);
   const [reminders, setReminders] = useState<Set<string>>(new Set(initialReminders));
-  const [myCoursesOnly, setMyCoursesOnly] = useState(false);
   const [pastLimit, setPastLimit] = useState(20);
+  const [now, setNow] = useState(new Date());
   const supabase = createClient();
+
+  // Update current time every 30 seconds to trigger dynamic status changes
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const enrolledSet = new Set(enrolledCourseIds);
 
-  // Derived lists
-  const now = new Date();
-  const liveNow = classes.filter(c => c.status === 'live');
-  const upcoming = classes
-    .filter(c => c.status === 'scheduled' && new Date(c.scheduled_at) > now)
+  // Compute exact transition times for each class
+  const classStatus = classes.map(c => {
+    const startObj = new Date(c.scheduled_at);
+    const endObj = new Date(startObj.getTime() + c.duration_mins * 60000);
+    const isPast = now > endObj;
+    const isLive = now >= startObj && now <= endObj;
+    const isUpcoming = now < startObj;
+    
+    // Explicit manual overrides have priority (e.g., cancelled or manually ended early)
+    if (c.status === 'cancelled') return { ...c, computedStatus: 'past' };
+    if (c.status === 'completed') return { ...c, computedStatus: 'past' };
+    if (c.status === 'live') return { ...c, computedStatus: 'live' };
+
+    // Otherwise use time-based assumption
+    if (isPast) return { ...c, computedStatus: 'past' };
+    if (isLive) return { ...c, computedStatus: 'live' };
+    return { ...c, computedStatus: 'upcoming' };
+  });
+
+  const liveNow = classStatus.filter(c => c.computedStatus === 'live');
+  const upcoming = classStatus
+    .filter(c => c.computedStatus === 'upcoming')
     .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
-  const past = classes
-    .filter(c => c.status === 'completed' || (c.status !== 'live' && c.status !== 'scheduled' && new Date(c.scheduled_at) < now))
+  const past = classStatus
+    .filter(c => c.computedStatus === 'past')
     .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
 
   const [activeTab, setActiveTab] = useState<TabValue>(liveNow.length > 0 ? 'live' : 'upcoming');
-
-  const filter = (list: LiveClass[]) =>
-    myCoursesOnly ? list.filter(c => c.courses?.id && enrolledSet.has(c.courses.id)) : list;
 
   // Realtime subscription
   useEffect(() => {
@@ -239,24 +259,7 @@ export default function LivePageClient({
         {/* ─── UPCOMING ─── */}
         {activeTab === 'upcoming' && (
           <motion.div key="upcoming" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-            {/* Filter Row */}
-            <div className="flex items-center gap-3 mb-6">
-              <button
-                role="switch"
-                aria-checked={myCoursesOnly}
-                onClick={() => setMyCoursesOnly(v => !v)}
-                className={`relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none
-                  ${myCoursesOnly ? 'bg-gray-900' : 'bg-gray-200'}`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transform transition-transform
-                  ${myCoursesOnly ? 'translate-x-4' : 'translate-x-1'}`} />
-              </button>
-              <span className="text-[13px] text-gray-500 cursor-pointer select-none" onClick={() => setMyCoursesOnly(v => !v)}>
-                My courses only
-              </span>
-            </div>
-
-            {filter(upcoming).length === 0 ? (
+            {upcoming.length === 0 ? (
               <EmptyState icon={CalendarX} title="No upcoming classes" subtitle="Check back soon for new sessions." />
             ) : (
               <>
@@ -335,9 +338,9 @@ export default function LivePageClient({
                 )}
 
                 {/* Grid: remaining upcoming */}
-                {filter(upcoming).slice(1).length > 0 && (
+                {upcoming.slice(1).length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filter(upcoming).slice(1).map(lc => (
+                    {upcoming.slice(1).map(lc => (
                       <LiveClassCard key={lc.id} liveClass={lc} isEnrolled={lc.courses?.id ? enrolledSet.has(lc.courses.id) : false}
                         hasReminder={reminders.has(lc.id)} onToggleReminder={() => toggleReminder(lc)} variant="upcoming" language={language} />
                     ))}
@@ -351,34 +354,17 @@ export default function LivePageClient({
         {/* ─── PAST ─── */}
         {activeTab === 'past' && (
           <motion.div key="past" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-            {/* Filter Row */}
-            <div className="flex items-center gap-3 mb-6">
-              <button
-                role="switch"
-                aria-checked={myCoursesOnly}
-                onClick={() => setMyCoursesOnly(v => !v)}
-                className={`relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none
-                  ${myCoursesOnly ? 'bg-gray-900' : 'bg-gray-200'}`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transform transition-transform
-                  ${myCoursesOnly ? 'translate-x-4' : 'translate-x-1'}`} />
-              </button>
-              <span className="text-[13px] text-gray-500 cursor-pointer select-none" onClick={() => setMyCoursesOnly(v => !v)}>
-                My courses only
-              </span>
-            </div>
-
-            {filter(past).length === 0 ? (
+            {past.length === 0 ? (
               <EmptyState icon={History} title="No past classes yet" subtitle="Completed classes will appear here." />
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filter(past).slice(0, pastLimit).map(lc => (
+                  {past.slice(0, pastLimit).map(lc => (
                     <LiveClassCard key={lc.id} liveClass={lc} isEnrolled={lc.courses?.id ? enrolledSet.has(lc.courses.id) : false}
                       hasReminder={reminders.has(lc.id)} onToggleReminder={() => toggleReminder(lc)} variant="past" language={language} />
                   ))}
                 </div>
-                {filter(past).length > pastLimit && (
+                {past.length > pastLimit && (
                   <div className="flex justify-center mt-8">
                     <button
                       onClick={() => setPastLimit(n => n + 20)}

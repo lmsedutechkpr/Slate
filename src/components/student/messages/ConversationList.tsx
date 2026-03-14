@@ -13,6 +13,8 @@ interface ConversationListProps {
   activeId: string | null;
   onSelect: (id: string) => void;
   setConversations: React.Dispatch<React.SetStateAction<any[]>>;
+  contactLabel?: string;   // "Message an Instructor" (default) or "Message a Student"
+  emptyHint?: string;      // bottom hint text in empty state
 }
 
 export default function ConversationList({
@@ -21,7 +23,9 @@ export default function ConversationList({
   userId,
   activeId,
   onSelect,
-  setConversations
+  setConversations,
+  contactLabel = 'Message an Instructor',
+  emptyHint = 'Message an instructor from one of your courses to get started.',
 }: ConversationListProps) {
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
@@ -122,7 +126,7 @@ export default function ConversationList({
       {showNew && (
         <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10">
           <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">
-            Message an Instructor
+            {contactLabel}
           </p>
           {instructors.length === 0 ? (
             <p className="text-[12px] text-gray-500 italic">No instructors found.</p>
@@ -159,8 +163,8 @@ export default function ConversationList({
             <MessageSquare className="w-8 h-8 text-gray-300 mx-auto" />
             <p className="font-semibold text-[15px] text-gray-900 mt-4">No messages yet</p>
             <p className="text-[13px] text-gray-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
-              Message an instructor from one of your courses to get started.
-            </p>
+                {emptyHint}
+              </p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-gray-500 text-[13px]">No matching conversations.</div>

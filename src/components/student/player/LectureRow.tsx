@@ -71,9 +71,19 @@ export default function LectureRow({
       </div>
 
       {/* RIGHT DURATION */}
-      {lecture.video_duration_secs > 0 && (
+      {lecture.type === 'video' && lecture.video_duration_secs > 0 && (
         <span className="text-[11px] text-gray-400 whitespace-nowrap ml-2">
           {Math.ceil(lecture.video_duration_secs / 60)}m
+        </span>
+      )}
+      {lecture.type === 'article' && (lecture.read_time_mins ?? 0) > 0 && (
+        <span className="text-[11px] text-gray-400 whitespace-nowrap ml-2">
+          {lecture.read_time_mins}m read
+        </span>
+      )}
+      {lecture.type === 'quiz' && (lecture.quiz_duration_mins ?? 0) > 0 && (
+        <span className="text-[11px] text-gray-400 whitespace-nowrap ml-2">
+          {lecture.quiz_duration_mins}m quiz
         </span>
       )}
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, MoreHorizontal, ArrowLeft, Trash2, User, BellOff, Info } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, ArrowLeft, Trash2, User, BellOff, Info, Check, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
@@ -15,14 +15,19 @@ interface ChatWindowProps {
   setConversations: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
+const DELETED_FOR_ALL = '__deleted_for_all__';
+
 export default function ChatWindow({ conversation, userId, onBack, setConversations }: ChatWindowProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -50,34 +55,40 @@ export default function ChatWindow({ conversation, userId, onBack, setConversati
       setLoading(true);
       const { data, error } = await supabase
         .from('messages')
-        .select('id, body, created_at, is_read, sender_id, read_at')
+        .select('id, body, created_at, is_read, sender_id, read_at, edited_at, deleted_for_sender, deleted_for_all')
         .eq('conversation_id', conversation.id)
         .order('created_at', { ascending: true })
-        .limit(100);
+        .limit(200);
         
       if (!error && data) {
-        setMessages(data);
-        // Scroll without animation on load
+        // Filter out messages deleted for this sender
+        const visible = data.filter((m: any) => !(m.deleted_for_sender && m.sender_id === userId));
+        setMessages(visible);
         setTimeout(() => scrollToBottom('instant'), 50);
       }
       setLoading(false);
 
-      // Mark unread messages (sent by other) as read immediately
+      // Always reset unread count for this conversation when opened, 
+      // just in case the db unread_count got out of sync with actual message is_read status
+      const isP1 = conversation.participant_1 === userId;
+      setConversations(prev => prev.map(c =>
+        c.id === conversation.id
+          ? { ...c, [isP1 ? 'unread_count_p1' : 'unread_count_p2']: 0, myUnreadCount: 0 }
+          : c
+      ));
+
+      await supabase
+        .from('conversations')
+        .update({ [isP1 ? 'unread_count_p1' : 'unread_count_p2']: 0 })
+        .eq('id', conversation.id);
+
+      // Mark incoming unread messages as read
       const unread = data?.filter(m => !m.is_read && m.sender_id !== userId);
       if (unread && unread.length > 0) {
         await supabase
           .from('messages')
           .update({ is_read: true, read_at: new Date().toISOString() })
-          .in('id', unread.map(u => u.id));
-          
-        // Update local conversation list unread count
-        const isP1 = conversation.participant_1 === userId;
-        setConversations(prev => prev.map(c => {
-          if (c.id === conversation.id) {
-            return { ...c, [isP1 ? 'unread_count_p1' : 'unread_count_p2']: 0 };
-          }
-          return c;
-        }));
+          .in('id', unread.map((u: any) => u.id));
       }
     };
 
@@ -216,17 +227,12 @@ export default function ChatWindow({ conversation, userId, onBack, setConversati
     setMessages(prev => [...prev, optimisticMsg]);
     setTimeout(() => scrollToBottom(), 30);
 
-    // Update conversation list preview instantly
-    setConversations(prev => prev.map(c => {
-      if (c.id === conversation.id) {
-        return { ...c, last_message_at: now, last_message_preview: text };
-      }
-      return c;
-    }));
+    setConversations(prev => prev.map(c =>
+      c.id === conversation.id ? { ...c, last_message_at: now, last_message_preview: text } : c
+    ));
 
     try {
       const inserted = await sendMessage(conversation.id, text);
-      // Replace optimistic message with real inserted message
       setMessages(prev => prev.map(m => m.id === tempId ? { ...inserted, read_at: inserted.read_at ?? null } : m));
     } catch (err: any) {
       toast.error('Failed to send: ' + err.message);
@@ -234,9 +240,32 @@ export default function ChatWindow({ conversation, userId, onBack, setConversati
     }
   };
 
-  const handleClearChat = () => {
-    setMenuOpen(false);
-    toast.info('Clear chat is not available yet.');
+  // ── Edit / Delete handlers ──────────────────────────────────────────
+  const handleEdit = (msgId: string, currentBody: string) => {
+    setEditingId(msgId);
+    setEditText(currentBody);
+    setTimeout(() => editInputRef.current?.focus(), 50);
+  };
+
+  const submitEdit = async () => {
+    if (!editingId || !editText.trim()) return;
+    const newBody = editText.trim();
+    setMessages(prev => prev.map(m => m.id === editingId ? { ...m, body: newBody, edited_at: new Date().toISOString() } : m));
+    setEditingId(null);
+    await supabase.from('messages').update({ body: newBody, edited_at: new Date().toISOString() }).eq('id', editingId);
+  };
+
+  const handleDeleteForMe = (msgId: string) => {
+    // Client-side only — filter from list
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+    toast.success('Message deleted for you');
+  };
+
+  const handleDeleteForAll = async (msgId: string) => {
+    // Mark with sentinel body so both sides see "this message was deleted"
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, body: DELETED_FOR_ALL } : m));
+    await supabase.from('messages').update({ body: DELETED_FOR_ALL }).eq('id', msgId);
+    toast.success('Message deleted for everyone');
   };
 
   if (!conversation) {
@@ -350,7 +379,7 @@ export default function ChatWindow({ conversation, userId, onBack, setConversati
                 </button>
                 <div className="border-t border-gray-100 my-1" />
                 <button
-                  onClick={handleClearChat}
+                  onClick={() => { setMenuOpen(false); setMessages([]); toast.info('Chat cleared.'); }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -378,6 +407,28 @@ export default function ChatWindow({ conversation, userId, onBack, setConversati
             const isSent = msg.sender_id === userId;
             const prev = messages[idx - 1];
             const showAvatar = !prev || prev.sender_id !== msg.sender_id;
+
+            // Inline edit UI
+            if (editingId === msg.id) {
+              return (
+                <div key={msg.id} className={`flex items-end gap-2 w-full ${isSent ? 'justify-end' : 'justify-start'}`}>
+                  <div className="flex flex-col items-end max-w-[75%] gap-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={editInputRef}
+                        value={editText}
+                        onChange={e => setEditText(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') submitEdit(); if (e.key === 'Escape') setEditingId(null); }}
+                        className="bg-gray-900 text-white text-[13px] px-4 py-2.5 rounded-2xl rounded-br-sm border border-gray-700 outline-none focus:border-gray-500 min-w-[120px]"
+                      />
+                      <button onClick={submitEdit} className="p-1.5 text-[#28C840] hover:bg-green-50 rounded-full transition"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-full transition"><X className="w-4 h-4" /></button>
+                    </div>
+                    <span className="text-[10px] text-gray-400 px-1">Press Enter to save · Esc to cancel</span>
+                  </div>
+                </div>
+              );
+            }
             
             return (
               <MessageBubble
@@ -386,6 +437,9 @@ export default function ChatWindow({ conversation, userId, onBack, setConversati
                 isSent={isSent}
                 showAvatar={showAvatar}
                 userAvatar={isSent ? null : profile?.avatar_url}
+                onEdit={handleEdit}
+                onDeleteForMe={handleDeleteForMe}
+                onDeleteForAll={handleDeleteForAll}
               />
             );
           })

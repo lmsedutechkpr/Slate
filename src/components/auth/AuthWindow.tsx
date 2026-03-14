@@ -29,12 +29,12 @@ export default function AuthWindow({title, width = 'sm', children}: AuthWindowPr
         animate={{opacity: 1, scale: 1, y: 0}}
         transition={{duration: 0.3, ease: 'easeOut'}}
         className={cn(
-          'w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] shadow-[0_32px_80px_rgba(0,0,0,0.15)]',
+          'flex flex-col w-full max-h-[85vh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] shadow-[0_32px_80px_rgba(0,0,0,0.15)]',
           widthMap[width]
         )}
       >
         {/* Titlebar */}
-        <div className="relative flex h-11 items-center border-b border-[var(--border)] bg-[var(--surface)] px-4">
+        <div className="relative shrink-0 flex h-11 items-center border-b border-[var(--border)] bg-[var(--surface)] px-4">
           <div className="absolute left-4">
             <TrafficLights size="md" />
           </div>
@@ -44,7 +44,7 @@ export default function AuthWindow({title, width = 'sm', children}: AuthWindowPr
         </div>
 
         {/* Content Area */}
-        <div className="p-6 sm:p-8">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8">{children}</div>
       </motion.div>
 
       <motion.div
