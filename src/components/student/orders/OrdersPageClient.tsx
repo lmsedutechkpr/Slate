@@ -44,6 +44,18 @@ export default function OrdersPageClient({ orders: initialOrders, userId }: Orde
         const id = payload.new.id?.replace(/-/g, '').slice(0, 8).toUpperCase();
         toast(`Order #${id} is now ${newStatus}`);
       })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'order_items',
+      }, (payload: any) => {
+        setOrders(prev => prev.map(o => ({
+          ...o,
+          order_items: (o.order_items ?? []).map((item: any) =>
+            item.id === payload.new.id
+              ? { ...item, ...payload.new }
+              : item
+          ),
+        })));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

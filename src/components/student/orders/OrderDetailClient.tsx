@@ -55,6 +55,19 @@ export default function OrderDetailClient({ order: initialOrder, userId }: Order
         setOrder((prev: any) => ({ ...prev, ...payload.new }));
         toast(`Order status updated to ${payload.new.status}`);
       })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'order_items',
+        filter: `order_id=eq.${order.id}`,
+      }, (payload: any) => {
+        setOrder((prev: any) => ({
+          ...prev,
+          order_items: (prev.order_items ?? []).map((item: any) =>
+            item.id === payload.new.id
+              ? { ...item, ...payload.new }
+              : item
+          ),
+        }));
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase, order.id]);
@@ -62,28 +75,26 @@ export default function OrderDetailClient({ order: initialOrder, userId }: Order
   const cancelOrder = async () => {
     setCancelling(true);
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', order.id)
-        .eq('customer_id', userId);
-
-      if (error) throw error;
+      // Use API route (admin client) to cancel both orders + order_items (bypasses RLS)
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, action: 'cancel' }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
 
       // Optimistic UI update
-      setOrder((prev: any) => ({ ...prev, status: 'cancelled' }));
+      setOrder((prev: any) => ({
+        ...prev,
+        status: 'cancelled',
+        order_items: (prev.order_items ?? []).map((item: any) => ({
+          ...item,
+          fulfillment_status: 'cancelled',
+        })),
+      }));
       setShowCancelConfirm(false);
       toast.success('Order cancelled successfully. Refund will be processed within 5–7 days.');
-
-      // Post a notification
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        type: 'order',
-        title: 'Order Cancelled',
-        message: `Your order #${order.id.replace(/-/g, '').slice(0, 8).toUpperCase()} has been cancelled.`,
-        action_url: '/student/orders',
-        is_read: false,
-      });
     } catch (e: any) {
       toast.error(e.message || 'Failed to cancel order. Please try again.');
     } finally {
@@ -95,6 +106,23 @@ export default function OrderDetailClient({ order: initialOrder, userId }: Order
   const items = order.order_items ?? [];
   const trackingItem = items.find((i: any) => i.tracking_number);
   const canCancel = CANCELLABLE.includes(order.status);
+
+  // Derive the most advanced fulfillment status from order_items for the timeline
+  const STATUS_RANK: Record<string, number> = {
+    pending: 0, confirmed: 1, processing: 2, shipped: 3, delivered: 4, cancelled: -1,
+  };
+  const derivedStatus = (() => {
+    if (order.status === 'cancelled') return 'cancelled';
+    if (items.length === 0) return order.status;
+    // Use the most advanced non-cancelled item status
+    let maxRank = -1;
+    let best = order.status;
+    for (const item of items) {
+      const rank = STATUS_RANK[item.fulfillment_status] ?? 0;
+      if (rank > maxRank) { maxRank = rank; best = item.fulfillment_status; }
+    }
+    return best;
+  })();
 
   return (
     <div>
@@ -165,7 +193,7 @@ export default function OrderDetailClient({ order: initialOrder, userId }: Order
 
           {/* Timeline */}
           <OrderTimeline
-            status={order.status}
+            status={derivedStatus}
             createdAt={order.created_at}
             updatedAt={order.updated_at}
             trackingNumber={trackingItem?.tracking_number}
@@ -196,7 +224,7 @@ export default function OrderDetailClient({ order: initialOrder, userId }: Order
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-semibold text-gray-900 leading-snug">{item.product_name}</p>
                       <p className="text-[12px] text-gray-500 mt-0.5">Qty: {item.quantity}</p>
-                      {item.fulfillment_status && item.fulfillment_status !== order.status && (
+                      {item.fulfillment_status && (
                         <div className="mt-1">
                           <OrderStatusBadge status={item.fulfillment_status} />
                         </div>

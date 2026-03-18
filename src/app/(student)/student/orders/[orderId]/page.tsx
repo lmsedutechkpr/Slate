@@ -7,8 +7,9 @@ export const dynamic = 'force-dynamic';
 export default async function OrderDetailPage({
   params,
 }: {
-  params: { orderId: string };
+  params: Promise<{ orderId: string }>;
 }) {
+  const { orderId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -31,7 +32,7 @@ export default async function OrderDetailPage({
       ),
       coupons ( code, discount_type, discount_value )
     `)
-    .eq('id', params.orderId)
+    .eq('id', orderId)
     .eq('customer_id', user.id)
     .single();
 

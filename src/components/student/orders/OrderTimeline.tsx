@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Package, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Check, Package, Clock, CheckCircle2, XCircle, Truck } from 'lucide-react';
 
 interface TimelineProps {
   status: string;
@@ -10,26 +10,25 @@ interface TimelineProps {
   trackingUrl?: string;
 }
 
-// Ordered list matching order_status enum exactly
-const STATUS_ORDER = ['pending', 'confirmed', 'processing'];
+// Ordered list matching full order lifecycle
+const STATUS_ORDER = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
 
 const STEPS = [
   { key: 'pending',    label: 'Order Placed' },
   { key: 'confirmed',  label: 'Order Confirmed' },
   { key: 'processing', label: 'Being Prepared' },
+  { key: 'shipped',    label: 'Shipped' },
+  { key: 'delivered',  label: 'Delivered' },
 ];
 
 function fmtDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
-}
-
-function simulateDate(createdAt: string, stepIndex: number): string {
-  const base = new Date(createdAt).getTime();
-  const offsets = [0, 2 * 3600000, 12 * 3600000];
-  return fmtDate(new Date(base + offsets[stepIndex]).toISOString());
 }
 
 function TrafficLights() {
@@ -46,7 +45,7 @@ export default function OrderTimeline({
   status, createdAt, updatedAt, trackingNumber, trackingUrl,
 }: TimelineProps) {
   const isCancelled = status === 'cancelled' || status === 'refunded';
-  const currentIdx = STATUS_ORDER.indexOf(status); // 0, 1, or 2
+  const currentIdx = STATUS_ORDER.indexOf(status);
 
   const steps = isCancelled
     ? [
@@ -65,7 +64,6 @@ export default function OrderTimeline({
       <div className="p-5">
         {steps.map((step, i) => {
           const isCancelledStep = step.key === 'cancelled' || step.key === 'refunded';
-          // A step is DONE if its index <= current status index
           const stepIdx = STATUS_ORDER.indexOf(step.key);
           const isDone = isCancelled
             ? i === 0
@@ -112,10 +110,10 @@ export default function OrderTimeline({
                 </p>
                 {isDone && !isCancelledStep && (
                   <p className="text-[11px] text-gray-400 mt-0.5">
-                    {simulateDate(createdAt, i)}
+                    {i === 0 && createdAt ? fmtDate(createdAt) : isActive && updatedAt ? fmtDate(updatedAt) : ''}
                   </p>
                 )}
-                {isActive && trackingNumber && (
+                {step.key === 'shipped' && isDone && trackingNumber && (
                   <div className="mt-1.5">
                     <p className="text-[11px] text-gray-500">Tracking: {trackingNumber}</p>
                     {trackingUrl && (
