@@ -31,8 +31,22 @@ export default async function SellerProfilePage() {
     db.from('products').select('id', { count: 'exact' }).eq('seller_id', user.id).eq('status', 'active'),
   ]);
 
+  // FIX #1: Add error handling for profile fetch
   const profile = profileRes.data;
-  const sellerProfile = sellerRes.data;
+  if (profileRes.error || !profile) {
+    console.error('Profile fetch error:', profileRes.error);
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">Failed to load profile</p>
+          <p className="text-gray-500 text-sm mt-2">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
+
+  // FIX #1: Handle missing seller_profile gracefully (new sellers)
+  const sellerProfile = sellerRes.data ?? null;
 
   const stats = {
     totalProducts: productsRes.count ?? 0,

@@ -32,9 +32,18 @@ type Period = '30d' | '3m' | '6m' | '12m' | 'all';
 function getPeriodStart(period: Period): Date | null {
   const now = new Date();
   if (period === '30d') return new Date(now.getTime() - 30 * 86400000);
-  if (period === '3m') return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-  if (period === '6m') return new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-  if (period === '12m') return new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
+
+  // FIX #7: More robust month calculation
+  const startDate = new Date(now);
+  const monthsBack = period === '3m' ? 3 :
+                     period === '6m' ? 6 :
+                     period === '12m' ? 12 : null;
+
+  if (monthsBack !== null) {
+    startDate.setMonth(startDate.getMonth() - monthsBack);
+    return startDate;
+  }
+
   return null;
 }
 
@@ -156,13 +165,21 @@ function exportReport(
 
 export default function AnalyticsPageClient({ orderItems, products, userId }: Props) {
   const router = useRouter();
-  const [period, setPeriod] = useState<Period>('12m');
+  const [period, setPeriod] = useState<Period>('30d');
 
   // ── Filter by period ──
   const filteredItems = useMemo(() => {
     const start = getPeriodStart(period);
     if (!start) return orderItems;
-    return orderItems.filter(item => new Date(item.created_at) >= start);
+    // FIX #6: Validate dates before filtering
+    return orderItems.filter(item => {
+      const itemDate = new Date(item.created_at);
+      if (isNaN(itemDate.getTime())) {
+        console.warn('Invalid date for item:', item.id);
+        return false;
+      }
+      return itemDate >= start;
+    });
   }, [orderItems, period]);
 
   const prevItems = useMemo(() => {
@@ -177,13 +194,15 @@ export default function AnalyticsPageClient({ orderItems, products, userId }: Pr
 
   // ── Core metrics ──
   const totalRevenue = useMemo(() => filteredItems.reduce((s, i) => s + (i.total_price ?? 0), 0), [filteredItems]);
-  const totalOrders = useMemo(() => new Set(filteredItems.map((i: any) => i.orders?.id)).size, [filteredItems]);
+  // FIX #4: Remove undefined values from set count
+  const totalOrders = useMemo(() => new Set(filteredItems.map((i: any) => i.orders?.id).filter(Boolean)).size, [filteredItems]);
   const uniqueCustomers = useMemo(() => new Set(filteredItems.map((i: any) => i.orders?.user_id).filter(Boolean)).size, [filteredItems]);
   const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
 
   // ── Prev period metrics for trend ──
   const prevRevenue = useMemo(() => prevItems.reduce((s: number, i: any) => s + (i.total_price ?? 0), 0), [prevItems]);
-  const prevOrders = useMemo(() => new Set(prevItems.map((i: any) => i.orders?.id)).size, [prevItems]);
+  // FIX #4: Remove undefined values from set count
+  const prevOrders = useMemo(() => new Set(prevItems.map((i: any) => i.orders?.id).filter(Boolean)).size, [prevItems]);
   const prevCustomers = useMemo(() => new Set(prevItems.map((i: any) => i.orders?.user_id).filter(Boolean)).size, [prevItems]);
   const prevAvgOrder = prevOrders > 0 ? Math.round(prevRevenue / prevOrders) : 0;
 
@@ -244,8 +263,10 @@ export default function AnalyticsPageClient({ orderItems, products, userId }: Pr
     const map: Record<string, { revenue: number; units: number }> = {};
     filteredItems.forEach((item: any) => {
       const cats = item.products?.product_categories;
-      const catName = Array.isArray(cats) ? cats[0]?.name : cats?.name;
-      const key = catName ?? 'Uncategorized';
+      // FIX #5: Handle both array and single object structures
+      const catArray = Array.isArray(cats) ? cats : (cats ? [cats] : []);
+      const catName = catArray[0]?.name ?? 'Uncategorized';
+      const key = catName;
       if (!map[key]) map[key] = { revenue: 0, units: 0 };
       map[key].revenue += item.total_price ?? 0;
       map[key].units += item.quantity ?? 0;

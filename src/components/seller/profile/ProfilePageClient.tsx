@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import SellerAvatarUpload from './SellerAvatarUpload';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -600,9 +601,22 @@ function SellerAccountSettingsForm({ userId }: { userId: string }) {
 
   const saveNotifs = async () => {
     setNotifsLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    toast.success('Notification preferences saved!');
-    setNotifsLoading(false);
+    try {
+      // FIX #3: Actually save notification preferences to database
+      const { error } = await supabase
+        .from('seller_profiles')
+        .update({
+          notification_preferences: notifs,
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      toast.success('Notification preferences saved!');
+    } catch (e: any) {
+      toast.error('Save failed: ' + e.message);
+    } finally {
+      setNotifsLoading(false);
+    }
   };
 
   return (
@@ -718,8 +732,21 @@ function SellerDangerZonePanel({ userId }: { userId: string }) {
     if (confirm !== 'DELETE') return;
     setDeleting(true);
     try {
+      // FIX #2: Actually delete account via API endpoint
+      const response = await fetch('/api/seller/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete account');
+      }
+
+      // Sign out after successful deletion
       await supabase.auth.signOut();
-      toast.success('Account deletion requested. You have been signed out.');
+      toast.success('Account deleted successfully. You have been signed out.');
     } catch (e: any) {
       toast.error('Error: ' + e.message);
     } finally {
@@ -817,12 +844,12 @@ export default function ProfilePageClient({ profile, sellerProfile, stats, userE
   ];
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] p-4 md:p-6 font-[DM_Sans]">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-6">
+    <div className="min-h-screen bg-[#F5F5F7] p-4 md:p-6 font-[DM_Sans] flex flex-col">
+      <div className="max-w-6xl mx-auto w-full flex flex-col lg:flex-row gap-6 flex-1">
 
-          {/* ── Left Column ── */}
-          <div className="w-full lg:w-[280px] flex-shrink-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
+        {/* ── Left Column (Fixed) ── */}
+        <div className="w-full lg:w-[280px] flex-shrink-0 space-y-4 lg:sticky lg:top-6 lg:h-fit">
+
 
             {/* Summary Card */}
             <MacCard>
@@ -830,16 +857,16 @@ export default function ProfilePageClient({ profile, sellerProfile, stats, userE
                 <TL />
               </div>
               <div className="p-5">
-                {/* Store Logo */}
-                <div className="w-20 h-20 mx-auto rounded-2xl bg-[#F5F5F7] border border-[rgba(0,0,0,0.08)] overflow-hidden flex items-center justify-center">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="Store logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="font-[DM_Sans] font-extrabold text-[28px] text-[#AEAEB2]">
-                      {storeName.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
+                {/* Store Logo with Upload */}
+                <SellerAvatarUpload
+                  userId={userId}
+                  currentUrl={logoUrl}
+                  storeName={storeName}
+                  onUploadComplete={(url) => {
+                    // Logo updated - will be reflected in next render
+                  }}
+                />
+
 
                 {/* Store Name */}
                 <p className="font-[DM_Sans] font-bold text-[20px] text-[#1D1D1F] text-center mt-4 leading-tight">{storeName}</p>
@@ -922,8 +949,8 @@ export default function ProfilePageClient({ profile, sellerProfile, stats, userE
             </MacCard>
           </div>
 
-          {/* ── Right Column ── */}
-          <div className="flex-1 min-w-0">
+          {/* ── Right Column (Scrollable) ── */}
+          <div className="flex-1 min-w-0 overflow-y-auto pr-2">
             {tab === 'personal' && <PersonalForm profile={profile} userId={userId} />}
             {tab === 'store' && <StoreInfoForm sellerProfile={sellerProfile} profile={profile} userId={userId} />}
             {tab === 'social' && <SellerSocialLinksForm sellerProfile={sellerProfile} userId={userId} />}
