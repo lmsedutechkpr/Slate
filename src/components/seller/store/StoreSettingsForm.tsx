@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, ImageIcon, Globe, Instagram, Check, X, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
 
 interface LocalStore {
   store_name: string;
@@ -26,7 +25,6 @@ interface Props {
 }
 
 export default function StoreSettingsForm({ sellerProfile, userId, localStore, setLocalStore, isStoreActive }: Props) {
-  const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -83,22 +81,25 @@ export default function StoreSettingsForm({ sellerProfile, userId, localStore, s
     [sellerProfile?.store_slug, userId]
   );
 
-  // ─── File upload helper ───
-  const uploadFile = async (file: File, bucket: string, pathPrefix: string): Promise<string> => {
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const path = `${userId}/${pathPrefix}-${Date.now()}.${ext}`;
+  // ─── Server-side file upload (uses admin client → bypasses RLS) ───
+  const uploadFileToServer = async (file: File, bucket: string, prefix: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', bucket);
+    formData.append('prefix', prefix);
 
-    const { error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file, { upsert: true });
+    const res = await fetch('/api/seller/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
-    if (error) throw error;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(err.error || 'Upload failed');
+    }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(path);
-
-    return publicUrl;
+    const data = await res.json();
+    return data.url;
   };
 
   // ─── Banner upload ───
@@ -109,17 +110,17 @@ export default function StoreSettingsForm({ sellerProfile, userId, localStore, s
     }
     setBannerUploading(true);
     try {
-      const url = await uploadFile(file, 'store-banners', 'banner');
+      const url = await uploadFileToServer(file, 'store-banners', 'banner');
       update('banner_url', url);
       toast.success('Banner uploaded!');
-    } catch {
-      toast.error('Banner upload failed. You can paste a URL instead.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Banner upload failed. You can paste a URL instead.');
     } finally {
       setBannerUploading(false);
     }
   };
 
-  // ─── Logo upload (try store-logos first, fall back to store-banners) ───
+  // ─── Logo upload ───
   const handleLogoUpload = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Logo image must be under 5MB');
@@ -127,16 +128,11 @@ export default function StoreSettingsForm({ sellerProfile, userId, localStore, s
     }
     setLogoUploading(true);
     try {
-      let url: string;
-      try {
-        url = await uploadFile(file, 'store-logos', 'logo');
-      } catch {
-        url = await uploadFile(file, 'store-banners', 'logo');
-      }
+      const url = await uploadFileToServer(file, 'store-logos', 'logo');
       update('logo_url', url);
       toast.success('Logo uploaded!');
-    } catch {
-      toast.error('Logo upload failed. You can paste a URL instead.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Logo upload failed. You can paste a URL instead.');
     } finally {
       setLogoUploading(false);
     }
@@ -163,30 +159,33 @@ export default function StoreSettingsForm({ sellerProfile, userId, localStore, s
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('seller_profiles')
-        .update({
+      const res = await fetch('/api/seller/store', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           store_name: localStore.store_name,
-          store_name_ta: localStore.store_name_ta || null,
+          store_name_ta: localStore.store_name_ta,
           store_slug: localStore.store_slug,
           store_description: localStore.store_description,
           business_type: localStore.business_type,
-          banner_url: localStore.banner_url || null,
-          store_logo_url: localStore.logo_url || null,
-          contact_email: localStore.contact_email || null,
+          banner_url: localStore.banner_url,
+          logo_url: localStore.logo_url,
+          contact_email: localStore.contact_email,
           social_links: localStore.social_links,
-        })
-        .eq('user_id', userId);
+        }),
+      });
 
-      if (error) {
-        // Handle unique constraint violation on slug
-        if (error.code === '23505' && error.message?.includes('store_slug')) {
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 409) {
           toast.error('This slug is already taken by another store.');
           setSlugStatus('taken');
           return;
         }
-        throw error;
+        throw new Error(data.error || 'Failed to save');
       }
+
       toast.success('Store updated!');
     } catch (err: any) {
       toast.error('Failed to save: ' + (err?.message || 'Please try again'));
