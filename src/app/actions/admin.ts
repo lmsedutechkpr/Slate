@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseApiClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 interface ActionResult {
@@ -56,6 +57,45 @@ function getBrevoApiKey() {
 
 function getWebsiteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL || 'https://slate-tau-eight.vercel.app/').replace(/\/$/, '');
+}
+
+function createDirectAuthAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase admin environment variables.');
+  }
+
+  return createSupabaseApiClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
+
+function extractActionLink(payload: unknown): string | null {
+  return (
+    (typeof (payload as { properties?: { action_link?: unknown } } | null)?.properties?.action_link === 'string'
+      ? ((payload as { properties?: { action_link?: string } }).properties?.action_link ?? null)
+      : null) ||
+    (typeof (payload as { action_link?: unknown } | null)?.action_link === 'string'
+      ? ((payload as { action_link?: string }).action_link ?? null)
+      : null)
+  );
+}
+
+function buildFallbackInviteUrl(params: {
+  role: 'student' | 'instructor' | 'seller' | 'admin';
+  email: string;
+  siteBase?: string;
+}) {
+  const base = (params.siteBase || getWebsiteUrl()).replace(/\/$/, '');
+  if (params.role === 'admin') {
+    return `${base}/invite?role=admin&email=${encodeURIComponent(params.email)}`;
+  }
+  return `${base}/signup?role=${params.role}&email=${encodeURIComponent(params.email)}`;
 }
 
 async function sendApplicationStatusEmail(params: {
@@ -169,7 +209,7 @@ async function sendAdminInviteEmail(params: {
   const detailHtml = detailItems.map((item) => `<li>${item}</li>`).join('');
   const detailsFormUrl =
     params.role === 'admin'
-      ? `${websiteUrl}/invite?role=admin&email=${encodeURIComponent(params.toEmail)}`
+      ? params.inviteLink
       : `${websiteUrl}/signup?role=${params.role}`;
 
   const htmlContent = `
@@ -228,52 +268,67 @@ async function resolveInviteActionLink(params: {
   message?: string;
   redirectTo?: string;
   inviteData?: unknown;
-}) {
-  const directFromInvite =
-    (typeof (params.inviteData as { properties?: { action_link?: unknown } } | null)?.properties?.action_link ===
-    'string'
-      ? ((params.inviteData as { properties?: { action_link?: string } }).properties?.action_link ?? null)
-      : null) ||
-    (typeof (params.inviteData as { action_link?: unknown } | null)?.action_link === 'string'
-      ? ((params.inviteData as { action_link?: string }).action_link ?? null)
-      : null);
+}): Promise<string | null> {
+  const directFromInvite = extractActionLink(params.inviteData);
 
   if (directFromInvite) return directFromInvite;
 
+  let lastError = '';
+
   try {
-    const generateLink = (params.admin.auth.admin as { generateLink?: unknown }).generateLink;
-    if (typeof generateLink === 'function') {
-      const generated = await (generateLink as (payload: Record<string, unknown>) => Promise<unknown>)({
-        type: 'invite',
-        email: params.email,
-        options: {
-          data: {
-            role: params.role,
-            invitation_message: params.message || null,
-            invited_by: params.invitedBy || null,
-          },
-          ...(params.redirectTo ? { redirectTo: params.redirectTo } : {}),
+    const authAdmin = createDirectAuthAdminClient();
+    const generated = await authAdmin.auth.admin.generateLink({
+      type: 'invite',
+      email: params.email,
+      options: {
+        data: {
+          role: params.role,
+          invitation_message: params.message || null,
+          invited_by: params.invitedBy || null,
         },
-      });
+        ...(params.redirectTo ? { redirectTo: params.redirectTo } : {}),
+      },
+    });
 
-      const generatedLink =
-        (typeof (generated as { data?: { properties?: { action_link?: unknown } } } | null)?.data?.properties
-          ?.action_link === 'string'
-          ? ((generated as { data?: { properties?: { action_link?: string } } }).data?.properties?.action_link ?? null)
-          : null) ||
-        (typeof (generated as { data?: { action_link?: unknown } } | null)?.data?.action_link === 'string'
-          ? ((generated as { data?: { action_link?: string } }).data?.action_link ?? null)
-          : null);
-
+    if (!generated.error) {
+      const generatedLink = extractActionLink(generated.data);
       if (generatedLink) return generatedLink;
+    } else {
+      lastError = getErrorMessage(generated.error, 'generateLink(invite) failed');
     }
   } catch (linkError) {
+    lastError = getErrorMessage(linkError, 'Could not generate explicit invite action link');
     console.warn('Could not generate explicit invite action link:', linkError);
   }
 
-  if (params.role === 'admin') {
-    return `${getWebsiteUrl()}/invite?role=admin&email=${encodeURIComponent(params.email)}`;
+  // Final fallback attempt: invite endpoint may return action_link in some deployments.
+  try {
+    const authAdmin = createDirectAuthAdminClient();
+    const invited = await authAdmin.auth.admin.inviteUserByEmail(params.email, {
+      data: {
+        role: params.role,
+        invitation_message: params.message || null,
+        invited_by: params.invitedBy || null,
+      },
+      ...(params.redirectTo ? { redirectTo: params.redirectTo } : {}),
+    });
+    if (!invited.error) {
+      const inviteLink = extractActionLink(invited.data);
+      if (inviteLink) return inviteLink;
+    } else if (!lastError) {
+      lastError = getErrorMessage(invited.error, 'inviteUserByEmail failed');
+    }
+  } catch (inviteError) {
+    if (!lastError) {
+      lastError = getErrorMessage(inviteError, 'inviteUserByEmail threw an error');
+    }
   }
+
+  if (lastError) {
+    console.warn('resolveInviteActionLink fallback details:', lastError);
+  }
+
+  if (params.role === 'admin') return null;
   return `${getWebsiteUrl()}/signup?role=${params.role}&email=${encodeURIComponent(params.email)}`;
 }
 
@@ -897,7 +952,9 @@ export async function inviteUserAction({
     const admin = createAdminClient();
 
     const redirectBase = process.env.NEXT_PUBLIC_SITE_URL;
-    const redirectTo = redirectBase ? `${redirectBase.replace(/\/$/, '')}/auth/callback` : undefined;
+    const normalizedBase = redirectBase ? redirectBase.replace(/\/$/, '') : getWebsiteUrl();
+    const redirectTo =
+      role === 'admin' ? `${normalizedBase}/reset-password?forced=true` : `${normalizedBase}/auth/callback`;
 
     let inviteData: unknown = null;
     let invitedUserId: string | null = null;
@@ -965,11 +1022,13 @@ export async function inviteUserAction({
       inviteData,
     });
 
+    const emailInviteLink = inviteLink || buildFallbackInviteUrl({ role, email, siteBase: normalizedBase });
+
     try {
       await sendAdminInviteEmail({
         toEmail: email,
         role,
-        inviteLink,
+        inviteLink: emailInviteLink,
         adminMessage: message,
       });
     } catch (mailError) {
@@ -988,6 +1047,124 @@ export async function inviteUserAction({
   } catch (error) {
     console.error('Unexpected error in inviteUserAction:', error);
     return { success: false, error: getErrorMessage(error, 'An unexpected error occurred') };
+  }
+}
+
+export async function resendInviteSetupLinkAction({
+  email,
+  role,
+}: {
+  email: string;
+  role: 'student' | 'instructor' | 'seller' | 'admin';
+}): Promise<ActionResult> {
+  try {
+    const authAdmin = createDirectAuthAdminClient();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+
+    const siteBase = (process.env.NEXT_PUBLIC_SITE_URL || getWebsiteUrl()).replace(/\/$/, '');
+    const inviteRedirectTo = role === 'admin' ? `${siteBase}/reset-password?forced=true` : `${siteBase}/auth/callback`;
+    const recoveryRedirectTo = `${siteBase}/reset-password?forced=true`;
+
+    let link: string | null = null;
+    let lastError = '';
+
+    // First try invite link for role-consistent onboarding.
+    try {
+      const inviteRes = await authAdmin.auth.admin.generateLink({
+        type: 'invite',
+        email: normalizedEmail,
+        options: {
+          data: { role },
+          redirectTo: inviteRedirectTo,
+        },
+      });
+
+      if (!inviteRes.error) {
+        link = extractActionLink(inviteRes.data);
+      } else {
+        lastError = getErrorMessage(inviteRes.error, 'generateLink(invite) failed');
+      }
+
+      // If user already exists, recovery link is the right flow to set password again.
+      if (!link && lastError) {
+        const normalized = lastError.toLowerCase();
+        if (
+          normalized.includes('already registered') ||
+          normalized.includes('already exists') ||
+          normalized.includes('user_already_exists')
+        ) {
+          const recoveryRes = await authAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email: normalizedEmail,
+            options: { redirectTo: recoveryRedirectTo },
+          });
+
+          if (!recoveryRes.error) {
+            link = extractActionLink(recoveryRes.data);
+          } else {
+            lastError = getErrorMessage(recoveryRes.error, 'generateLink(recovery) failed');
+          }
+        }
+      }
+    } catch (linkError) {
+      lastError = getErrorMessage(linkError, 'resendInviteSetupLinkAction generateLink failed');
+      console.error('resendInviteSetupLinkAction generateLink failed:', linkError);
+    }
+
+    if (!link) {
+      try {
+        const invited = await authAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
+          data: { role },
+          redirectTo: inviteRedirectTo,
+        });
+        if (!invited.error) {
+          link = extractActionLink(invited.data);
+        } else if (!lastError) {
+          lastError = getErrorMessage(invited.error, 'inviteUserByEmail failed');
+        }
+      } catch (inviteError) {
+        if (!lastError) lastError = getErrorMessage(inviteError, 'inviteUserByEmail failed unexpectedly');
+      }
+    }
+
+    if (!link) {
+      const fallbackLink = buildFallbackInviteUrl({ role, email: normalizedEmail, siteBase });
+      try {
+        await sendAdminInviteEmail({
+          toEmail: normalizedEmail,
+          role,
+          inviteLink: fallbackLink,
+          adminMessage:
+            'Secure invite link generation is temporarily unavailable. Use this fallback link to continue onboarding.',
+        });
+        return {
+          success: true,
+        };
+      } catch (fallbackMailError) {
+        return {
+          success: false,
+          error: `Could not generate a secure invitation/setup link and fallback email failed: ${getErrorMessage(
+            fallbackMailError,
+            lastError || 'Check Supabase Auth invite/recovery link settings.'
+          )}`,
+        };
+      }
+    }
+
+    await sendAdminInviteEmail({
+      toEmail: normalizedEmail,
+      role,
+      inviteLink: link,
+      adminMessage: 'This is your updated invitation/setup link.',
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error in resendInviteSetupLinkAction:', error);
+    return { success: false, error: getErrorMessage(error, 'Failed to resend invitation link.') };
   }
 }
 

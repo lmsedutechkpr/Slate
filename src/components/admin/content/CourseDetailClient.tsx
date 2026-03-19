@@ -194,6 +194,14 @@ export default function CourseDetailClient({
 
       <h1 className="mb-4 text-[26px] font-bold text-[#1D1D1F]">Course Review</h1>
 
+      <button
+        type="button"
+        onClick={() => router.push(`/admin/courses/${course.id}/evaluate`)}
+        className="mb-4 rounded-full border border-[rgba(0,0,0,0.12)] bg-white px-4 py-2 text-[12px] font-semibold text-[#1D1D1F]"
+      >
+        Open Full Course Evaluation
+      </button>
+
       {isPending ? (
         <ReviewPanel
           type="course"

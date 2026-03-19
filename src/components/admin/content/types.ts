@@ -40,6 +40,15 @@ export interface CourseLecture {
     time_limit_mins?: number | null;
     is_published?: boolean | null;
     question_count?: number;
+    questions?: Array<{
+      id: string;
+      question?: string | null;
+      question_text?: string | null;
+      options?: Array<{ label?: string | null; value?: string | null } | string> | null;
+      correct_answer?: string | null;
+      explanation?: string | null;
+      sort_order?: number | null;
+    }>;
   } | null;
   is_published: boolean | null;
   is_free_preview: boolean | null;

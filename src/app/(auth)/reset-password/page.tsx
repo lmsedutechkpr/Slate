@@ -33,22 +33,73 @@ export default function ResetPasswordPage() {
   const tLogin = useTranslations('auth.login');
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [bootstrappingSession, setBootstrappingSession] = useState(true);
   const searchParams = useSearchParams();
   const forced = searchParams.get('forced') === 'true';
   const router = useRouter();
 
+  const getFriendlyResetError = (message: string) => {
+    const normalized = message.toLowerCase();
+    if (normalized.includes('auth session missing')) {
+      return 'Reset session is missing or expired. Please request a new setup/reset link from the invite page.';
+    }
+    if (normalized.includes('expired')) {
+      return 'This reset link has expired. Please request a fresh setup/reset link.';
+    }
+    if (normalized.includes('same as the old password')) {
+      return 'New password must be different from your current password.';
+    }
+    return message;
+  };
+
   useEffect(() => {
-    const checkSession = async () => {
+    const bootstrapSession = async () => {
       const supabase = createClient();
-      const {
-        data: {session}
-      } = await supabase.auth.getSession();
-      if (!session && !forced) {
-        router.push('/forgot-password');
+
+      try {
+        const code = searchParams.get('code');
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+
+        // Handle PKCE/auth-code style links.
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(code);
+          router.replace(forced ? '/reset-password?forced=true' : '/reset-password');
+          return;
+        }
+
+        // Handle direct token links (invite/recovery links can include these query params).
+        if (accessToken && refreshToken) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (setSessionError) {
+            setErrorCode(setSessionError.message);
+          } else {
+            router.replace(forced ? '/reset-password?forced=true' : '/reset-password');
+            return;
+          }
+        }
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session && !forced) {
+          router.push('/forgot-password');
+          return;
+        }
+
+        if (!session && forced) {
+          setErrorCode('Reset session is missing or expired. Please request a new setup/reset link from invite page.');
+        }
+      } finally {
+        setBootstrappingSession(false);
       }
     };
-    checkSession();
-  }, [forced, router]);
+    bootstrapSession();
+  }, [forced, router, searchParams]);
 
   const {
     register,
@@ -72,7 +123,7 @@ export default function ResetPasswordPage() {
       });
 
       if (error) {
-        setErrorCode(error.message);
+        setErrorCode(getFriendlyResetError(error.message));
         return;
       }
 
@@ -91,7 +142,7 @@ export default function ResetPasswordPage() {
         router.push(redirectMap[profile?.role ?? 'student'] ?? '/student/dashboard');
       }
     } catch {
-      setErrorCode('default');
+      setErrorCode('Unable to update password right now. Please retry with a fresh setup/reset link.');
     } finally {
       setIsLoading(false);
     }
@@ -160,16 +211,16 @@ export default function ResetPasswordPage() {
         {errorCode && (
           <div className="flex items-start gap-2 rounded-xl border border-[var(--traffic-red)]/20 bg-[rgba(255,95,87,0.08)] px-4 py-3 text-[13px] text-[var(--traffic-red)]">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <p>{tLogin('errors.default')}</p>
+            <p>{errorCode === 'default' ? tLogin('errors.default') : errorCode}</p>
           </div>
         )}
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || bootstrappingSession}
           className="w-full rounded-full bg-[var(--white-surface)] py-2.5 text-[14px] font-semibold text-[var(--white-text)] transition-all duration-150 hover:scale-[1.01] hover:bg-[rgba(0,0,0,0.8)] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isLoading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t('submit')}
+          {isLoading || bootstrappingSession ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t('submit')}
         </button>
       </form>
     </AuthWindow>
