@@ -959,6 +959,5 @@ export default function ProfilePageClient({ profile, sellerProfile, stats, userE
           </div>
         </div>
       </div>
-    </div>
   );
 }

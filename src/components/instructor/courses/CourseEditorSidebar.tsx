@@ -23,10 +23,20 @@ interface Props {
   onSaveDraft: () => void;
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   lastSaved: Date | null;
+  backPath?: string;
+  backLabel?: string;
 }
 
 export function CourseEditorSidebar({
-  currentStep, completedSteps, courseTitle, onStepChange, onSaveDraft, saveStatus, lastSaved
+  currentStep,
+  completedSteps,
+  courseTitle,
+  onStepChange,
+  onSaveDraft,
+  saveStatus,
+  lastSaved,
+  backPath = '/instructor/courses',
+  backLabel = 'Course Builder',
 }: Props) {
   const router = useRouter();
 
@@ -43,11 +53,11 @@ export function CourseEditorSidebar({
       <div className="p-5">
         <TrafficLights size="sm" />
         <button
-          onClick={() => router.push('/instructor/courses')}
+          onClick={() => router.push(backPath)}
           className="mt-4 flex items-center gap-2 text-[15px] font-bold text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Course Builder
+          {backLabel}
         </button>
         <p className="mt-2 line-clamp-2 text-[13px] text-[#6E6E73]">
           {courseTitle || 'Untitled Course'}

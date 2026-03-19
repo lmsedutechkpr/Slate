@@ -12,6 +12,7 @@ import { PasswordStrengthBar } from '@/components/auth/PasswordStrengthBar';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import AuthWindow from '@/components/auth/AuthWindow';
+import { signupSellerAction } from '@/app/actions/auth';
 
 const sellerSchema = z
   .object({
@@ -43,7 +44,100 @@ export function SellerForm({ onBack }: { onBack: () => void }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
   const [availableCategories, setAvailableCategories] = useState<{id: string, name: string}[]>([]);
+
+  const parseSignupError = (err: unknown) => {
+    const fallback = 'Unable to complete signup right now. Please try again.';
+
+    if (!err || typeof err !== 'object') {
+      const raw = typeof err === 'string' ? err : '';
+      return {
+        raw,
+        display: raw.trim() ? fallback : fallback,
+        isRateLimited: false,
+      };
+    }
+
+    const maybe = err as {
+      message?: unknown;
+      error_description?: unknown;
+      error?: unknown;
+      code?: unknown;
+      status?: unknown;
+    };
+
+    const message =
+      (typeof maybe.message === 'string' && maybe.message) ||
+      (typeof maybe.error_description === 'string' && maybe.error_description) ||
+      (typeof maybe.error === 'string' && maybe.error) ||
+      '';
+    const code = typeof maybe.code === 'string' ? maybe.code : '';
+    const status = typeof maybe.status === 'number' ? maybe.status : null;
+    const normalized = `${message} ${code}`.toLowerCase();
+
+    if (normalized.includes('already registered') || normalized.includes('user_already_exists')) {
+      return { raw: message || code, display: 'User already registered.', isRateLimited: false };
+    }
+
+    if (
+      normalized.includes('rate limit') ||
+      normalized.includes('too many requests') ||
+      normalized.includes('over_email_send_rate_limit') ||
+      status === 429
+    ) {
+      if (cooldownLeft > 0) {
+        return {
+          raw: message || code,
+          display: `Too many signup attempts right now. Try again in ${cooldownLeft}s.`,
+          isRateLimited: true,
+        };
+      }
+      return {
+        raw: message || code,
+        display: 'Too many signup attempts right now. Please wait 2 minutes and try again.',
+        isRateLimited: true,
+      };
+    }
+
+    if (normalized.includes('email address') && normalized.includes('invalid')) {
+      return { raw: message || code, display: 'Please enter a valid email address.', isRateLimited: false };
+    }
+
+    if (normalized.includes('signup is disabled') || normalized.includes('signups not allowed')) {
+      return {
+        raw: message || code,
+        display: 'Signup is currently disabled in authentication settings.',
+        isRateLimited: false,
+      };
+    }
+
+    if (normalized.includes('redirect') && normalized.includes('not allowed')) {
+      return {
+        raw: message || code,
+        display: 'Auth redirect URL is not allowed. Please contact admin to update Supabase URL settings.',
+        isRateLimited: false,
+      };
+    }
+
+    if (normalized.includes('failed to fetch') || normalized.includes('network')) {
+      return {
+        raw: message || code,
+        display: 'Network issue while signing up. Check your connection and try again.',
+        isRateLimited: false,
+      };
+    }
+
+    return { raw: message || code, display: fallback, isRateLimited: false };
+  };
+
+  useEffect(() => {
+    if (cooldownLeft <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldownLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownLeft]);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -104,48 +198,24 @@ export function SellerForm({ onBack }: { onBack: () => void }) {
     setErrorCode(null);
 
     try {
-      const supabase = createClient();
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.full_name,
-            role: 'seller'
-          }
+      const result = await signupSellerAction(data);
+
+      if (!result.success) {
+        if (result.errorCode === 'signup_rate_limited') {
+          setCooldownLeft(120);
         }
-      });
-
-      if (error) throw error;
-
-      if (authData.user) {
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          full_name: data.full_name,
-          role: 'seller',
-          status: 'pending',
-          registration_source: 'self'
-        });
-
-        // Insert seller details
-        await supabase.from('seller_profiles').upsert({
-          user_id: authData.user.id,
-          store_name: data.store_name,
-          store_name_ta: data.store_name_ta || null,
-          store_slug: data.store_slug,
-          store_description: data.store_description,
-          business_type: data.business_type,
-          commission_rate: 85,
-          contact_email: data.email
-        });
-        
-        // Note: Realistically we'd need a joining table for store categories, 
-        // but since `categories` might not exist in `seller_profiles`, we just store in the sign up flow safely.
-
-        router.push(`/pending-approval?role=seller&email=${encodeURIComponent(data.email)}`);
+        setErrorCode(result.error || 'Unable to complete signup right now. Please try again.');
+        return;
       }
-    } catch (err: any) {
-      setErrorCode(err.message || 'An error occurred during sign up.');
+
+      router.push(result.nextPath || `/pending-approval?role=seller&email=${encodeURIComponent(data.email)}`);
+    } catch (err: unknown) {
+      console.error('Seller signup failed:', err);
+      const parsed = parseSignupError(err);
+      if (parsed.isRateLimited) {
+        setCooldownLeft(120);
+      }
+      setErrorCode(parsed.display);
     } finally {
       setIsLoading(false);
     }
@@ -349,10 +419,10 @@ export function SellerForm({ onBack }: { onBack: () => void }) {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || cooldownLeft > 0}
           className="mt-2 w-full rounded-full bg-[var(--text)] py-2.5 text-[13px] font-semibold text-[var(--bg)] transition-all duration-150 hover:scale-[1.01] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Submit Application →'}
+          {isLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : cooldownLeft > 0 ? `Please wait ${cooldownLeft}s` : 'Submit Application →'}
         </button>
       </form>
     </AuthWindow>

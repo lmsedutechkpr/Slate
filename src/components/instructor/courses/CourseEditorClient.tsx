@@ -13,6 +13,8 @@ interface Props {
   categories: { id: string; name: string; slug: string }[];
   commissionRate: number;
   userId: string;
+  listPath?: string;
+  backLabel?: string;
 }
 
 // Steps that are considered "complete" based on course data
@@ -25,7 +27,14 @@ function computeCompleted(course: any): Set<number> {
   return s;
 }
 
-export function CourseEditorClient({ course: initialCourse, categories, commissionRate, userId }: Props) {
+export function CourseEditorClient({
+  course: initialCourse,
+  categories,
+  commissionRate,
+  userId,
+  listPath = '/instructor/courses',
+  backLabel = 'Course Builder',
+}: Props) {
   const [step, setStep] = useState(1);
   const [course, setCourse] = useState(initialCourse);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -83,6 +92,7 @@ export function CourseEditorClient({ course: initialCourse, categories, commissi
         course={course}
         courseId={course.id}
         categories={categories}
+        listPath={listPath}
       />
     ),
   };
@@ -97,6 +107,8 @@ export function CourseEditorClient({ course: initialCourse, categories, commissi
         onSaveDraft={handleSaveDraft}
         saveStatus={saveStatus}
         lastSaved={lastSaved}
+        backPath={listPath}
+        backLabel={backLabel}
       />
       <main className="flex-1 overflow-y-auto p-8">
         {stepComponents[step]}

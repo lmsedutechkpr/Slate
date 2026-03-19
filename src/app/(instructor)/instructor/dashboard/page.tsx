@@ -29,7 +29,9 @@ export default async function InstructorDashboardPage() {
     .single();
 
   if (!profile || profile.role !== 'instructor') redirect('/student/dashboard');
-  if (profile.status === 'pending') redirect('/pending-approval?role=instructor');
+  if (profile.status === 'pending' || profile.status === 'pending_approval') {
+    redirect('/pending-approval?role=instructor');
+  }
 
   // ── 2. Instructor profile ──
   const { data: instructorProfile } = await db

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,9 +9,9 @@ import { useRouter } from 'next/navigation';
 
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { PasswordStrengthBar } from '@/components/auth/PasswordStrengthBar';
-import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import AuthWindow from '@/components/auth/AuthWindow';
+import { signupInstructorAction } from '@/app/actions/auth';
 
 const instructorSchema = z
   .object({
@@ -41,7 +41,100 @@ export function InstructorForm({ onBack }: { onBack: () => void }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
   const [tagInput, setTagInput] = useState('');
+
+  const parseSignupError = (err: unknown) => {
+    const fallback = 'Unable to complete signup right now. Please try again.';
+
+    if (!err || typeof err !== 'object') {
+      const raw = typeof err === 'string' ? err : '';
+      return {
+        raw,
+        display: raw.trim() ? fallback : fallback,
+        isRateLimited: false,
+      };
+    }
+
+    const maybe = err as {
+      message?: unknown;
+      error_description?: unknown;
+      error?: unknown;
+      code?: unknown;
+      status?: unknown;
+    };
+
+    const message =
+      (typeof maybe.message === 'string' && maybe.message) ||
+      (typeof maybe.error_description === 'string' && maybe.error_description) ||
+      (typeof maybe.error === 'string' && maybe.error) ||
+      '';
+    const code = typeof maybe.code === 'string' ? maybe.code : '';
+    const status = typeof maybe.status === 'number' ? maybe.status : null;
+    const normalized = `${message} ${code}`.toLowerCase();
+
+    if (normalized.includes('already registered') || normalized.includes('user_already_exists')) {
+      return { raw: message || code, display: 'User already registered.', isRateLimited: false };
+    }
+
+    if (
+      normalized.includes('rate limit') ||
+      normalized.includes('too many requests') ||
+      normalized.includes('over_email_send_rate_limit') ||
+      status === 429
+    ) {
+      if (cooldownLeft > 0) {
+        return {
+          raw: message || code,
+          display: `Too many signup attempts right now. Try again in ${cooldownLeft}s.`,
+          isRateLimited: true,
+        };
+      }
+      return {
+        raw: message || code,
+        display: 'Too many signup attempts right now. Please wait 2 minutes and try again.',
+        isRateLimited: true,
+      };
+    }
+
+    if (normalized.includes('email address') && normalized.includes('invalid')) {
+      return { raw: message || code, display: 'Please enter a valid email address.', isRateLimited: false };
+    }
+
+    if (normalized.includes('signup is disabled') || normalized.includes('signups not allowed')) {
+      return {
+        raw: message || code,
+        display: 'Signup is currently disabled in authentication settings.',
+        isRateLimited: false,
+      };
+    }
+
+    if (normalized.includes('redirect') && normalized.includes('not allowed')) {
+      return {
+        raw: message || code,
+        display: 'Auth redirect URL is not allowed. Please contact admin to update Supabase URL settings.',
+        isRateLimited: false,
+      };
+    }
+
+    if (normalized.includes('failed to fetch') || normalized.includes('network')) {
+      return {
+        raw: message || code,
+        display: 'Network issue while signing up. Check your connection and try again.',
+        isRateLimited: false,
+      };
+    }
+
+    return { raw: message || code, display: fallback, isRateLimited: false };
+  };
+
+  useEffect(() => {
+    if (cooldownLeft <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldownLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownLeft]);
 
   const {
     register,
@@ -97,46 +190,24 @@ export function InstructorForm({ onBack }: { onBack: () => void }) {
     setErrorCode(null);
 
     try {
-      const supabase = createClient();
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.full_name,
-            role: 'instructor'
-          }
+      const result = await signupInstructorAction(data);
+
+      if (!result.success) {
+        if (result.errorCode === 'signup_rate_limited') {
+          setCooldownLeft(120);
         }
-      });
-
-      if (error) throw error;
-
-      if (authData.user) {
-        // Upsert into profiles incase the trigger fails or is delayed
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          full_name: data.full_name,
-          role: 'instructor',
-          status: 'pending',
-          preferred_language: data.teaching_languages[0],
-          registration_source: 'self'
-        });
-
-        // Insert instructor details
-        await supabase.from('instructor_profiles').upsert({
-          user_id: authData.user.id,
-          headline: data.headline,
-          expertise_tags: data.expertise_tags,
-          teaching_languages: data.teaching_languages,
-          bio: data.short_bio,
-          linkedin_url: data.linkedin_url || null,
-          commission_rate: 70
-        });
-
-        router.push(`/pending-approval?role=instructor&email=${encodeURIComponent(data.email)}`);
+        setErrorCode(result.error || 'Unable to complete signup right now. Please try again.');
+        return;
       }
-    } catch (err: any) {
-      setErrorCode(err.message || 'An error occurred during sign up.');
+
+      router.push(result.nextPath || `/pending-approval?role=instructor&email=${encodeURIComponent(data.email)}`);
+    } catch (err: unknown) {
+      console.error('Instructor signup failed:', err);
+      const parsed = parseSignupError(err);
+      if (parsed.isRateLimited) {
+        setCooldownLeft(120);
+      }
+      setErrorCode(parsed.display);
     } finally {
       setIsLoading(false);
     }
@@ -333,10 +404,10 @@ export function InstructorForm({ onBack }: { onBack: () => void }) {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || cooldownLeft > 0}
           className="mt-2 w-full rounded-full bg-[var(--text)] py-2.5 text-[13px] font-semibold text-[var(--bg)] transition-all duration-150 hover:scale-[1.01] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Submit Application →'}
+          {isLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : cooldownLeft > 0 ? `Please wait ${cooldownLeft}s` : 'Submit Application →'}
         </button>
       </form>
     </AuthWindow>

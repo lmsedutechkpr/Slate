@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SellerSidebar from '@/components/seller/SellerSidebar';
 import SellerTopbar from '@/components/seller/SellerTopbar';
+import SuspensionGuard from '@/components/auth/SuspensionGuard';
 
 export default async function SellerLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -15,7 +16,9 @@ export default async function SellerLayout({ children }: { children: React.React
     .single();
 
   if (!profile || profile.role !== 'seller') redirect('/student/dashboard');
-  if (profile.status === 'pending') redirect('/pending-approval?role=seller');
+  if (profile.status === 'pending' || profile.status === 'pending_approval') {
+    redirect('/pending-approval?role=seller');
+  }
 
   const { data: sellerProfile } = await supabase
     .from('seller_profiles')
@@ -25,6 +28,7 @@ export default async function SellerLayout({ children }: { children: React.React
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">
+      <SuspensionGuard userId={user.id} />
       <SellerSidebar
         serverProfile={profile}
         storeName={sellerProfile?.store_name}

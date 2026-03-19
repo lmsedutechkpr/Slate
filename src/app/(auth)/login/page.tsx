@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,10 +25,22 @@ export default function LoginPage() {
   const t = useTranslations('auth.login');
   const tAuth = useTranslations('auth');
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [suspensionReason, setSuspensionReason] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
+
+  useEffect(() => {
+    const queryError = searchParams.get('error');
+    const queryReason = searchParams.get('reason');
+    if (queryError) {
+      setErrorCode(queryError);
+    }
+    if (queryReason) {
+      setSuspensionReason(queryReason);
+    }
+  }, [searchParams]);
 
   const {
     register,
@@ -203,7 +215,12 @@ export default function LoginPage() {
         {errorCode && (
           <div className="flex items-start gap-2 rounded-xl border border-[var(--traffic-red)]/20 bg-[rgba(255,95,87,0.08)] px-4 py-3 text-[13px] text-[var(--traffic-red)]">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <p>{getFriendlyErrorMessage(errorCode)}</p>
+            <p>
+              {getFriendlyErrorMessage(errorCode)}
+              {errorCode === 'suspended' && suspensionReason
+                ? ` Reason: ${suspensionReason}`
+                : ''}
+            </p>
           </div>
         )}
 

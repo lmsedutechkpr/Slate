@@ -1,6 +1,7 @@
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import DashboardShell from '@/components/student/layout/DashboardShell';
+import SuspensionGuard from '@/components/auth/SuspensionGuard';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -42,6 +43,7 @@ export default async function StudentLayout({children}: StudentLayoutProps) {
 
   return (
     <DashboardShell profile={profile}>
+      <SuspensionGuard userId={user.id} />
       {children}
     </DashboardShell>
   );

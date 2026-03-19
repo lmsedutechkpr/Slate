@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,6 +13,7 @@ import { PasswordStrengthBar } from '@/components/auth/PasswordStrengthBar';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import AuthWindow from '@/components/auth/AuthWindow';
+import { signupStudentAction } from '@/app/actions/auth';
 
 const studentSchema = z
   .object({
@@ -41,6 +42,15 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+
+  useEffect(() => {
+    if (cooldownLeft <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldownLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownLeft]);
 
   const {
     register: registerStudent,
@@ -61,47 +71,17 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
     setErrorCode(null);
 
     try {
-      const supabase = createClient();
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.full_name,
-            role: 'student'
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
+      const result = await signupStudentAction(data);
 
-      if (error) {
-        setErrorCode(error.message);
+      if (!result.success) {
+        if (result.errorCode === 'signup_rate_limited') {
+          setCooldownLeft(120);
+        }
+        setErrorCode(result.errorCode || result.error || 'default');
         return;
       }
 
-      if (authData.user) {
-        // Redundant upsert but keeps it perfectly synced
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          full_name: data.full_name,
-          role: 'student',
-          status: 'pending_verification',
-          preferred_language: data.language,
-          registration_source: 'self'
-        });
-
-        await supabase.from('user_preferences').upsert({
-          user_id: authData.user.id,
-          language: data.language
-        });
-
-        if (!authData.session) {
-          router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
-        } else {
-          await supabase.from('profiles').update({ status: 'active' }).eq('id', authData.user.id);
-          router.push('/student/dashboard');
-        }
-      }
+      router.push(result.nextPath || `/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch {
       setErrorCode('default');
     } finally {
@@ -110,8 +90,40 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
   };
 
   const getFriendlyErrorMessage = (code: string) => {
-    if (code.includes('already registered')) return 'User already registered.';
-    if (code.includes('Rate limit')) return 'Too many attempts. Try again later.';
+    const normalized = code.toLowerCase();
+    if (normalized === 'signup_user_exists') return 'User already registered.';
+    if (normalized === 'signup_rate_limited') {
+      if (cooldownLeft > 0) {
+        return `Too many signup attempts right now. Try again in ${cooldownLeft}s.`;
+      }
+      return 'Too many signup attempts right now. Please wait 2 minutes and try again.';
+    }
+    if (normalized === 'signup_user_missing') {
+      return 'Signup could not be completed. Please retry in a minute.';
+    }
+    if (normalized === 'signup_invalid_email') return 'Please enter a valid email address.';
+    if (normalized === 'signup_redirect_not_allowed') {
+      return 'Auth redirect URL is not allowed. Please contact admin to update Supabase URL settings.';
+    }
+    if (normalized === 'signup_disabled') {
+      return 'Signup is currently disabled in authentication settings.';
+    }
+    if (normalized === 'signup_network_error') {
+      return 'Unable to reach authentication service right now. Please retry in a moment.';
+    }
+    if (normalized === 'signup_auth_propagation_delay') {
+      return 'Account is being prepared. Please wait a few seconds and try again.';
+    }
+    if (normalized.includes('already registered')) return 'User already registered.';
+    if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
+      if (cooldownLeft > 0) {
+        return `Too many signup attempts right now. Try again in ${cooldownLeft}s.`;
+      }
+      return 'Too many signup attempts right now. Please wait 2 minutes and try again.';
+    }
+    if (normalized.includes('signup response missing user')) {
+      return 'Signup could not be completed. Please retry in a minute.';
+    }
     return tLogin('errors.default');
   };
 
@@ -256,10 +268,10 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || cooldownLeft > 0}
           className="w-full rounded-full bg-[var(--text)] py-2.5 text-[14px] font-semibold text-[var(--bg)] transition-all duration-150 hover:scale-[1.01] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isLoading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t('student.submit')}
+          {isLoading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : cooldownLeft > 0 ? `Please wait ${cooldownLeft}s` : t('student.submit')}
         </button>
       </form>
 

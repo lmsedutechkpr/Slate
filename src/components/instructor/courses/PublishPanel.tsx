@@ -13,6 +13,7 @@ interface Props {
   course: any;
   courseId: string;
   categories: { id: string; name: string; slug: string }[];
+  listPath?: string;
 }
 
 interface CheckItem {
@@ -38,7 +39,7 @@ function useFreshData(courseId: string, initialCourse: any) {
   return data;
 }
 
-export function PublishPanel({ course: initialCourse, courseId, categories }: Props) {
+export function PublishPanel({ course: initialCourse, courseId, categories, listPath = '/instructor/courses' }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const fresh = useFreshData(courseId, initialCourse);
@@ -71,7 +72,9 @@ export function PublishPanel({ course: initialCourse, courseId, categories }: Pr
     try {
       await submitCourseForReviewAction(courseId);
       setToast('Course submitted for review! We\'ll notify you within 24–48 hours. 🎉');
-      setTimeout(() => { router.push('/instructor/courses'); }, 3000);
+      setTimeout(() => {
+        router.push(listPath);
+      }, 3000);
     } catch (err: any) {
       alert('Failed to submit: ' + (err.message ?? 'Unknown error'));
     } finally {
