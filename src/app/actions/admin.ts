@@ -7,6 +7,8 @@ import { revalidatePath } from 'next/cache';
 interface ActionResult {
   success: boolean;
   error?: string;
+  message?: string;
+  nextUrl?: string;
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -96,6 +98,11 @@ function buildFallbackInviteUrl(params: {
     return `${base}/invite?role=admin&email=${encodeURIComponent(params.email)}`;
   }
   return `${base}/signup?role=${params.role}&email=${encodeURIComponent(params.email)}`;
+}
+
+function isBrevoAuthError(error: unknown) {
+  const msg = getErrorMessage(error, '').toLowerCase();
+  return msg.includes('brevo') && (msg.includes('401') || msg.includes('unauthorized') || msg.includes('key not found'));
 }
 
 async function sendApplicationStatusEmail(params: {
@@ -1058,6 +1065,7 @@ export async function resendInviteSetupLinkAction({
   role: 'student' | 'instructor' | 'seller' | 'admin';
 }): Promise<ActionResult> {
   try {
+    const admin = createAdminClient();
     const authAdmin = createDirectAuthAdminClient();
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
@@ -1154,14 +1162,65 @@ export async function resendInviteSetupLinkAction({
       }
     }
 
-    await sendAdminInviteEmail({
-      toEmail: normalizedEmail,
-      role,
-      inviteLink: link,
-      adminMessage: 'This is your updated invitation/setup link.',
-    });
+    try {
+      await sendAdminInviteEmail({
+        toEmail: normalizedEmail,
+        role,
+        inviteLink: link,
+        adminMessage: 'This is your updated invitation/setup link.',
+      });
 
-    return { success: true };
+      return { success: true, message: 'Invitation/setup email sent successfully.' };
+    } catch (mailError) {
+      if (!isBrevoAuthError(mailError)) {
+        throw mailError;
+      }
+
+      // Brevo key/config issue: try Supabase native email as fallback.
+      if (role === 'admin') {
+        const recoveryRes = await authAdmin.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: recoveryRedirectTo,
+        });
+
+        if (!recoveryRes.error) {
+          return {
+            success: true,
+            message: 'Email was sent via Supabase fallback provider.',
+          };
+        }
+      } else {
+        const inviteRes = await authAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
+          data: { role },
+          redirectTo: inviteRedirectTo,
+        });
+
+        if (!inviteRes.error) {
+          return {
+            success: true,
+            message: 'Email was sent via Supabase fallback provider.',
+          };
+        }
+
+        // Existing user in non-admin role: fallback to reset-password mail.
+        const resetRes = await authAdmin.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: recoveryRedirectTo,
+        });
+        if (!resetRes.error) {
+          return {
+            success: true,
+            message: 'Email was sent via Supabase fallback provider.',
+          };
+        }
+      }
+
+      // Final fallback: expose already-generated secure link to continue immediately.
+      return {
+        success: true,
+        message:
+          'Email provider is unavailable. Continue instantly using the generated secure setup link below.',
+        nextUrl: link,
+      };
+    }
   } catch (error) {
     console.error('Unexpected error in resendInviteSetupLinkAction:', error);
     return { success: false, error: getErrorMessage(error, 'Failed to resend invitation link.') };
@@ -2043,5 +2102,380 @@ export async function bulkModerateContentAction(params: {
   } catch (error) {
     console.error('Unexpected error in bulkModerateContentAction:', error);
     return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+export async function forceCancelOrderAction({
+  orderId,
+  reason,
+}: {
+  orderId: string;
+  reason: string;
+}): Promise<ActionResult> {
+  try {
+    const admin = createAdminClient();
+    const trimmedReason = reason.trim();
+
+    if (!orderId) {
+      return { success: false, error: 'Order ID is required.' };
+    }
+
+    if (trimmedReason.length < 5) {
+      return { success: false, error: 'Please provide a valid cancellation reason.' };
+    }
+
+    const { data: orderData, error: orderFetchError } = await admin
+      .from('orders')
+      .select('id,customer_id,status')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    if (orderFetchError || !orderData) {
+      return { success: false, error: 'Order not found.' };
+    }
+
+    let orderUpdate = await admin
+      .from('orders')
+      .update({
+        status: 'cancelled',
+        cancellation_reason: trimmedReason,
+        cancelled_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    if (orderUpdate.error) {
+      orderUpdate = await admin
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+    }
+
+    if (orderUpdate.error) {
+      return { success: false, error: orderUpdate.error.message || 'Failed to cancel order.' };
+    }
+
+    const itemUpdate = await admin
+      .from('order_items')
+      .update({ status: 'cancelled' })
+      .eq('order_id', orderId);
+
+    if (itemUpdate.error) {
+      console.warn('Could not update order items during cancel:', itemUpdate.error);
+    }
+
+    if (orderData.customer_id) {
+      const notifyRes = await admin.from('notifications').insert({
+        user_id: orderData.customer_id,
+        type: 'order',
+        title: 'Order Cancelled by Admin',
+        message: `Your order #${String(orderId).slice(0, 8).toUpperCase()} was cancelled. Reason: ${trimmedReason}`,
+        action_url: '/student/orders',
+        metadata: { order_id: orderId, reason: trimmedReason },
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+
+      if (notifyRes.error) {
+        console.warn('Could not notify user after order cancel:', notifyRes.error);
+      }
+    }
+
+    revalidatePath('/admin/orders');
+    revalidatePath('/student/orders');
+    revalidatePath('/seller/orders');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error in forceCancelOrderAction:', error);
+    return { success: false, error: getErrorMessage(error, 'Failed to cancel order.') };
+  }
+}
+
+export async function markOrderRefundedAction({ orderId }: { orderId: string }): Promise<ActionResult> {
+  try {
+    const admin = createAdminClient();
+
+    if (!orderId) {
+      return { success: false, error: 'Order ID is required.' };
+    }
+
+    const { data: orderData, error: orderFetchError } = await admin
+      .from('orders')
+      .select('id,customer_id,status')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    if (orderFetchError || !orderData) {
+      return { success: false, error: 'Order not found.' };
+    }
+
+    let updateRes = await admin
+      .from('orders')
+      .update({
+        status: 'refunded',
+        refunded_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    if (updateRes.error) {
+      updateRes = await admin
+        .from('orders')
+        .update({ status: 'refunded', updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+    }
+
+    if (updateRes.error) {
+      return { success: false, error: updateRes.error.message || 'Failed to mark order refunded.' };
+    }
+
+    if (orderData.customer_id) {
+      const notifyRes = await admin.from('notifications').insert({
+        user_id: orderData.customer_id,
+        type: 'order',
+        title: 'Refund Processed',
+        message: `Your refund for order #${String(orderId).slice(0, 8).toUpperCase()} has been processed.`,
+        action_url: '/student/orders',
+        metadata: { order_id: orderId, status: 'refunded' },
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+
+      if (notifyRes.error) {
+        console.warn('Could not notify user after refund:', notifyRes.error);
+      }
+    }
+
+    revalidatePath('/admin/orders');
+    revalidatePath('/student/orders');
+    revalidatePath('/seller/orders');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error in markOrderRefundedAction:', error);
+    return { success: false, error: getErrorMessage(error, 'Failed to mark order refunded.') };
+  }
+}
+
+export async function processPayoutAction(params: {
+  payoutId: string;
+  userId: string;
+  role: 'instructor' | 'seller' | string;
+  amount: number;
+  reference: string;
+  note?: string | null;
+  currentPendingBalance?: number;
+  currentPaidOut?: number;
+}): Promise<ActionResult> {
+  try {
+    const admin = createAdminClient();
+
+    const userId = (params.userId || '').trim();
+    const payoutId = (params.payoutId || '').trim();
+    const role = (params.role || 'instructor').toLowerCase() === 'seller' ? 'seller' : 'instructor';
+    const amount = Math.max(0, Number(params.amount || 0));
+    const reference = (params.reference || '').trim();
+    const note = params.note?.trim() || null;
+
+    if (!userId) return { success: false, error: 'User ID is required.' };
+    if (!reference) return { success: false, error: 'Transaction reference is required.' };
+    if (amount <= 0) return { success: false, error: 'Payout amount must be greater than zero.' };
+
+    const nowIso = new Date().toISOString();
+
+    // If payoutId points to a real DB record, mark it completed.
+    if (payoutId && !payoutId.startsWith('inst-') && !payoutId.startsWith('sell-')) {
+      let payoutUpdate = await admin
+        .from('payouts')
+        .update({
+          status: 'completed',
+          approved_at: nowIso,
+          completed_at: nowIso,
+          payment_ref: reference,
+          notes: note,
+          updated_at: nowIso,
+        })
+        .eq('id', payoutId);
+
+      if (payoutUpdate.error) {
+        // Fallback for schemas without all optional columns.
+        payoutUpdate = await admin
+          .from('payouts')
+          .update({ status: 'completed', updated_at: nowIso })
+          .eq('id', payoutId);
+      }
+
+      if (payoutUpdate.error) {
+        return { success: false, error: payoutUpdate.error.message || 'Failed to update payout row.' };
+      }
+    } else {
+      const insertPayload: Record<string, unknown> = {
+        recipient_id: userId,
+        recipient_type: role,
+        amount,
+        currency: 'INR',
+        status: 'completed',
+        approved_at: nowIso,
+        completed_at: nowIso,
+        payment_ref: reference,
+        notes: note,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+
+      const insertRes = await admin.from('payouts').insert(insertPayload);
+      if (insertRes.error) {
+        const minimalInsert = await admin.from('payouts').insert({
+          recipient_id: userId,
+          recipient_type: role,
+          amount,
+          status: 'completed',
+          created_at: nowIso,
+          updated_at: nowIso,
+        });
+        if (minimalInsert.error) {
+          return { success: false, error: minimalInsert.error.message || 'Failed to create payout row.' };
+        }
+      }
+    }
+
+    const profileTable = role === 'seller' ? 'seller_profiles' : 'instructor_profiles';
+
+    const { data: existingRow } = await admin
+      .from(profileTable)
+      .select('user_id,pending_payout,total_paid_out')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const existingPending = Number(existingRow?.pending_payout ?? params.currentPendingBalance ?? 0);
+    const existingPaid = Number(existingRow?.total_paid_out ?? params.currentPaidOut ?? 0);
+
+    const nextPending = Math.max(0, existingPending - amount);
+    const nextPaid = Math.max(0, existingPaid + amount);
+
+    const profilePayload: Record<string, unknown> = {
+      user_id: userId,
+      pending_payout: nextPending,
+      updated_at: nowIso,
+    };
+    if (role !== 'seller') {
+      profilePayload.total_paid_out = nextPaid;
+    }
+
+    const upsertRes = await admin.from(profileTable).upsert(profilePayload, { onConflict: 'user_id' });
+
+    if (upsertRes.error) {
+      const updateRes = await admin
+        .from(profileTable)
+        .update(profilePayload)
+        .eq('user_id', userId);
+
+      if (updateRes.error) {
+        return { success: false, error: updateRes.error.message || 'Failed to update payout balances.' };
+      }
+    }
+
+    const notifyRes = await admin.from('notifications').insert({
+      user_id: userId,
+      type: 'system',
+      title: 'Payout Processed',
+      message: `Your payout of INR ${Math.round(amount).toLocaleString('en-IN')} has been completed. Reference: ${reference}`,
+      action_url: role === 'seller' ? '/seller/payouts' : '/instructor/payouts',
+      metadata: {
+        payout_id: payoutId || null,
+        role,
+        amount,
+        reference,
+        note,
+      },
+      is_read: false,
+      created_at: nowIso,
+    });
+
+    if (notifyRes.error) {
+      console.warn('Could not create payout notification:', notifyRes.error);
+    }
+
+    revalidatePath('/admin/payouts');
+    revalidatePath('/seller/payouts');
+    revalidatePath('/instructor/payouts');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error in processPayoutAction:', error);
+    return { success: false, error: getErrorMessage(error, 'Failed to process payout.') };
+  }
+}
+
+export async function rejectPayoutAction(params: {
+  payoutId: string;
+  userId: string;
+  role: 'instructor' | 'seller' | string;
+  reason?: string | null;
+}): Promise<ActionResult> {
+  try {
+    const admin = createAdminClient();
+
+    const payoutId = (params.payoutId || '').trim();
+    const userId = (params.userId || '').trim();
+    const role = (params.role || 'instructor').toLowerCase() === 'seller' ? 'seller' : 'instructor';
+    const reason = params.reason?.trim() || null;
+    const nowIso = new Date().toISOString();
+
+    if (!payoutId) return { success: false, error: 'Payout ID is required.' };
+    if (!userId) return { success: false, error: 'User ID is required.' };
+
+    let rejectRes = await admin
+      .from('payouts')
+      .update({
+        status: 'rejected',
+        hold_reason: reason,
+        notes: reason,
+        updated_at: nowIso,
+      })
+      .eq('id', payoutId);
+
+    if (rejectRes.error) {
+      rejectRes = await admin
+        .from('payouts')
+        .update({ status: 'rejected', updated_at: nowIso })
+        .eq('id', payoutId);
+    }
+
+    if (rejectRes.error) {
+      return { success: false, error: rejectRes.error.message || 'Failed to reject payout.' };
+    }
+
+    const notifyRes = await admin.from('notifications').insert({
+      user_id: userId,
+      type: 'system',
+      title: 'Payout Rejected',
+      message: reason
+        ? `Your payout request was rejected. Reason: ${reason}`
+        : 'Your payout request was rejected.',
+      action_url: role === 'seller' ? '/seller/payouts' : '/instructor/payouts',
+      metadata: {
+        payout_id: payoutId,
+        role,
+        reason,
+      },
+      is_read: false,
+      created_at: nowIso,
+    });
+
+    if (notifyRes.error) {
+      console.warn('Could not create payout rejection notification:', notifyRes.error);
+    }
+
+    revalidatePath('/admin/payouts');
+    revalidatePath('/seller/payouts');
+    revalidatePath('/instructor/payouts');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error in rejectPayoutAction:', error);
+    return { success: false, error: getErrorMessage(error, 'Failed to reject payout.') };
   }
 }

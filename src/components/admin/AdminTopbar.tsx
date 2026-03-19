@@ -31,9 +31,16 @@ interface AdminTopbarProps {
     courses: number;
     products: number;
   };
+  maintenanceMode?: boolean;
+  maintenanceMessage?: string | null;
 }
 
-export default function AdminTopbar({ userId, pendingCounts }: AdminTopbarProps) {
+export default function AdminTopbar({
+  userId,
+  pendingCounts,
+  maintenanceMode = false,
+  maintenanceMessage,
+}: AdminTopbarProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -181,7 +188,14 @@ export default function AdminTopbar({ userId, pendingCounts }: AdminTopbarProps)
   };
 
   return (
-    <div className="flex h-16 items-center justify-between border-b border-[rgba(0,0,0,0.08)] bg-white px-6">
+    <div className="border-b border-[rgba(0,0,0,0.08)] bg-white">
+      {maintenanceMode ? (
+        <div className="flex h-9 items-center justify-center bg-[#FF5F57] px-3 text-[12px] font-semibold text-white">
+          ⚠ MAINTENANCE MODE ACTIVE — Only admins can access Slate
+          {maintenanceMessage ? <span className="ml-2 font-normal opacity-90">• {maintenanceMessage}</span> : null}
+        </div>
+      ) : null}
+      <div className="flex h-16 items-center justify-between px-6">
       {/* Left: Traffic Lights */}
       <div className="flex items-center gap-4">
         <TrafficLights size="xs" />
@@ -274,6 +288,7 @@ export default function AdminTopbar({ userId, pendingCounts }: AdminTopbarProps)
             </span>
           </button>
         )}
+      </div>
       </div>
     </div>
   );

@@ -43,13 +43,15 @@ export default async function AdminCourseEditPage({ params }: PageProps) {
     : { data: null };
 
   return (
-    <CourseEditorClient
-      course={course}
-      categories={categories ?? []}
-      commissionRate={instructorProfile?.commission_rate ?? 70}
-      userId={user.id}
-      listPath="/admin/courses"
-      backLabel="Admin Course Builder"
-    />
+    <div className="h-[calc(100vh-9.5rem)] min-h-[560px] overflow-hidden">
+      <CourseEditorClient
+        course={course}
+        categories={categories ?? []}
+        commissionRate={instructorProfile?.commission_rate ?? 70}
+        userId={user.id}
+        listPath="/admin/courses"
+        backLabel="Admin Course Builder"
+      />
+    </div>
   );
 }

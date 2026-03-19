@@ -98,7 +98,7 @@ export function CourseEditorClient({
   };
 
   return (
-    <div className="flex w-full">
+    <div className="flex h-full min-h-0 w-full">
       <CourseEditorSidebar
         currentStep={step}
         completedSteps={completedSteps}
@@ -110,7 +110,7 @@ export function CourseEditorClient({
         backPath={listPath}
         backLabel={backLabel}
       />
-      <main className="min-w-0 flex-1 overflow-y-auto p-8">
+      <main className="h-full min-w-0 flex-1 overflow-y-auto p-8">
         {stepComponents[step]}
       </main>
     </div>

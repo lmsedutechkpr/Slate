@@ -23,6 +23,7 @@ export default function InviteLandingPage() {
   const [sendingSetup, setSendingSetup] = useState(false);
   const [setupMessage, setSetupMessage] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const [nextSetupUrl, setNextSetupUrl] = useState<string | null>(null);
 
   const title = useMemo(() => {
     if (role === 'admin') return 'Admin Invite';
@@ -49,6 +50,7 @@ export default function InviteLandingPage() {
     setSendingSetup(true);
     setSetupError(null);
     setSetupMessage(null);
+    setNextSetupUrl(null);
 
     try {
       const res = await resendInviteSetupLinkAction({
@@ -61,7 +63,12 @@ export default function InviteLandingPage() {
         return;
       }
 
-      setSetupMessage(`Invitation email sent to ${targetEmail}. Open your email and continue from the provided link.`);
+      setSetupMessage(
+        res.message || `Invitation email sent to ${targetEmail}. Open your email and continue from the provided link.`
+      );
+      if (res.nextUrl) {
+        setNextSetupUrl(res.nextUrl);
+      }
     } catch {
       setSetupError('Unable to send setup link right now. Please try again in a minute.');
     } finally {
@@ -102,6 +109,14 @@ export default function InviteLandingPage() {
 
               {setupMessage ? <p className="text-[12px] text-[#28C840]">{setupMessage}</p> : null}
               {setupError ? <p className="text-[12px] text-[#FF5F57]">{setupError}</p> : null}
+              {nextSetupUrl ? (
+                <a
+                  href={nextSetupUrl}
+                  className="inline-flex h-10 w-full items-center justify-center rounded-full border border-[var(--border)] bg-white px-4 text-[13px] font-semibold text-[var(--text)]"
+                >
+                  Continue With Secure Setup Link
+                </a>
+              ) : null}
             </div>
           ) : (
             <div className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left text-[13px] text-[var(--text-secondary)]">
@@ -128,6 +143,14 @@ export default function InviteLandingPage() {
 
               {setupMessage ? <p className="text-[12px] text-[#28C840]">{setupMessage}</p> : null}
               {setupError ? <p className="text-[12px] text-[#FF5F57]">{setupError}</p> : null}
+              {nextSetupUrl ? (
+                <a
+                  href={nextSetupUrl}
+                  className="inline-flex h-10 w-full items-center justify-center rounded-full border border-[var(--border)] bg-white px-4 text-[13px] font-semibold text-[var(--text)]"
+                >
+                  Continue With Secure Setup Link
+                </a>
+              ) : null}
             </div>
           )}
 
