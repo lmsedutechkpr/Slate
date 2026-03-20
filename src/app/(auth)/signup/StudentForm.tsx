@@ -42,6 +42,7 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cooldownLeft, setCooldownLeft] = useState(0);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
   const onStudentSubmit = async (data: StudentFormValues) => {
     setIsLoading(true);
     setErrorCode(null);
+    setErrorMessage(null);
 
     try {
       const result = await signupStudentAction(data);
@@ -77,13 +79,15 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
         if (result.errorCode === 'signup_rate_limited') {
           setCooldownLeft(120);
         }
-        setErrorCode(result.errorCode || result.error || 'default');
+        setErrorCode(result.errorCode || null);
+        setErrorMessage(result.error || null);
         return;
       }
 
       router.push(result.nextPath || `/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch {
       setErrorCode('default');
+      setErrorMessage(null);
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +118,9 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
     if (normalized === 'signup_auth_propagation_delay') {
       return 'Account is being prepared. Please wait a few seconds and try again.';
     }
+    if (normalized === 'signup_profile_setup_failed') {
+      return errorMessage || 'Account created, but profile setup failed. Please try again in a moment.';
+    }
     if (normalized.includes('already registered')) return 'User already registered.';
     if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
       if (cooldownLeft > 0) {
@@ -124,7 +131,11 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
     if (normalized.includes('signup response missing user')) {
       return 'Signup could not be completed. Please retry in a minute.';
     }
-    return tLogin('errors.default');
+    const fallback = errorMessage || tLogin('errors.default');
+    if (!fallback || !fallback.trim()) {
+      return tLogin('errors.default');
+    }
+    return fallback;
   };
 
   return (
@@ -287,7 +298,9 @@ export function StudentForm({ onBack }: { onBack: () => void }) {
           const supabase = createClient();
           supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: `${window.location.origin}/auth/callback` }
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback?role=student&lang=${studentLang}`,
+            }
           });
         }}
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border-hover)] bg-[var(--surface-raised)] py-2.5 text-[14px] font-medium text-[var(--text)] transition-all duration-150 hover:bg-[rgba(0,0,0,0.05)]"

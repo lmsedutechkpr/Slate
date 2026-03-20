@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { PlayCircle, SkipBack, SkipForward, Maximize } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { markLectureCompleteAction } from '@/app/actions/progress';
+import { getOfflineVideoSource, hasOfflineAccess } from '@/lib/offlineVideo';
 
 interface VideoPlayerProps {
   lecture: any;
@@ -32,6 +33,39 @@ export default function VideoPlayer({
   const videoPlayerRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [offlineBlocked, setOfflineBlocked] = useState(false);
+  const [offlineSource, setOfflineSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleStatus = async () => {
+      const offlineNow = !navigator.onLine;
+      setIsOffline(offlineNow);
+      if (!offlineNow) {
+        setOfflineBlocked(false);
+        setOfflineSource(null);
+        return;
+      }
+
+      const allowed = hasOfflineAccess(userId, String(lecture.id));
+      setOfflineBlocked(!allowed);
+      if (!allowed) {
+        setOfflineSource(null);
+        return;
+      }
+
+      const source = await getOfflineVideoSource(userId, String(lecture.id));
+      setOfflineSource(source);
+    };
+
+    handleStatus();
+    window.addEventListener('online', handleStatus);
+    window.addEventListener('offline', handleStatus);
+    return () => {
+      window.removeEventListener('online', handleStatus);
+      window.removeEventListener('offline', handleStatus);
+    };
+  }, [userId, lecture.id]);
 
   // Sync Video Speed to Database Prefs
   const handleSpeedChange = async () => {
@@ -108,6 +142,8 @@ export default function VideoPlayer({
 
   const progressPercent = Math.min((currentSecs / totalSecs) * 100, 100);
 
+  const offlineOnlyMode = isOffline && !offlineBlocked;
+
   return (
     <div ref={videoPlayerRef} className="w-full flex flex-col bg-black rounded-2xl overflow-hidden shadow-2xl relative group pb-[56.25%] sm:pb-0 sm:aspect-video">
       
@@ -119,15 +155,27 @@ export default function VideoPlayer({
           <div className="h-2 w-2 rounded-full bg-[#28C840]" />
         </div>
 
-        <button onClick={togglePlay} className="transform hover:scale-105 transition-transform outline-none focus:outline-none focus:ring-4 ring-white/10 rounded-full">
-           <PlayCircle className="w-16 h-16 text-white mb-4" />
-        </button>
+        {!offlineBlocked ? (
+          <button onClick={togglePlay} className="transform hover:scale-105 transition-transform outline-none focus:outline-none focus:ring-4 ring-white/10 rounded-full">
+            <PlayCircle className="w-16 h-16 text-white mb-4" />
+          </button>
+        ) : null}
         <h2 className="text-white font-sans font-semibold text-lg max-w-[80%] text-center">
           {lecture.title}
         </h2>
-        <p className="text-gray-500 text-sm mt-2">
-          {lecture.video_url ? 'Loading Video Asset...' : 'Video content coming soon'}
-        </p>
+        {offlineBlocked ? (
+          <p className="text-red-300 text-sm mt-2 text-center max-w-[80%]">
+            Offline access denied for this lecture on the current account. Download it while logged in to this account first.
+          </p>
+        ) : offlineOnlyMode ? (
+          <p className="text-gray-300 text-sm mt-2 text-center max-w-[80%]">
+            Offline mode active. {offlineSource ? 'Playing from local device storage.' : 'Lecture access is saved, but no local video file was cached.'}
+          </p>
+        ) : (
+          <p className="text-gray-500 text-sm mt-2">
+            {lecture.video_url ? 'Loading Video Asset...' : 'Video content coming soon'}
+          </p>
+        )}
       </div>
 
       {/* CUSTOM CONTROLS OVERLAY (Always visible during mock mode, fades out on real video) */}
@@ -137,6 +185,7 @@ export default function VideoPlayer({
         <div 
           className="w-full h-1 bg-white/20 rounded-full mb-3 cursor-pointer relative group/scrubber hover:h-1.5 transition-all"
           onClick={(e) => {
+             if (offlineBlocked) return;
              const rect = e.currentTarget.getBoundingClientRect();
              const pos = (e.clientX - rect.left) / rect.width;
              setCurrentSecs(Math.floor(pos * totalSecs));
@@ -155,7 +204,7 @@ export default function VideoPlayer({
         {/* Buttons Row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-colors">
+            <button onClick={togglePlay} disabled={offlineBlocked} className="text-white hover:text-blue-400 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
               {isPlaying ? (
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
               ) : (
@@ -163,14 +212,16 @@ export default function VideoPlayer({
               )}
             </button>
             <button 
+              disabled={offlineBlocked}
               onClick={() => setCurrentSecs(Math.max(0, currentSecs - 10))}
-              className="text-gray-300 hover:text-white transition-colors"
+              className="text-gray-300 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             >
               <SkipBack className="w-4 h-4" />
             </button>
             <button 
+               disabled={offlineBlocked}
                onClick={() => setCurrentSecs(Math.min(totalSecs, currentSecs + 10))}
-               className="text-gray-300 hover:text-white transition-colors"
+               className="text-gray-300 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             >
               <SkipForward className="w-4 h-4" />
             </button>

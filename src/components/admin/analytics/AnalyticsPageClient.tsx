@@ -96,6 +96,7 @@ export default function AnalyticsPageClient({
   rawAllProfiles,
   totalCoursesCount,
   totalEnrollmentsCount,
+  revenueBreakdown,
 }: {
   rawUsers: Row[];
   rawRevenueOrders: Row[];
@@ -108,6 +109,11 @@ export default function AnalyticsPageClient({
   rawAllProfiles: Row[];
   totalCoursesCount: number;
   totalEnrollmentsCount: number;
+  revenueBreakdown: {
+    courseRevenue: number;
+    productRevenue: number;
+    platformFees: number;
+  };
 }) {
   const router = useRouter();
   const [period, setPeriod] = useState<PeriodKey>('12m');
@@ -181,6 +187,14 @@ export default function AnalyticsPageClient({
         return d ? monthKeyFromDate(d) === key : false;
       });
 
+      const monthCourseRevenue = enrollmentRows.reduce((sum, e) => {
+        const d = toDate(e.created_at || e.enrolled_at);
+        if (!d || monthKeyFromDate(d) !== key) return sum;
+        const course = e.courses;
+        if (!course || course.is_free) return sum;
+        return sum + Number(course.discounted_price ?? course.price ?? 0);
+      }, 0);
+
       const enrollments = enrollmentRows.filter((e) => {
         const d = toDate(e.created_at || e.enrolled_at);
         return d ? monthKeyFromDate(d) === key : false;
@@ -192,14 +206,18 @@ export default function AnalyticsPageClient({
         instructors,
         sellers,
         users: students + instructors + sellers,
-        revenue: monthRevenueRows.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
+        revenue: monthRevenueRows.reduce((sum, o) => sum + Number(o.total_amount || 0), 0) + monthCourseRevenue,
         orderCount: monthRevenueRows.length,
         enrollments,
       };
     });
   }, [monthlyKeys, userRows, revenueRows, enrollmentRows]);
 
-  const totalRevenue = useMemo(() => revenueRows.reduce((sum, r) => sum + Number(r.total_amount || 0), 0), [revenueRows]);
+  const totalRevenue = useMemo(
+    () => Number(revenueBreakdown.courseRevenue || 0) + Number(revenueBreakdown.productRevenue || 0) + Number(revenueBreakdown.platformFees || 0),
+    [revenueBreakdown],
+  );
+  const orderRevenue = useMemo(() => revenueRows.reduce((sum, r) => sum + Number(r.total_amount || 0), 0), [revenueRows]);
   const totalUsers = useMemo(() => rawAllProfiles.length, [rawAllProfiles.length]);
   const totalOrders = useMemo(() => revenueRows.length, [revenueRows.length]);
 
@@ -210,9 +228,9 @@ export default function AnalyticsPageClient({
     return { students, instructors, sellers, total: students + instructors + sellers };
   }, [rawAllProfiles]);
 
-  const courseRevenue = Math.round(totalRevenue * 0.7);
-  const productRevenue = Math.round(totalRevenue * 0.2);
-  const platformFees = Math.max(0, totalRevenue - courseRevenue - productRevenue);
+  const courseRevenue = Number(revenueBreakdown.courseRevenue || 0);
+  const productRevenue = Number(revenueBreakdown.productRevenue || 0);
+  const platformFees = Number(revenueBreakdown.platformFees || 0);
 
   const categoryData = useMemo(() => {
     const map = new Map<string, { category: string; courses: number; enrollments: number }>();
@@ -267,7 +285,7 @@ export default function AnalyticsPageClient({
       totalUsers,
       totalEnrollments: totalEnrollmentsCount,
       totalCourses: totalCoursesCount,
-      avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+      avgOrderValue: totalOrders > 0 ? orderRevenue / totalOrders : 0,
       revenueGrowth: growthPct(secondHalfRevenue, firstHalfRevenue),
       userGrowth: growthPct(secondHalfUsers, firstHalfUsers),
       enrollGrowth: growthPct(
@@ -276,7 +294,7 @@ export default function AnalyticsPageClient({
       ),
       returnRate,
     };
-  }, [growthSeries, totalRevenue, totalUsers, totalOrders, totalEnrollmentsCount, totalCoursesCount]);
+  }, [growthSeries, totalRevenue, totalUsers, totalOrders, totalEnrollmentsCount, totalCoursesCount, orderRevenue]);
 
   const exportReport = () => {
     const lines: string[] = [];

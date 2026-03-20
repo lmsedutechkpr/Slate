@@ -5,6 +5,8 @@ import {getMessages, getLocale} from 'next-intl/server';
 import './globals.css';
 import ToastProvider from '@/components/ui/toast-provider';
 import GlobalMaintenanceOverlay from '@/components/GlobalMaintenanceOverlay';
+import OfflineIndicator from '@/components/shared/OfflineIndicator';
+import ServiceWorkerRegistrar from '@/components/shared/ServiceWorkerRegistrar';
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -33,6 +35,8 @@ export default async function RootLayout({
           {children}
           <ToastProvider />
           <GlobalMaintenanceOverlay />
+          <OfflineIndicator />
+          <ServiceWorkerRegistrar />
         </NextIntlClientProvider>
       </body>
     </html>

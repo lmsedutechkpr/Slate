@@ -6,6 +6,20 @@ export const dynamic = 'force-dynamic';
 
 type Row = Record<string, any>;
 
+function parseTicketPayload(ticket: any): Row {
+  const body = ticket?.body;
+  if (body && typeof body === 'object') return body as Row;
+  if (typeof body === 'string') {
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed && typeof parsed === 'object') return parsed as Row;
+    } catch {
+      // ignore invalid JSON body
+    }
+  }
+  return {};
+}
+
 async function fetchReturns(admin: ReturnType<typeof createAdminClient>) {
   try {
     const { data, error } = await admin
@@ -21,24 +35,28 @@ async function fetchReturns(admin: ReturnType<typeof createAdminClient>) {
   try {
     const { data, error } = await admin
       .from('support_tickets')
-      .select('id,category,status,title,description,created_at,updated_at,user_id,metadata')
+      .select('id,category,status,title,subject,description,body,created_at,updated_at,user_id,metadata')
       .eq('category', 'returns')
       .order('created_at', { ascending: false });
 
     if (!error) {
-      const mapped = (data || []).map((t: any) => ({
-        id: t.id,
-        reason: t.title || t.metadata?.reason || 'return_request',
-        description: t.description || t.metadata?.description || '',
-        status: t.status || 'requested',
-        created_at: t.created_at,
-        updated_at: t.updated_at,
-        seller_response: t.metadata?.seller_response || null,
-        resolved_at: t.metadata?.resolved_at || null,
-        order_id: t.metadata?.order_id || null,
-        order_item_id: t.metadata?.order_item_id || null,
-        user_id: t.user_id,
-      }));
+      const mapped = (data || []).map((t: any) => {
+        const payload = parseTicketPayload(t);
+        const metadata = t.metadata && typeof t.metadata === 'object' ? t.metadata : {};
+        return {
+          id: t.id,
+          reason: payload.reason || metadata.reason || t.subject || t.title || 'return_request',
+          description: payload.description || metadata.description || t.description || '',
+          status: payload.status || metadata.status || t.status || 'requested',
+          created_at: t.created_at,
+          updated_at: t.updated_at,
+          seller_response: payload.seller_response || metadata.seller_response || null,
+          resolved_at: payload.resolved_at || metadata.resolved_at || null,
+          order_id: payload.order_id || metadata.order_id || null,
+          order_item_id: payload.order_item_id || metadata.order_item_id || null,
+          user_id: payload.user_id || t.user_id,
+        };
+      });
       return { rows: mapped as Row[], source: 'support_tickets' as const };
     }
   } catch {

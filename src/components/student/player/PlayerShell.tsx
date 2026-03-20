@@ -300,6 +300,10 @@ export default function PlayerShell({
              onSelectLecture={(lecture) => setActiveLecture(lecture)}
              enrollmentProgress={enrollmentProgress}
              language={prefs?.language}
+             userId={userId}
+             enrollmentId={enrollment.id}
+             quizzesMap={quizzesMap}
+             courseId={enrollment.courses.id}
            />
         </div>
 

@@ -69,6 +69,155 @@ interface SignupActionResult {
   requiresEmailVerification?: boolean;
 }
 
+function getBrevoApiKey() {
+  return (
+    process.env.BREVO_API_KEY ||
+    process.env.BREVO_APIKEY ||
+    process.env.BREVO_KEY ||
+    process.env.BREVO_SMTP_API_KEY ||
+    null
+  );
+}
+
+function getWebsiteUrl() {
+  return (process.env.NEXT_PUBLIC_SITE_URL || 'https://slate-tau-eight.vercel.app/').replace(/\/$/, '');
+}
+
+async function sendSignupSuccessEmail(params: {
+  toEmail: string;
+  role: 'student' | 'instructor' | 'seller';
+  fullName: string;
+  preferredLanguage?: 'en' | 'ta';
+}) {
+  const apiKey = getBrevoApiKey();
+  if (!apiKey) {
+    console.warn('Brevo API key is not configured. Skipping signup welcome email send.');
+    return;
+  }
+
+  const websiteUrl = getWebsiteUrl();
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || 'no-reply@slate.local';
+  const senderName = process.env.BREVO_SENDER_NAME || 'Slate';
+  const firstName = params.fullName?.trim() || 'there';
+  const locale = params.preferredLanguage === 'ta' ? 'ta' : 'en';
+
+  const roleConfigByLocale: Record<
+    'en' | 'ta',
+    Record<'student' | 'instructor' | 'seller', { subject: string; heading: string; greeting: string; body: string; ctaLabel: string; ctaUrl: string; footer: string }>
+  > = {
+    en: {
+      student: {
+        subject: 'Welcome to Slate - Your student account is ready',
+        heading: 'Welcome to Slate, Student',
+        greeting: 'Hello',
+        body: 'Your student account has been created successfully. You can now start learning and explore courses immediately.',
+        ctaLabel: 'Open Student Dashboard',
+        ctaUrl: `${websiteUrl}/student/dashboard`,
+        footer: 'Regards,\nSlate Team',
+      },
+      instructor: {
+        subject: 'Slate Instructor Signup Received',
+        heading: 'Instructor application received',
+        greeting: 'Hello',
+        body: 'Your instructor signup was successful and your application is now under review. We will notify you once approval is completed.',
+        ctaLabel: 'View Application Status',
+        ctaUrl: `${websiteUrl}/pending-approval?role=instructor&email=${encodeURIComponent(params.toEmail)}`,
+        footer: 'Regards,\nSlate Team',
+      },
+      seller: {
+        subject: 'Slate Seller Signup Received',
+        heading: 'Seller application received',
+        greeting: 'Hello',
+        body: 'Your seller signup was successful and your application is now under review. We will notify you once approval is completed.',
+        ctaLabel: 'View Application Status',
+        ctaUrl: `${websiteUrl}/pending-approval?role=seller&email=${encodeURIComponent(params.toEmail)}`,
+        footer: 'Regards,\nSlate Team',
+      },
+    },
+    ta: {
+      student: {
+        subject: 'Slate-க்கு வரவேற்கிறோம் - உங்கள் மாணவர் கணக்கு தயாராக உள்ளது',
+        heading: 'Slate-க்கு வரவேற்கிறோம்',
+        greeting: 'வணக்கம்',
+        body: 'உங்கள் மாணவர் கணக்கு வெற்றிகரமாக உருவாக்கப்பட்டது. இப்போது உடனே பாடங்களை கற்று தொடங்கலாம்.',
+        ctaLabel: 'மாணவர் டாஷ்போர்டை திறக்க',
+        ctaUrl: `${websiteUrl}/student/dashboard`,
+        footer: 'நன்றி,\nSlate அணி',
+      },
+      instructor: {
+        subject: 'Slate பயிற்றுநர் பதிவு பெறப்பட்டது',
+        heading: 'உங்கள் பயிற்றுநர் விண்ணப்பம் பெறப்பட்டது',
+        greeting: 'வணக்கம்',
+        body: 'உங்கள் பயிற்றுநர் பதிவு வெற்றிகரமாக முடிந்தது. உங்கள் விண்ணப்பம் ஆய்வில் உள்ளது. அங்கீகாரம் முடிந்ததும் மின்னஞ்சலில் தெரிவிப்போம்.',
+        ctaLabel: 'விண்ணப்ப நிலையை பார்க்க',
+        ctaUrl: `${websiteUrl}/pending-approval?role=instructor&email=${encodeURIComponent(params.toEmail)}`,
+        footer: 'நன்றி,\nSlate அணி',
+      },
+      seller: {
+        subject: 'Slate விற்பனையாளர் பதிவு பெறப்பட்டது',
+        heading: 'உங்கள் விற்பனையாளர் விண்ணப்பம் பெறப்பட்டது',
+        greeting: 'வணக்கம்',
+        body: 'உங்கள் விற்பனையாளர் பதிவு வெற்றிகரமாக முடிந்தது. உங்கள் விண்ணப்பம் ஆய்வில் உள்ளது. அங்கீகாரம் முடிந்ததும் மின்னஞ்சலில் தெரிவிப்போம்.',
+        ctaLabel: 'விண்ணப்ப நிலையை பார்க்க',
+        ctaUrl: `${websiteUrl}/pending-approval?role=seller&email=${encodeURIComponent(params.toEmail)}`,
+        footer: 'நன்றி,\nSlate அணி',
+      },
+    },
+  };
+
+  const config = roleConfigByLocale[locale][params.role];
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+      <div style="margin:0 0 14px; display:flex; align-items:center; gap:8px;">
+        <span style="display:inline-block;height:10px;width:10px;border-radius:999px;background:#FF5F57;"></span>
+        <span style="display:inline-block;height:10px;width:10px;border-radius:999px;background:#FEBC2E;"></span>
+        <span style="display:inline-block;height:10px;width:10px;border-radius:999px;background:#28C840;"></span>
+      </div>
+      <h2 style="margin: 0 0 12px;">${config.heading}</h2>
+      <p>${config.greeting} ${firstName},</p>
+      <p>${config.body}</p>
+      <p style="margin: 16px 0;">
+        <a href="${config.ctaUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:600;">
+          ${config.ctaLabel}
+        </a>
+      </p>
+      <p style="font-size:12px;color:#6b7280;">Website: ${websiteUrl}</p>
+      <p style="margin-top:18px;">${config.footer.replace(/\n/g, '<br/>')}</p>
+    </div>
+  `;
+
+  const textContent = [
+    config.heading,
+    '',
+    `${config.greeting} ${firstName},`,
+    config.body,
+    `${config.ctaLabel}: ${config.ctaUrl}`,
+    `Website: ${websiteUrl}`,
+    '',
+    config.footer,
+  ].join('\n');
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { email: senderEmail, name: senderName },
+      to: [{ email: params.toEmail, name: firstName }],
+      subject: config.subject,
+      htmlContent,
+      textContent,
+    }),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Brevo signup email send failed: ${response.status} ${details}`);
+  }
+}
+
 type SignupEnsureInput = Omit<EnsureSignupProfileInput, 'userId'>;
 
 function normalizeBusinessType(value: string | null | undefined): 'individual' | 'company' {
@@ -211,6 +360,14 @@ function mapSignupError(err: unknown): { message: string; code: string; isRateLi
     };
   }
 
+  if (normalized.includes('database error saving new user')) {
+    return {
+      message: 'Signup failed while creating the auth user. Check database triggers/policies for auth user creation.',
+      code: 'signup_db_user_create_failed',
+      isRateLimited: false,
+    };
+  }
+
   if (!message && !code) {
     return {
       message: 'Authentication service is temporarily unavailable. Please retry in a moment.',
@@ -219,7 +376,7 @@ function mapSignupError(err: unknown): { message: string; code: string; isRateLi
     };
   }
 
-  return { message: fallback, code: 'signup_unknown_error', isRateLimited: false };
+  return { message: message || fallback, code: 'signup_unknown_error', isRateLimited: false };
 }
 
 async function runSignupFlow(params: {
@@ -349,6 +506,18 @@ async function runSignupFlow(params: {
       };
     }
 
+    try {
+      await sendSignupSuccessEmail({
+        toEmail: params.email,
+        role: params.ensureInput.role,
+        fullName: params.ensureInput.fullName,
+        preferredLanguage: params.ensureInput.preferredLanguage,
+      });
+    } catch (emailError) {
+      // Signup success must not fail because of email delivery issues.
+      console.error('Failed to send signup success email:', emailError);
+    }
+
     return {
       success: true,
       nextPath: params.nextPath,
@@ -456,7 +625,9 @@ export async function signupStudentAction(input: StudentSignupInput): Promise<Si
       registrationSource: 'self',
     },
     nextPath: verifyPath,
-    requiresEmailVerificationByDefault: true,
+    requiresEmailVerificationByDefault: false,
+    allowAdminFallback: true,
+    preferAdminCreate: true,
   });
 
   if (!result.success) {
@@ -620,6 +791,7 @@ export async function ensureSignupProfileAction(
     return { success: true };
   } catch (error) {
     console.error('Unexpected error in ensureSignupProfileAction:', error);
-    return { success: false, error: 'An unexpected error occurred' };
+    const message = error instanceof Error && error.message ? error.message : 'An unexpected error occurred';
+    return { success: false, error: message };
   }
 }

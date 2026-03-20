@@ -9,6 +9,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { removeOfflineVideosForLectureIds, saveOfflineVideoForUser } from '@/lib/offlineVideo';
 
 interface CourseCardProps {
   enrollment: Enrollment;
@@ -39,6 +40,7 @@ export default function CourseCard({ enrollment, userId, onUnenroll }: CourseCar
         const { data: lectures } = await supabase.from('lectures').select('id').eq('course_id', enrollment.course_id);
         if (lectures) {
           await supabase.from('offline_downloads').delete().eq('user_id', userId).in('lecture_id', lectures.map(l => l.id));
+          removeOfflineVideosForLectureIds(userId, lectures.map((l) => String(l.id)));
           toast.success('Offline copy removed');
         }
       }
@@ -56,7 +58,11 @@ export default function CourseCard({ enrollment, userId, onUnenroll }: CourseCar
       }
       
       // Attempt Batch download insertion (simulated batch via Promise.all)
-      const { data: lectures } = await supabase.from('lectures').select('id').eq('course_id', enrollment.course_id).eq('is_published', true);
+      const { data: lectures } = await supabase
+        .from('lectures')
+        .select('id,title,video_url,type')
+        .eq('course_id', enrollment.course_id)
+        .eq('is_published', true);
       
       if (lectures && lectures.length > 0) {
         const payload = lectures.map(l => ({
@@ -67,7 +73,25 @@ export default function CourseCard({ enrollment, userId, onUnenroll }: CourseCar
         }));
         
         await supabase.from('offline_downloads').upsert(payload, { onConflict: 'user_id,lecture_id' });
-        toast.success('Downloaded for offline viewing');
+
+        let savedCount = 0;
+        for (const lecture of lectures) {
+          if (lecture.type !== 'video') continue;
+          const result = await saveOfflineVideoForUser({
+            userId,
+            courseId: enrollment.course_id,
+            lectureId: String(lecture.id),
+            title: String(lecture.title || 'Video lecture'),
+            videoUrl: lecture.video_url || null,
+            payload: {
+              allowMockFallback: true,
+              video_duration_secs: enrollment.total_duration_mins ? enrollment.total_duration_mins * 60 : null,
+            },
+          });
+          if (result?.saved) savedCount += 1;
+        }
+
+        toast.success(savedCount > 0 ? 'Downloaded for offline viewing' : 'Saved offline access (demo mode)');
       } else {
         toast.error('No lectures available to download');
       }

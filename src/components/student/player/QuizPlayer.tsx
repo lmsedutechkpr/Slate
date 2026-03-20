@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CheckSquare, CheckCircle2, XCircle } from 'lucide-react';
+import { getOfflineLectureEntry } from '@/lib/offlineVideo';
 
 interface QuizPlayerProps {
   lecture: any;
@@ -66,6 +67,20 @@ export default function QuizPlayer({
       .single();
 
     if (qErr || !qData) {
+      const offlineEntry = getOfflineLectureEntry(userId, String(lecture.id));
+      if (offlineEntry?.type === 'quiz' && offlineEntry.payload) {
+        const offlineQuiz = offlineEntry.payload;
+        setQuizData(offlineQuiz);
+        setQuestions(
+          (offlineQuiz.questions ?? []).map((q: any) => ({
+            ...q,
+            options: normaliseOptions(q.options ?? []),
+          }))
+        );
+        setState('intro');
+        return;
+      }
+
       setQuizData(null);
       setState('intro');
       return;

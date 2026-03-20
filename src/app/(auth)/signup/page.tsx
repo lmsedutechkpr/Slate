@@ -18,6 +18,7 @@ export default function SignupPage() {
   const [step, setStep] = useState(1);
   const searchParams = useSearchParams();
   const urlRole = searchParams.get('role') as Role;
+  const oauthError = searchParams.get('error');
 
   // Auto-skip step 1 if role in URL
   useEffect(() => {
@@ -73,6 +74,11 @@ export default function SignupPage() {
             <div className="text-center">
               <h1 className="font-sans text-[22px] font-bold text-[var(--text)]">Join Slate</h1>
               <p className="mt-1 text-[13px] text-[var(--text-secondary)]">Choose how you want to get started</p>
+              {oauthError === 'google_choose_role' && (
+                <p className="mt-3 rounded-xl border border-[rgba(254,188,46,0.35)] bg-[rgba(254,188,46,0.12)] px-3 py-2 text-[12px] font-medium text-[#9A6700]">
+                  This Google account is new to Slate. Choose a role and continue with Google signup.
+                </p>
+              )}
             </div>
 
             <div className="mt-6 flex flex-col gap-3">

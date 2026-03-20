@@ -125,7 +125,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback?intent=login`
       }
     });
   };
@@ -134,6 +134,9 @@ export default function LoginPage() {
     if (code.includes('Invalid login credentials')) return t('errors.invalidCredentials');
     if (code.includes('Email not confirmed')) return t('errors.emailNotConfirmed');
     if (code === 'suspended') return t('errors.suspended');
+    if (code === 'oauth_account_linked') {
+      return 'This email is already linked to an existing account. Please sign in with your existing account method.';
+    }
     return t('errors.default');
   };
 

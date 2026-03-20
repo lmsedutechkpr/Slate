@@ -424,6 +424,28 @@ export function SellerForm({ onBack }: { onBack: () => void }) {
         >
           {isLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : cooldownLeft > 0 ? `Please wait ${cooldownLeft}s` : 'Submit Application →'}
         </button>
+
+        <div className="my-3 flex items-center gap-3">
+          <div className="h-px w-full bg-[var(--border)]" />
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">or</span>
+          <div className="h-px w-full bg-[var(--border)]" />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const supabase = createClient();
+            supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: {
+                redirectTo: `${window.location.origin}/auth/callback?role=seller&lang=en`,
+              },
+            });
+          }}
+          className="w-full rounded-full border border-[var(--border)] bg-[var(--surface-raised)] py-2.5 text-[13px] font-semibold text-[var(--text)] transition-colors hover:bg-[var(--surface-hover)]"
+        >
+          Continue with Google
+        </button>
       </form>
     </AuthWindow>
   );

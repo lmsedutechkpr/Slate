@@ -11,7 +11,6 @@ import {
   Store,
   BookOpen,
   Package,
-  Radio,
   ShoppingBag,
   RotateCcw,
   DollarSign,
@@ -46,7 +45,6 @@ const navSections = [
     items: [
       { label: 'Courses', href: '/admin/courses', icon: BookOpen, badgeKey: 'courses' },
       { label: 'Products', href: '/admin/products', icon: Package, badgeKey: 'products' },
-      { label: 'Live Classes', href: '/admin/live', icon: Radio },
     ],
   },
   {

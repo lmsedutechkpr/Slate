@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LectureRow from './LectureRow';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
+import { listOfflineLectureIds, removeOfflineLectureForUser, saveOfflineLectureForUser } from '@/lib/offlineVideo';
 
 interface CourseSidebarProps {
   sections: any[];
@@ -12,6 +15,10 @@ interface CourseSidebarProps {
   onSelectLecture: (lecture: any) => void;
   enrollmentProgress: number;
   language?: string;
+  userId: string;
+  enrollmentId: string;
+  quizzesMap?: Record<string, any>;
+  courseId: string;
 }
 
 export default function CourseSidebar({
@@ -20,8 +27,13 @@ export default function CourseSidebar({
   activeLectureId,
   onSelectLecture,
   enrollmentProgress,
-  language = 'en'
+  language = 'en',
+  userId,
+  enrollmentId,
+  quizzesMap = {},
+  courseId,
 }: CourseSidebarProps) {
+  const supabase = createClient();
   
   // Find which section currently has the active lecture to auto-expand it
   const initialOpenSectionId = (sections || []).find(s => 
@@ -30,6 +42,15 @@ export default function CourseSidebar({
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     new Set(initialOpenSectionId ? [initialOpenSectionId] : [])
+  );
+  const [downloadedLectureIds, setDownloadedLectureIds] = useState<Set<string>>(
+    new Set(listOfflineLectureIds(userId))
+  );
+  const [busyLectureId, setBusyLectureId] = useState<string | null>(null);
+
+  const allLectures = useMemo(
+    () => (sections || []).flatMap((s) => s.lectures || []),
+    [sections],
   );
 
   const toggleSection = (sectionId: string) => {
@@ -41,7 +62,107 @@ export default function CourseSidebar({
     });
   };
 
-  const totalLectures = (sections || []).flatMap(s => s.lectures || []).length;
+  const totalLectures = allLectures.length;
+
+  const toggleOfflineLecture = async (lecture: any) => {
+    const lectureId = String(lecture.id || '');
+    if (!lectureId) return;
+    setBusyLectureId(lectureId);
+
+    try {
+      const isDownloaded = downloadedLectureIds.has(lectureId);
+      if (isDownloaded) {
+        await supabase
+          .from('offline_downloads')
+          .delete()
+          .eq('user_id', userId)
+          .eq('lecture_id', lectureId);
+
+        removeOfflineLectureForUser(userId, lectureId);
+        setDownloadedLectureIds((prev) => {
+          const next = new Set(prev);
+          next.delete(lectureId);
+          return next;
+        });
+        toast.success('Offline copy deleted');
+        return;
+      }
+
+      const { error } = await supabase.from('offline_downloads').upsert(
+        {
+          user_id: userId,
+          lecture_id: lectureId,
+          enrollment_id: enrollmentId,
+          is_active: true,
+        },
+        { onConflict: 'user_id,lecture_id' },
+      );
+
+      if (error) throw error;
+
+      if (lecture.type === 'video') {
+        const result = await saveOfflineLectureForUser({
+          userId,
+          courseId,
+          lectureId,
+          title: String(lecture.title || 'Video lecture'),
+          type: 'video',
+          videoUrl: lecture.video_url || null,
+          payload: {
+            allowMockFallback: true,
+            video_duration_secs: lecture.video_duration_secs || null,
+          },
+        });
+        if (!result.saved) {
+          throw new Error(result.reason || 'video_download_failed');
+        }
+        if (result.persistedVia === 'mock') {
+          setDownloadedLectureIds((prev) => new Set(prev).add(lectureId));
+          toast.success('Saved for offline (demo mode)');
+          return;
+        }
+      } else if (lecture.type === 'article') {
+        const result = await saveOfflineLectureForUser({
+          userId,
+          courseId,
+          lectureId,
+          title: String(lecture.title || 'Article lecture'),
+          type: 'article',
+          payload: {
+            article_content: lecture.article_content || null,
+            resources: Array.isArray(lecture.resources) ? lecture.resources : [],
+          },
+        });
+        if (!result.saved) {
+          throw new Error(result.reason || 'article_download_failed');
+        }
+      } else if (lecture.type === 'quiz') {
+        const result = await saveOfflineLectureForUser({
+          userId,
+          courseId,
+          lectureId,
+          title: String(lecture.title || 'Quiz lecture'),
+          type: 'quiz',
+          payload: quizzesMap[lectureId] || null,
+        });
+        if (!result.saved) {
+          throw new Error(result.reason || 'quiz_download_failed');
+        }
+      }
+
+      setDownloadedLectureIds((prev) => new Set(prev).add(lectureId));
+      toast.success('Downloaded for offline');
+    } catch (error: any) {
+      const reason = String(error?.message || '');
+      if (reason.includes('missing_video_url')) {
+        toast.error('This video has no downloadable media URL yet.');
+      } else {
+        toast.error('Failed to download lecture');
+      }
+    } finally {
+      setBusyLectureId(null);
+    }
+  };
 
   return (
     <div className="w-full h-full flex flex-col bg-white border-l border-gray-200">
@@ -164,6 +285,9 @@ export default function CourseSidebar({
                           savedProgress={0} // Passed down mapped value from parent state
                           onSelect={() => onSelectLecture(lecture)}
                           language={language}
+                          isDownloaded={downloadedLectureIds.has(String(lecture.id || ''))}
+                          isTogglingDownload={busyLectureId === String(lecture.id || '')}
+                          onToggleDownload={() => toggleOfflineLecture(lecture)}
                         />
                       ))}
                     </div>

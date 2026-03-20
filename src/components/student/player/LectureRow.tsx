@@ -1,4 +1,4 @@
-import { CheckCircle2, PlayCircle, FileText, CheckSquare, Radio } from 'lucide-react';
+import { CheckCircle2, PlayCircle, FileText, CheckSquare, Radio, Download, Trash2 } from 'lucide-react';
 
 interface LectureRowProps {
   lecture: any;
@@ -7,6 +7,9 @@ interface LectureRowProps {
   savedProgress: number;
   onSelect: () => void;
   language?: string;
+  isDownloaded?: boolean;
+  onToggleDownload?: () => void;
+  isTogglingDownload?: boolean;
 }
 
 export default function LectureRow({
@@ -15,7 +18,10 @@ export default function LectureRow({
   isCompleted,
   savedProgress,
   onSelect,
-  language = 'en'
+  language = 'en',
+  isDownloaded = false,
+  onToggleDownload,
+  isTogglingDownload = false,
 }: LectureRowProps) {
   
   const title = (language === 'ta' && lecture.title_ta) ? lecture.title_ta : lecture.title;
@@ -86,6 +92,25 @@ export default function LectureRow({
           {lecture.quiz_duration_mins}m quiz
         </span>
       )}
+
+      {onToggleDownload ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isTogglingDownload) onToggleDownload();
+          }}
+          className={`ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
+            isDownloaded
+              ? 'border-[rgba(255,95,87,0.35)] bg-[rgba(255,95,87,0.08)] text-[#FF5F57]'
+              : 'border-[rgba(0,0,0,0.14)] bg-white text-[#6E6E73] hover:text-[#1D1D1F]'
+          } ${isTogglingDownload ? 'cursor-wait opacity-60' : ''}`}
+          title={isDownloaded ? 'Delete offline copy' : 'Download for offline'}
+          aria-label={isDownloaded ? 'Delete offline copy' : 'Download for offline'}
+        >
+          {isDownloaded ? <Trash2 className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
+        </button>
+      ) : null}
 
     </div>
   );

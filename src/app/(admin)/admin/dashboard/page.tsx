@@ -2,6 +2,17 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import DashboardClient from '@/components/admin/dashboard/DashboardClient';
 
+const DEFAULT_SELLER_SHARE = 85;
+const DEFAULT_INSTRUCTOR_SHARE = 70;
+
+function isRevenueOrder(order: { status?: string | null; payment_status?: string | null }) {
+  const status = String(order.status || '').toLowerCase();
+  const paymentStatus = String(order.payment_status || '').toLowerCase();
+  const paidByPaymentStatus = ['paid', 'captured', 'succeeded'].includes(paymentStatus);
+  const fulfilledByOrderStatus = ['confirmed', 'processing', 'shipped', 'delivered', 'completed'].includes(status);
+  return paidByPaymentStatus || fulfilledByOrderStatus;
+}
+
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -17,10 +28,8 @@ export default async function AdminDashboardPage() {
 
   // Date calculations
   const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString();
 
   // Fetch all data in parallel for performance
   const [
@@ -28,15 +37,17 @@ export default async function AdminDashboardPage() {
     allCoursesRes,
     allProductsRes,
     allOrdersRes,
-    paidOrdersRes,
-    thisMonthOrdersRes,
+    revenueOrderRowsRes,
+    orderItemsRes,
+    sellerProfilesRes,
+    enrollmentRevenueRowsRes,
+    instructorProfilesRes,
     todayOrdersRes,
-    enrollmentsRes,
+    totalEnrollmentsRes,
     pendingApprovalsRes,
     recentEnrollmentsRes,
     recentOrdersRes,
     recentProfilesRes,
-    monthlyRevenueRes,
   ] = await Promise.all([
     // 1. All profiles
     supabase.from('profiles').select('id, role, created_at'),
@@ -50,23 +61,51 @@ export default async function AdminDashboardPage() {
     // 4. All orders
     supabase.from('orders').select('id, created_at'),
 
-    // 5. Paid orders for revenue
-    supabase.from('orders').select('total_amount, payment_status').eq('payment_status', 'paid'),
-
-    // 6. This month's paid orders
+    // 5. Orders for commission-eligible commerce revenue
     supabase
       .from('orders')
-      .select('total_amount')
-      .eq('payment_status', 'paid')
-      .gte('created_at', startOfMonth),
+      .select('id,total_amount,created_at,status,payment_status')
+      .order('created_at', { ascending: true }),
 
-    // 7. Today's orders
+    // 6. Order items for seller commission split
+    supabase
+      .from('order_items')
+      .select('id,order_id,seller_id,total_price'),
+
+    // 7. Seller commission rates
+    supabase
+      .from('seller_profiles')
+      .select('user_id,commission_rate'),
+
+    // 8. Enrollments with course/instructor data for course commission split
+    supabase
+      .from('enrollments')
+      .select(`
+        id,
+        created_at,
+        enrolled_at,
+        course_id,
+        courses!course_id (
+          id,
+          price,
+          discounted_price,
+          is_free,
+          course_instructors(instructor_id,is_primary)
+        )
+      `),
+
+    // 9. Instructor commission rates
+    supabase
+      .from('instructor_profiles')
+      .select('user_id,commission_rate'),
+
+    // 10. Today's orders
     supabase.from('orders').select('id').gte('created_at', startOfToday),
 
-    // 8. All enrollments
-    supabase.from('enrollments').select('id, enrolled_at').gte('enrolled_at', thirtyDaysAgo),
+    // 11. Total enrollments count
+    supabase.from('enrollments').select('*', { count: 'exact', head: true }),
 
-    // 9. Pending approvals (top 10)
+    // 12. Pending approvals (top 10)
     supabase
       .from('profiles')
       .select('id, full_name, role, avatar_url, created_at')
@@ -75,7 +114,7 @@ export default async function AdminDashboardPage() {
       .order('created_at', { ascending: true })
       .limit(10),
 
-    // 10. Recent enrollments for activity feed
+    // 13. Recent enrollments for activity feed
     supabase
       .from('enrollments')
       .select(`
@@ -87,7 +126,7 @@ export default async function AdminDashboardPage() {
       .order('enrolled_at', { ascending: false })
       .limit(5),
 
-    // 11. Recent orders for activity feed
+    // 14. Recent orders for activity feed
     supabase
       .from('orders')
       .select(`
@@ -99,20 +138,12 @@ export default async function AdminDashboardPage() {
       .order('created_at', { ascending: false })
       .limit(5),
 
-    // 12. Recent profile signups for activity feed
+    // 15. Recent profile signups for activity feed
     supabase
       .from('profiles')
       .select('id, full_name, role, created_at')
       .order('created_at', { ascending: false })
       .limit(5),
-
-    // 13. Monthly revenue data (last 12 months)
-    supabase
-      .from('orders')
-      .select('total_amount, created_at')
-      .eq('payment_status', 'paid')
-      .gte('created_at', twelveMonthsAgo)
-      .order('created_at', { ascending: true }),
   ]);
 
   // ─── Process User Stats ───
@@ -128,7 +159,7 @@ export default async function AdminDashboardPage() {
   const totalCourses = allCourses.length;
   const publishedCourses = allCourses.filter((c) => c.status === 'approved').length;
   const pendingCourses = allCourses.filter((c) => c.status === 'pending').length;
-  const totalEnrollments = allCourses.reduce((sum, c) => sum + (c.total_enrolled || 0), 0);
+  const totalEnrollments = totalEnrollmentsRes.count || 0;
 
   // ─── Process Product Stats ───
   const allProducts = allProductsRes.data || [];
@@ -141,33 +172,90 @@ export default async function AdminDashboardPage() {
   const totalOrders = allOrdersRes.data?.length || 0;
   const todayOrders = todayOrdersRes.data?.length || 0;
 
-  // Revenue calculations
-  const paidOrders = paidOrdersRes.data || [];
-  const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  // ─── Process Platform Revenue (Order Commission + Course Commission) ───
+  const revenueOrders = (revenueOrderRowsRes.data || []).filter(isRevenueOrder);
+  const revenueOrderIdSet = new Set(revenueOrders.map((o) => String(o.id || '')));
+  const orderCreatedAtMap = new Map<string, string>();
+  revenueOrders.forEach((o) => orderCreatedAtMap.set(String(o.id), String(o.created_at || '')));
 
-  const thisMonthOrders = thisMonthOrdersRes.data || [];
-  const thisMonthRevenue = thisMonthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  const sellerShareMap = new Map<string, number>();
+  (sellerProfilesRes.data || []).forEach((row: any) => {
+    sellerShareMap.set(String(row.user_id || ''), Number(row.commission_rate ?? DEFAULT_SELLER_SHARE));
+  });
 
-  // ─── Process Monthly Revenue ───
-  const monthlyRevenueData = monthlyRevenueRes.data || [];
+  const instructorShareMap = new Map<string, number>();
+  (instructorProfilesRes.data || []).forEach((row: any) => {
+    instructorShareMap.set(String(row.user_id || ''), Number(row.commission_rate ?? DEFAULT_INSTRUCTOR_SHARE));
+  });
+
   const monthlyRevenueMap: { [key: string]: { revenue: number; orders: number } } = {};
 
-  monthlyRevenueData.forEach((order) => {
+  revenueOrders.forEach((order) => {
     const date = new Date(order.created_at);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
     if (!monthlyRevenueMap[monthKey]) {
       monthlyRevenueMap[monthKey] = { revenue: 0, orders: 0 };
     }
-
-    monthlyRevenueMap[monthKey].revenue += order.total_amount || 0;
     monthlyRevenueMap[monthKey].orders += 1;
   });
+
+  let orderCommissionRevenue = 0;
+  ((orderItemsRes.data || []) as any[]).forEach((item) => {
+    const orderId = String(item.order_id || '');
+    if (!revenueOrderIdSet.has(orderId)) return;
+
+    const gross = Number(item.total_price || 0);
+    if (gross <= 0) return;
+
+    const sellerId = String(item.seller_id || '');
+    const sellerShare = sellerShareMap.get(sellerId) ?? DEFAULT_SELLER_SHARE;
+    const platformCut = gross * Math.max(0, (100 - sellerShare) / 100);
+    orderCommissionRevenue += platformCut;
+
+    const createdAt = orderCreatedAtMap.get(orderId);
+    if (!createdAt) return;
+    const date = new Date(createdAt);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!monthlyRevenueMap[monthKey]) {
+      monthlyRevenueMap[monthKey] = { revenue: 0, orders: 0 };
+    }
+    monthlyRevenueMap[monthKey].revenue += platformCut;
+  });
+
+  let courseCommissionRevenue = 0;
+  ((enrollmentRevenueRowsRes.data || []) as any[]).forEach((enrollment) => {
+    const course = enrollment.courses;
+    if (!course || course.is_free) return;
+
+    const gross = Number(course.discounted_price ?? course.price ?? 0);
+    if (gross <= 0) return;
+
+    const instructors = Array.isArray(course.course_instructors) ? course.course_instructors : [];
+    const primaryInstructor = instructors.find((i: any) => i?.is_primary) || instructors[0] || null;
+    const instructorId = String(primaryInstructor?.instructor_id || '');
+    const instructorShare = instructorShareMap.get(instructorId) ?? DEFAULT_INSTRUCTOR_SHARE;
+    const platformCut = gross * Math.max(0, (100 - instructorShare) / 100);
+    courseCommissionRevenue += platformCut;
+
+    const createdAt = String(enrollment.created_at || enrollment.enrolled_at || '');
+    if (!createdAt) return;
+    const date = new Date(createdAt);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!monthlyRevenueMap[monthKey]) {
+      monthlyRevenueMap[monthKey] = { revenue: 0, orders: 0 };
+    }
+    monthlyRevenueMap[monthKey].revenue += platformCut;
+  });
+
+  const totalRevenue = Math.round(orderCommissionRevenue + courseCommissionRevenue);
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const thisMonthRevenue = Math.round(monthlyRevenueMap[thisMonthKey]?.revenue || 0);
 
   const monthlyRevenue = Object.entries(monthlyRevenueMap)
     .map(([month, data]) => ({
       month,
-      revenue: data.revenue,
+      revenue: Math.round(data.revenue),
       orders: data.orders,
     }))
     .sort((a, b) => a.month.localeCompare(b.month));

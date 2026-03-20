@@ -22,12 +22,14 @@ import { Link } from '@/i18n/navigation';
 import TrafficLights from '@/components/auth/TrafficLights';
 
 const NAV_ITEMS = [
-  { href: '#home', label: 'Home' },
-  { href: '#features', label: 'Features' },
-  { href: '#roles', label: 'Roles' },
-  { href: '#flow', label: 'Flow' },
-  { href: '#benefits', label: 'Benefits' },
-  { href: '#cta', label: 'Start' },
+  { href: '/courses', label: 'Courses', kind: 'route' as const },
+  { href: '/search', label: 'Search', kind: 'route' as const },
+  { href: '/support', label: 'Support', kind: 'route' as const },
+  { href: '/offline', label: 'Offline', kind: 'route' as const },
+  { href: '#features', label: 'Features', kind: 'anchor' as const },
+  { href: '#roles', label: 'Roles', kind: 'anchor' as const },
+  { href: '#flow', label: 'Flow', kind: 'anchor' as const },
+  { href: '#benefits', label: 'Benefits', kind: 'anchor' as const },
 ];
 
 const ROLE_TABS = ['student', 'instructor', 'seller'] as const;
@@ -179,13 +181,23 @@ export default function RedesignLandingPage() {
 
             <nav className="hidden items-center gap-6 lg:flex">
               {NAV_ITEMS.map((nav) => (
-                <a
-                  key={nav.href}
-                  href={nav.href}
+                nav.kind === 'route' ? (
+                  <Link
+                    key={nav.href}
+                    href={nav.href}
                     className="text-[13px] font-semibold text-[#555A62] transition-colors hover:text-[#17181C]"
-                >
-                  {nav.label}
-                </a>
+                  >
+                    {nav.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={nav.href}
+                    href={nav.href}
+                    className="text-[13px] font-semibold text-[#555A62] transition-colors hover:text-[#17181C]"
+                  >
+                    {nav.label}
+                  </a>
+                )
               ))}
             </nav>
 
@@ -222,14 +234,25 @@ export default function RedesignLandingPage() {
               >
                 <div className="flex flex-col gap-2 pt-3">
                   {NAV_ITEMS.map((nav) => (
-                    <button
-                      key={nav.href}
-                      type="button"
-                      onClick={() => smoothAnchor(nav.href, () => setMobileOpen(false))}
+                    nav.kind === 'route' ? (
+                      <Link
+                        key={nav.href}
+                        href={nav.href}
+                        onClick={() => setMobileOpen(false)}
                         className="rounded-xl border border-[rgba(20,20,20,0.1)] bg-white px-3 py-2 text-left text-[13px] font-semibold text-[#16171B]"
-                    >
-                      {nav.label}
-                    </button>
+                      >
+                        {nav.label}
+                      </Link>
+                    ) : (
+                      <button
+                        key={nav.href}
+                        type="button"
+                        onClick={() => smoothAnchor(nav.href, () => setMobileOpen(false))}
+                        className="rounded-xl border border-[rgba(20,20,20,0.1)] bg-white px-3 py-2 text-left text-[13px] font-semibold text-[#16171B]"
+                      >
+                        {nav.label}
+                      </button>
+                    )
                   ))}
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">

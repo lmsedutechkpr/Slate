@@ -49,6 +49,7 @@ interface CourseCatalogCardProps {
   initialIsWishlisted: boolean;
   userId: string | null;
   isStudentView?: boolean;
+  forceLightTheme?: boolean;
   onRemoveWishlist?: () => void;
 }
 
@@ -58,6 +59,7 @@ export default function CourseCatalogCard({
   initialIsWishlisted,
   userId,
   isStudentView = false,
+  forceLightTheme = false,
   onRemoveWishlist
 }: CourseCatalogCardProps) {
   const router = useRouter();
@@ -145,7 +147,9 @@ export default function CourseCatalogCard({
 
   const hasDiscount = !course.is_free && course.discounted_price != null && course.discounted_price < (course.price || 0);
 
-  const t = isStudentView ? {
+  const isLightTheme = isStudentView || forceLightTheme;
+
+  const t = isLightTheme ? {
     cardBg: 'bg-white',
     cardBorder: 'border-gray-200 hover:border-gray-300',
     cardShadow: 'hover:shadow-xl',

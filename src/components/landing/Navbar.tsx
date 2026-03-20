@@ -9,6 +9,10 @@ import {Sheet, SheetContent, SheetTrigger, SheetClose} from '@/components/ui/she
 import {cn} from '@/lib/utils';
 
 const links = [
+  {label: 'Courses', href: '/courses'},
+  {label: 'Search', href: '/search'},
+  {label: 'Support', href: '/support'},
+  {label: 'Offline', href: '/offline'},
   {key: 'forInstructors', href: '/signup?role=instructor'},
   {key: 'forSellers', href: '/signup?role=seller'}
 ];
@@ -63,14 +67,14 @@ export default function Navbar() {
             const active = pathname === link.href.split('?')[0];
             return (
               <Link
-                key={link.key}
+                key={link.key || link.label}
                 href={link.href}
                 className={cn(
                   'text-[13px] font-medium transition-colors duration-150',
                   active ? 'text-white' : 'text-white/60 hover:text-white'
                 )}
               >
-                {t(`links.${link.key}`)}
+                {link.label || t(`links.${link.key}`)}
               </Link>
             );
           })}
@@ -108,12 +112,12 @@ export default function Navbar() {
             <SheetContent side="right" className="bg-[var(--surface)] border-l border-[var(--border)]">
               <div className="mt-8 flex flex-col">
                 {links.map((link) => (
-                  <SheetClose asChild key={link.key}>
+                  <SheetClose asChild key={link.key || link.label}>
                     <Link
                       href={link.href}
                       className="border-b border-[var(--border)] py-3 text-base font-medium text-[var(--text-secondary)] hover:text-[var(--text)]"
                     >
-                      {t(`links.${link.key}`)}
+                      {link.label || t(`links.${link.key}`)}
                     </Link>
                   </SheetClose>
                 ))}
