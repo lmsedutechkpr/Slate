@@ -274,14 +274,6 @@ export default function RedesignLandingPage() {
               viewport={{ once: true, amount: 0.2 }}
               className="space-y-6"
             >
-              <motion.span
-                variants={item}
-                  className="inline-flex items-center gap-1 rounded-full border border-[rgba(20,20,20,0.1)] bg-[rgba(255,255,255,0.66)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#50545D] backdrop-blur"
-              >
-                  <Sparkle className="h-3.5 w-3.5 text-[#D6952B]" />
-                  mac-inspired learning OS
-              </motion.span>
-
               <motion.h1
                 variants={item}
                 className="font-[var(--font-dm-sans)] text-[38px] font-black leading-[1.03] tracking-tight text-[#121317] sm:text-[56px] lg:text-[72px]"
