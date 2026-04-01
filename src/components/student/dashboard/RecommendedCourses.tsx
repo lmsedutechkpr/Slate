@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 import TrafficLights from "@/components/auth/TrafficLights";
+import { useTranslations } from "next-intl";
 
 interface RecommendedCourse {
   id: string;
@@ -34,6 +35,8 @@ export default function RecommendedCourses({
   courses,
 }: RecommendedCoursesProps) {
   const router = useRouter();
+  const t = useTranslations("student");
+  const localLang = t("dashboard") === "டாஷ்போர்டு" ? "ta" : "en"; // cheap locale check if not using useLocale
 
   if (!courses || courses.length === 0) return null;
 
@@ -41,13 +44,13 @@ export default function RecommendedCourses({
     <div className="mt-8">
       <div className="mb-5 flex items-center justify-between">
         <h2 className="font-sans text-[18px] font-semibold text-gray-900">
-          Recommended for You
+          {t("recommendedForYou")}
         </h2>
         <button
           onClick={() => router.push("/student/courses/browse")}
           className="text-[13px] font-medium text-[#8E8E93] hover:text-[#FAFAFA] transition-colors"
         >
-          Browse all →
+          {t("browseAll")}
         </button>
       </div>
 
@@ -58,6 +61,8 @@ export default function RecommendedCourses({
           const ratingText = course.avg_rating
             ? Number(course.avg_rating).toFixed(1)
             : "New";
+            
+          const displayTitle = localLang === "ta" && course.title_ta ? course.title_ta : course.title;
 
           return (
             <div
@@ -73,13 +78,13 @@ export default function RecommendedCourses({
                 {course.thumbnail_url ? (
                   <Image
                     src={course.thumbnail_url}
-                    alt={course.title}
+                    alt={displayTitle}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center font-sans text-xl font-bold text-[rgba(255,255,255,0.05)]">
-                    {course.title.charAt(0)}
+                    {displayTitle.charAt(0)}
                   </div>
                 )}
               </div>
@@ -91,12 +96,12 @@ export default function RecommendedCourses({
                     {ratingText}
                   </span>
                   <span className="text-[11px] text-gray-500">
-                    &bull; {course.difficulty || "All Levels"}
+                    &bull; {course.difficulty || t("allLevels")}
                   </span>
                 </div>
 
                 <h3 className="line-clamp-2 font-sans text-[13px] font-semibold text-gray-900 leading-snug">
-                  {course.title}
+                  {displayTitle}
                 </h3>
 
                 <p className="mt-1 line-clamp-1 text-[11px] text-gray-500">
@@ -105,10 +110,10 @@ export default function RecommendedCourses({
 
                 <div className="mt-auto pt-3 flex items-center justify-between border-t border-gray-100">
                   <span className="font-sans text-[14px] font-bold text-gray-900">
-                    {course.is_free ? "Free" : `$${course.price}`}
+                    {course.is_free ? t("free") : `$${course.price}`}
                   </span>
                   <span className="text-[12px] font-medium text-gray-900 opacity-0 transition-opacity group-hover:opacity-100">
-                    Enroll →
+                    {t("enrollBtn")}
                   </span>
                 </div>
               </div>

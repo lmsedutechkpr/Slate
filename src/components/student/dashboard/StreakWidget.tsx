@@ -6,6 +6,8 @@ import { Flame } from "lucide-react";
 import { isToday, isYesterday, parseISO } from "date-fns";
 import TrafficLights from "@/components/auth/TrafficLights";
 
+import { useTranslations } from "next-intl";
+
 interface StreakWidgetProps {
   currentStreak: number;
   longestStreak: number;
@@ -18,6 +20,7 @@ export default function StreakWidget({
   lastActivityDate,
 }: StreakWidgetProps) {
   const [mounted, setMounted] = useState(false);
+  const t = useTranslations("student");
 
   useEffect(() => {
     setMounted(true);
@@ -26,7 +29,7 @@ export default function StreakWidget({
   const getStatus = () => {
     if (!lastActivityDate)
       return {
-        text: "Start today!",
+        text: t("startToday"),
         color: "#FF5F57",
         bg: "rgba(255,95,87,0.08)",
       };
@@ -34,19 +37,19 @@ export default function StreakWidget({
     const date = parseISO(lastActivityDate);
     if (isToday(date))
       return {
-        text: "Active today",
+        text: t("activeToday"),
         color: "#28C840",
         bg: "rgba(40,200,64,0.08)",
       };
     if (isYesterday(date))
       return {
-        text: "Keep it going!",
+        text: t("keepGoing"),
         color: "#FEBC2E",
         bg: "rgba(254,188,46,0.08)",
       };
 
     return {
-      text: "Start today!",
+      text: t("startToday"),
       color: "#FF5F57",
       bg: "rgba(255,95,87,0.08)",
     };
@@ -75,18 +78,18 @@ export default function StreakWidget({
       <div className="mt-4 flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-[10px] font-semibold tracking-[0.15em] text-gray-400 uppercase">
-            Learning Streak
+            {t("learningStreak")}
           </span>
 
           <div className="mt-2 flex items-baseline gap-1">
             <span className="font-sans text-[48px] font-extrabold text-gray-900 leading-none">
               {currentStreak}
             </span>
-            <span className="font-sans text-[18px] text-gray-500">days</span>
+            <span className="font-sans text-[18px] text-gray-500">{t("days")}</span>
           </div>
 
           <span className="mt-1 text-[12px] text-gray-400">
-            Longest: {longestStreak} days
+            {t("longest", { count: longestStreak })}
           </span>
 
           <div

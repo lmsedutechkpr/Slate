@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import TrafficLights from "@/components/auth/TrafficLights";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslations } from "next-intl";
 
 interface CourseInstructor {
   profiles: {
@@ -44,6 +45,7 @@ export default function ContinueLearning({
   const router = useRouter();
   const [enrollments, setEnrollments] =
     useState<Enrollment[]>(initialEnrollments);
+  const t = useTranslations("student");
 
   useEffect(() => {
     if (!userId) return;
@@ -81,7 +83,7 @@ export default function ContinueLearning({
       <div className="mt-8">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-sans text-[18px] font-semibold text-gray-900">
-            Continue Learning
+            {t("continueLearning")}
           </h2>
         </div>
         <div className="relative rounded-2xl border border-gray-200 bg-white p-8 text-center">
@@ -91,13 +93,13 @@ export default function ContinueLearning({
 
           <BookOpen className="mx-auto mt-4 h-[28px] w-[28px] text-gray-400" />
           <p className="mt-3 text-[14px] text-gray-500">
-            No courses in progress
+            {t("noCoursesInProgress")}
           </p>
           <button
-            onClick={() => router.push("/courses")}
+            onClick={() => router.push("/student/courses")}
             className="mx-auto mt-4 w-fit rounded-full border border-gray-200 px-5 py-1.5 text-[13px] font-medium text-gray-900 hover:bg-gray-50 transition-colors"
           >
-            Browse courses
+            {t("browseAllCourses")}
           </button>
         </div>
       </div>
@@ -105,22 +107,23 @@ export default function ContinueLearning({
   }
 
   return (
-    <div className="mt-8">
+    <div className="mt-8 relative">
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-sans text-[18px] font-semibold text-gray-900">
-          Continue Learning
+          {t("continueLearning")}
         </h2>
         <button
-            onClick={() => router.push("/student/courses/browse")}
-            className="bg-white text-black hover:bg-gray-100 font-medium text-[14px] px-6 py-2.5 rounded-full transition-colors inline-block"
+            onClick={() => router.push("/student/courses")}
+            className="text-[13px] text-gray-500 transition-colors hover:text-gray-900"
         >
-          View all →
+          {t("viewAll")}
         </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
         {enrollments.map((enrollment) => {
           const course = enrollment.courses;
+          if (!course) return null;
           const instructorName =
             course.course_instructors?.[0]?.profiles?.full_name || "Instructor";
           const totalLectures = course.total_lectures || 0;
@@ -143,6 +146,9 @@ export default function ContinueLearning({
             }
           }
 
+          const localLang = t("dashboard") === "டாஷ்போர்டு" ? "ta" : "en";
+          const displayTitle = localLang === "ta" && course.title_ta ? course.title_ta : course.title;
+
           return (
             <div
               key={enrollment.id}
@@ -156,20 +162,20 @@ export default function ContinueLearning({
                 {course.thumbnail_url ? (
                   <Image
                     src={course.thumbnail_url}
-                    alt={course.title}
+                    alt={displayTitle}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center font-sans text-4xl font-bold text-[rgba(255,255,255,0.05)]">
-                    {course.title.charAt(0)}
+                    {displayTitle.charAt(0)}
                   </div>
                 )}
               </div>
 
               <div className="p-4">
                 <h3 className="line-clamp-1 font-sans text-[14px] font-semibold text-gray-900">
-                  {course.title}
+                  {displayTitle}
                 </h3>
                 <p className="mt-0.5 text-[12px] text-gray-500">
                   {instructorName}
@@ -186,19 +192,19 @@ export default function ContinueLearning({
                   </div>
                   <div className="mt-1.5 flex items-center justify-between">
                     <span className="text-[11px] text-gray-500">
-                      {Math.round(enrollment.progress_pct)}% complete
+                      {t("percentComplete", { percent: Math.round(enrollment.progress_pct) })}
                     </span>
                     <span className="text-[11px] text-gray-400">
                       {lecturesLeft > 0
-                        ? `${lecturesLeft} lectures left`
-                        : "Completed"}
+                        ? t("lecturesLeft", { count: lecturesLeft })
+                        : t("completed")}
                     </span>
                   </div>
                 </div>
 
                 <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
                   <span className="text-[13px] font-medium text-gray-900">
-                    Continue →
+                    {t("continueBtn")}
                   </span>
                   <span className="text-[11px] text-gray-400">
                     {lastAccessText}

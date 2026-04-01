@@ -121,10 +121,14 @@ export default function LivePageClient({
     // Explicit manual overrides have priority (e.g., cancelled or manually ended early)
     if (c.status === 'cancelled') return { ...c, computedStatus: 'past' };
     if (c.status === 'completed') return { ...c, computedStatus: 'past' };
+
+    // Auto change to past if time is strictly finished, regardless of DB 'live' status
+    if (isPast) return { ...c, computedStatus: 'past' };
+
+    // Use DB status if it's currently live or scheduled (within active window)
     if (c.status === 'live') return { ...c, computedStatus: 'live' };
 
     // Otherwise use time-based assumption
-    if (isPast) return { ...c, computedStatus: 'past' };
     if (isLive) return { ...c, computedStatus: 'live' };
     return { ...c, computedStatus: 'upcoming' };
   });

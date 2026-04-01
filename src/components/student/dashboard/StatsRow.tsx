@@ -79,24 +79,27 @@ function StatCard({
   );
 }
 
+import { useTranslations } from "next-intl";
+
 export default function StatsRow({
   enrolled,
   completed,
   totalHours,
   streakDays,
 }: StatsRowProps) {
+  const t = useTranslations("student");
   let streakColor = "#48484A";
   if (streakDays >= 30) streakColor = "#FF5F57";
   else if (streakDays >= 7) streakColor = "#FEBC2E";
 
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatCard value={enrolled} label="Enrolled Courses" icon={BookOpen} />
-      <StatCard value={completed} label="Completed" icon={CheckCircle2} />
-      <StatCard value={totalHours} label="Hours Watched" icon={Clock} />
+      <StatCard value={enrolled} label={t("enrolledCourses")} icon={BookOpen} />
+      <StatCard value={completed} label={t("completed")} icon={CheckCircle2} />
+      <StatCard value={totalHours} label={t("hoursWatched")} icon={Clock} />
       <StatCard
         value={streakDays}
-        label="Day Streak"
+        label={t("dayStreak")}
         icon={Flame}
         iconColor={streakColor}
       />

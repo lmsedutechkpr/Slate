@@ -3,6 +3,7 @@
 import { Flame, Award, Brain, Lock } from "lucide-react";
 import Image from "next/image";
 import { useUIStore } from "@/store/useUIStore";
+import { useTranslations } from "next-intl";
 
 interface Badge {
   id: string;
@@ -28,6 +29,7 @@ interface BadgesRowProps {
 
 export default function BadgesRow({ earnedBadges, allBadges }: BadgesRowProps) {
   const { language } = useUIStore();
+  const t = useTranslations("student");
   const earnedCount = earnedBadges?.length || 0;
 
   if (!allBadges || allBadges.length === 0) return null;
@@ -69,9 +71,9 @@ export default function BadgesRow({ earnedBadges, allBadges }: BadgesRowProps) {
     <div className="h-full rounded-2xl border border-gray-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-sans text-[18px] font-semibold text-gray-900">
-          Achievements
+          {t("achievements")}
         </h2>
-        <span className="text-[13px] text-gray-400">{earnedCount} earned</span>
+        <span className="text-[13px] text-gray-400">{t("earnedCount", { count: earnedCount })}</span>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -132,7 +134,7 @@ export default function BadgesRow({ earnedBadges, allBadges }: BadgesRowProps) {
               {/* Tooltip on hover for unearned */}
               {!isEarned && (
                 <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-100 px-2 py-1 text-[10px] text-gray-500 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-10">
-                  {badge.criteria?.description || `Requires ${criteriaType}`}
+                  {badge.criteria?.description || t("requires", { type: criteriaType })}
                 </div>
               )}
             </div>

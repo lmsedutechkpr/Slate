@@ -79,8 +79,15 @@ export default async function CourseDetailPage({
     .eq('course_id', course.id)
     .order('is_primary', { ascending: false });
 
-  // 3. Fetch Curriculum
-  const { data: curriculumData } = await supabase
+  // Initialize Admin Client early for queries that need to bypass RLS for public/preview data
+  const { createClient: createAdminClient } = await import('@supabase/supabase-js');
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // 3. Fetch Curriculum (Use admin to bypass RLS which might hide sections from non-enrolled users)
+  const { data: curriculumData } = await supabaseAdmin
     .from('course_sections')
     .select(`
       id, title, title_ta, sort_order,
@@ -98,11 +105,6 @@ export default async function CourseDetailPage({
   })) || [];
 
   // 4. Fetch Reviews
-  const { createClient: createAdminClient } = await import('@supabase/supabase-js');
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
 
   const { data: topReviews } = await supabaseAdmin
     .from('reviews')

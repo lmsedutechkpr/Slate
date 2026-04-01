@@ -94,7 +94,9 @@ export default async function MyCoursesPage() {
 
   const certificateMap = new Set((certificatesData || []).map(c => c.enrollment_id));
 
-  const formattedEnrollments = enrollments.map(e => {
+  const validEnrollments = enrollments.filter(e => e.courses);
+  
+  const formattedEnrollments = validEnrollments.map(e => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const course = e.courses as any;
     

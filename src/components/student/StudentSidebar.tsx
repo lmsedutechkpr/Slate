@@ -21,20 +21,21 @@ import {
   Bell,
   Heart,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import TrafficLights from "@/components/auth/TrafficLights";
 
 const navItems = [
-  { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
-  { label: "Browse Courses", href: "/student/courses/browse", icon: Compass },
-  { label: "My Courses", href: "/student/courses", icon: BookOpen },
-  { label: "Live Classes", href: "/student/live", icon: Radio },
-  { label: "Shop", href: "/student/shop", icon: ShoppingBag },
-  { label: "My Orders", href: "/student/orders", icon: Package },
-  { label: "Certificates", href: "/student/certificates", icon: Award },
-  { label: "Wishlist", href: "/student/wishlist", icon: Heart },
-  { label: "Notifications", href: "/student/notifications", icon: Bell },
-  { label: "Messages", href: "/student/messages", icon: MessageSquare },
+  { key: "dashboard", href: "/student/dashboard", icon: LayoutDashboard },
+  { key: "browseCourses", href: "/student/courses/browse", icon: Compass },
+  { key: "myCourses", href: "/student/courses", icon: BookOpen },
+  { key: "liveClasses", href: "/student/live", icon: Radio },
+  { key: "shop", href: "/student/shop", icon: ShoppingBag },
+  { key: "myOrders", href: "/student/orders", icon: Package },
+  { key: "certificates", href: "/student/certificates", icon: Award },
+  { key: "wishlist", href: "/student/wishlist", icon: Heart },
+  { key: "notifications", href: "/student/notifications", icon: Bell },
+  { key: "messages", href: "/student/messages", icon: MessageSquare },
 ];
 
 interface StudentSidebarProps {
@@ -48,6 +49,7 @@ export default function StudentSidebar({
   onNavigate,
   serverProfile,
 }: StudentSidebarProps) {
+  const t = useTranslations("student");
   const pathname = usePathname();
   const router = useRouter();
   const { user, profile: storeProfile, clear: clearAuth } = useAuthStore();
@@ -96,7 +98,7 @@ export default function StudentSidebar({
         </div>
         <div className="mt-2 pl-[1px]">
           <span className="rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[10px] font-medium tracking-wide text-gray-500 uppercase">
-            Student
+            {t("studentRole")}
           </span>
         </div>
       </div>
@@ -106,7 +108,7 @@ export default function StudentSidebar({
       {/* Nav Section */}
       <div className="flex-1 overflow-y-auto px-3">
         <div className="mb-2 px-2 text-[10px] font-semibold tracking-[0.15em] text-gray-400 uppercase">
-          Menu
+          {t("menu")}
         </div>
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
@@ -130,11 +132,11 @@ export default function StudentSidebar({
                 )}
               >
                 <item.icon className="h-[17px] w-[17px] currentColor" />
-                <span className="text-[14px] font-medium">{item.label}</span>
-                {item.label === "Messages" && unreadMessages > 0 && (
+                <span className="text-[14px] font-medium">{t(item.key)}</span>
+                {item.key === "messages" && unreadMessages > 0 && (
                   <span className="absolute right-2 top-3 h-[6px] w-[6px] rounded-full bg-[#FF5F57]" />
                 )}
-                {item.label === "Notifications" && unreadNotifications > 0 && (
+                {item.key === "notifications" && unreadNotifications > 0 && (
                   <span className="absolute right-2 top-3 h-[6px] w-[6px] rounded-full bg-[#FF5F57]" />
                 )}
               </Link>

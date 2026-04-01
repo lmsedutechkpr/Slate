@@ -6,6 +6,7 @@ import { ShoppingCart, Star, Package, Heart } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface RecommendedProduct {
   id?: string;
@@ -31,6 +32,8 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
   const incrementCart = useCartStore((s) => s.increment);
   const supabase = createClient();
   const [wishlistedIds, setWishlistedIds] = useState<string[]>(initialWishlistedIds);
+  const t = useTranslations("student");
+  const localLang = t("dashboard") === "டாஷ்போர்டு" ? "ta" : "en"; // cheap locale check if not using useLocale
 
   if (!products || products.length === 0) return null;
 
@@ -42,12 +45,12 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
     await supabase
       .from("cart_items")
       .upsert({ user_id: userId, product_id: productId, quantity: 1 }, { onConflict: "user_id,product_id" });
-    toast.success("Added to cart!");
+    toast.success(t("addedToCartMsg"));
   };
 
   const toggleWishlist = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
-    if (!userId) return toast.error("Please log in");
+    if (!userId) return toast.error(t("pleaseLogInMsg"));
 
     const isWished = wishlistedIds.includes(productId);
     const newWishedIds = isWished 
@@ -60,14 +63,14 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
       const { error } = await supabase.from("wishlists").insert({ user_id: userId, product_id: productId });
       if (error && error.code !== "23505") {
         setWishlistedIds(wishlistedIds);
-        toast.error("Failed to wishlist");
-      } else toast.success("Added to wishlist");
+        toast.error(t("failedToWishlistMsg"));
+      } else toast.success(t("addedToWishlistMsg"));
     } else {
       const { error } = await supabase.from("wishlists").delete().eq("user_id", userId).eq("product_id", productId);
       if (error) {
         setWishlistedIds(wishlistedIds);
-        toast.error("Failed to remove");
-      } else toast.success("Removed from wishlist");
+        toast.error(t("failedToRemoveMsg"));
+      } else toast.success(t("removedFromWishlistMsg"));
     }
   };
 
@@ -76,14 +79,14 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-[18px] font-semibold text-gray-900">Gear for You</h2>
-          <p className="text-[12px] text-gray-400 mt-0.5">Based on your courses</p>
+          <h2 className="text-[18px] font-semibold text-gray-900">{t("gearForYou")}</h2>
+          <p className="text-[12px] text-gray-400 mt-0.5">{t("basedOnCourses")}</p>
         </div>
         <button
           onClick={() => router.push("/student/shop")}
           className="text-[13px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
         >
-          Shop →
+          {t("shopBtn")}
         </button>
       </div>
 
@@ -109,6 +112,8 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
             ? `₹${product.price.toLocaleString("en-IN")}`
             : "—";
 
+          const displayName = localLang === "ta" && product.name_ta ? product.name_ta : product.name;
+
           return (
             <div
               key={`${actualId}-${index}`}
@@ -121,14 +126,14 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={imageSrc}
-                    alt={product.name || 'Product'}
+                    alt={displayName || 'Product'}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-1">
                     <Package className="w-8 h-8 text-gray-300" />
-                    <span className="text-[10px] text-gray-300">No image</span>
+                    <span className="text-[10px] text-gray-300">{t("noImage")}</span>
                   </div>
                 )}
 
@@ -158,7 +163,7 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
               {/* Info */}
               <div className="p-3">
                 <h3 className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug">
-                  {product.name}
+                  {displayName}
                 </h3>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[14px] font-bold text-gray-900">{priceStr}</span>
@@ -167,7 +172,7 @@ export default function RecommendedProducts({ products, initialWishlistedIds = [
                     className="flex items-center gap-1 bg-gray-900 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full hover:bg-gray-700 transition-colors"
                   >
                     <ShoppingCart className="w-3 h-3" />
-                    Add
+                    {t("addBtn")}
                   </button>
                 </div>
               </div>

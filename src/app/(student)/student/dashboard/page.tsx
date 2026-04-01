@@ -55,7 +55,7 @@ export default async function StudentDashboardPage() {
       .from('enrollments')
       .select(`
         id, progress_pct, last_accessed_at,
-        courses (
+        courses!inner (
           id, title, title_ta, slug, thumbnail_url, total_lectures,
           course_instructors ( profiles ( full_name ) )
         )
@@ -70,13 +70,13 @@ export default async function StudentDashboardPage() {
     supabase
       .from('live_classes')
       .select(`
-        id, title, scheduled_at, status, meeting_url, actual_attendees,
-        courses!inner ( title, thumbnail_url, enrollments!inner ( student_id ) ),
+        id, title, title_ta, scheduled_at, duration_mins, status, meeting_url, actual_attendees,
+        courses!inner ( title, title_ta, thumbnail_url, enrollments!inner ( student_id ) ),
         profiles!inner ( full_name, avatar_url )
       `)
       .eq('courses.enrollments.student_id', user.id)
       .in('status', ['scheduled', 'live'])
-      .gte('scheduled_at', new Date().toISOString())
+      .gte('scheduled_at', new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString())
       .order('scheduled_at', {ascending: true})
       .limit(3),
 
@@ -134,7 +134,7 @@ export default async function StudentDashboardPage() {
   // Fetch full details for the recommended products
   const productIds = (recommendedProducts || []).map((rp: any) => rp.product_id).filter(Boolean);
   const { data: fullRecommendedProducts } = productIds.length > 0 
-    ? await supabase.from('products').select('id, name, slug, price, images, avg_rating, stock_qty').in('id', productIds)
+    ? await supabase.from('products').select('id, name, name_ta, slug, price, images, avg_rating, stock_qty').in('id', productIds)
     : { data: [] };
 
   // Fetch product wishlists for this user

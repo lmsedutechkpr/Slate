@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { useUIStore } from "@/store/useUIStore";
 // useAuthStore is intentionally not used for user here — setUser() is never called on client.
+import { useTranslations } from "next-intl";
 import {
   Popover,
   PopoverContent,
@@ -22,6 +23,7 @@ interface StudentTopbarProps {
 
 export default function StudentTopbar({ onMenuClick }: StudentTopbarProps) {
   const router = useRouter();
+  const t = useTranslations("student");
 
   // user comes from session directly (useAuthStore.user is never populated on the client)
   const { count: cartCount, setCount: setCartCount } = useCartStore();
@@ -111,12 +113,18 @@ export default function StudentTopbar({ onMenuClick }: StudentTopbarProps) {
   const handleLanguageToggle = async (lang: "en" | "ta") => {
     if (language === lang) return;
     setLanguage(lang);
+    document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000`;
+
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    await supabase
-      .from("user_preferences")
-      .upsert({ user_id: session.user.id, language: lang });
+    if (session) {
+      await supabase
+        .from("user_preferences")
+        .upsert({ user_id: session.user.id, language: lang });
+    }
+
+    // Force full page reload to ensure Server Components and NextIntlClientProvider receive the new cookie
+    window.location.reload();
   };
 
   const handleMarkAsRead = async (e: React.MouseEvent, id: string) => {
@@ -196,10 +204,10 @@ export default function StudentTopbar({ onMenuClick }: StudentTopbarProps) {
               {notifications.length > 0 ? (
                 <div className="flex flex-col">
                   <div className="flex justify-between items-center p-3 border-b border-gray-100 bg-gray-50/50">
-                    <span className="text-[12px] font-medium text-gray-500">Notifications</span>
+                    <span className="text-[12px] font-medium text-gray-500">{t("notifications")}</span>
                     {unreadCount > 0 && (
                       <button onClick={clearAllNotifications} className="text-[12px] text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Mark all read
+                        <Check className="w-3 h-3" /> {t("markAllRead")}
                       </button>
                     )}
                   </div>
@@ -225,7 +233,7 @@ export default function StudentTopbar({ onMenuClick }: StudentTopbarProps) {
                 </div>
               ) : (
                 <div className="p-4 text-center text-[13px] text-gray-400">
-                  No notifications yet
+                  {t("noNotifications")}
                 </div>
               )}
             </div>

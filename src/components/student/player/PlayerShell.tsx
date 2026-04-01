@@ -25,6 +25,7 @@ export default function PlayerShell({
   quizzesMap = {},
 }: any) {
   const [activeLecture, setActiveLecture] = useState(resumeLecture);
+  if (!enrollment?.courses) return null;
   const [enrollmentProgress, setEnrollmentProgress] = useState(enrollment.progress_pct || 0);
   
   const [completedIds, setCompletedIds] = useState<Set<string>>(

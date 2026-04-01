@@ -45,6 +45,27 @@ export default async function LiveClassesPage() {
     console.error('[LiveClassesPage] Error fetching live classes:', lcError.message);
   }
 
+  // --- Auto-healing the database status ---
+  // Find any stray "live" or "scheduled" classes that have passed their duration threshold
+  const now = new Date();
+  const expiredToUpdate = (liveClassesRaw || []).filter((lc: any) => {
+    if (lc.status === 'completed' || lc.status === 'cancelled') return false;
+    const endObj = new Date(new Date(lc.scheduled_at).getTime() + (lc.duration_mins || 60) * 60000);
+    return now > endObj;
+  });
+
+  if (expiredToUpdate.length > 0) {
+    // Fire and forget update so we don't block rendering
+    Promise.all(
+      expiredToUpdate.map((lc: any) =>
+        supabaseAdmin.from('live_classes').update({ status: 'completed' }).eq('id', lc.id)
+      )
+    ).catch(e => console.error("[LiveClassesPage] Failed to auto-update expired live classes", e));
+    
+    // Patch local raw data so the client sees it as completed instantly
+    expiredToUpdate.forEach((lc: any) => lc.status = 'completed');
+  }
+
   // QUERY 2 — Student enrolled course IDs
   const { data: enrollments } = await supabaseAdmin
     .from('enrollments')

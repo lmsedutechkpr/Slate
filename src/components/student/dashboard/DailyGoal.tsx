@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Pencil } from "lucide-react";
 import TrafficLights from "@/components/auth/TrafficLights";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslations } from "next-intl";
 
 interface DailyGoalProps {
   dailyGoalMinutes: number;
@@ -21,6 +22,7 @@ export default function DailyGoal({
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(goal.toString());
   const [watchedMins, setWatchedMins] = useState(todayWatchedMinutes);
+  const t = useTranslations("student");
 
   useEffect(() => {
     const supabase = createClient();
@@ -89,7 +91,7 @@ export default function DailyGoal({
 
       <div className="mt-4 flex flex-1 flex-col justify-center">
         <span className="text-[10px] font-semibold tracking-[0.15em] text-gray-400 uppercase">
-          Daily Goal
+          {t("dailyGoal")}
         </span>
 
         <div className="mt-2 flex items-center justify-between">
@@ -113,7 +115,7 @@ export default function DailyGoal({
               ) : (
                 goal
               )}{" "}
-              min today
+              {t("minToday")}
             </span>
           </div>
 
@@ -141,7 +143,7 @@ export default function DailyGoal({
 
         {isAchieved && (
           <p className="mt-3 text-[12px] font-medium text-[#28C840]">
-            🎯 Goal reached! Great work.
+            {t("goalReached")}
           </p>
         )}
       </div>
